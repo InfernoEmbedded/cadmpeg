@@ -354,11 +354,11 @@ terminal meaning remain unresolved. Exact framing does not supply those roles.
 
 ### OS-05. Object-stream outward-shell sign
 
-**Question.** Which source field gives the outward-shell sign?
+**Question.** Which source ownership and chart relations assign outward orientation outside a uniquely closed planar domain?
 
-**Known.** `catia.md` §6.7 "**Object-stream topology:**" defines the radial orientation equations used to select a consistent neutral shell gauge.
+**Known.** `catia.md` §6.7 "For a selected plane face" defines the class-`61` signed member and native-to-neutral chart composition for a unique source-closed ownership chain covering the selected face domain. Membership belongs to a face occurrence in that chain. Radial orientation equations separately select a consistent neutral shell gauge.
 
-**Need.** We must know the source sign to preserve native shell orientation.
+**Need.** We must identify the complete selected owner when ownership chains are partial or conflicting, and establish the corresponding chart composition for non-planar carriers.
 
 ### OS-06. Object-stream edge terminal controls
 

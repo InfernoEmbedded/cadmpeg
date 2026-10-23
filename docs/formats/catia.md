@@ -1136,6 +1136,17 @@ none supplies a body-kind enum. A body can own more than one face roster,
 and its rosters can have different controls. Class-`61` membership belongs
 to the face occurrence in that roster, independently of the bare face id.
 
+For a selected plane face in a unique source-closed ownership chain, let
+`M` be its class-`61` signed member. Its orientation relative to the native
+plane chart is `-M`: member `-1` is positive and member `+1` is negative.
+The standard face sign agrees with `-M` in that chart. Let `P` be `+1`
+when the native and neutral plane normals agree and `-1` when they are
+opposite. The face orientation relative to the neutral plane is `(-M)*P`.
+A chart reversal changes this relative orientation without changing the
+oriented face. The ownership chain must cover exactly the selected face
+domain. A bare face identifier, a partial roster, or multiple matching
+ownership chains does not select a member.
+
 An object-stream run is topology-rooted when it contains a `b5 03 5f` face frame, a `b5 03 62` loop frame, or an `a8 03 62` wide-header loop frame. Population partitioning and population selection use this same root predicate.
 
 A loop pcurve occurrence may have no standalone object frame. Its occurrence id is still support-bound when the loop pairs it with an edge and either the edge's class `23`/`24`/`25` curve wrapper names the id or both endpoint `06` parameter-incidence records contain the id. Class `23`/`24`/`25` curve wrappers begin `82 pcurve0_ref pcurve1_ref`; the references are the edge's two support-side occurrences. The loop surface is the occurrence's carrier. Such an occurrence has no serialized parameter-space control net.
