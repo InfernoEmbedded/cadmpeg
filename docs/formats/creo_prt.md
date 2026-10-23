@@ -2417,9 +2417,33 @@ body and is the auxiliary field. The equation table ends before the following
 count are independent native values.
 
 Within each `var_arr` row, `value` and `guess` are independent scalar lanes.
-The nine-byte `ed <tail8>` form is a dimension-driven sentinel in either lane;
-it does not encode an inline scalar. Each lane retains its own sentinel state
-and exact nine-byte body.
+A section full-width scalar starts with `ed`, has an eight-byte payload at
+byte offset 1, and occupies exactly nine bytes. The complete owning field
+sets the boundary. For coordinate types `1` and `2`, the payload is a
+big-endian IEEE-754 binary64 value. The opener is not part of the IEEE word.
+Embedded field names and record-control byte values in the payload remain
+data. A truncated image is incomplete. A non-finite coordinate remains
+unresolved. Other variable types retain the complete full-width image as an
+opaque scalar role. The image does not establish a dimension-driven state,
+and an opaque stored value cannot receive an equation-derived replacement.
+A duplicate typed key with an opaque stored value blocks scalar consensus.
+
+The named prototype starts after `fb e2` and contains the ordered fields
+`type`, `key`, `value`, `guess`, `known`, `homogeneity`, and `uvar_id`.
+Each field starts with `e0`, its field-type byte, its name, and a null byte.
+`type`, `key`, and the three state fields use complete compact integers.
+The complete scalar images frame `value` and `guess`. The prototype closes
+with `f1 f7` and its row-class reference after those fields. An empty
+prototype closes at that position without named fields.
+
+The named `guesses` array declares twice the `var_arr` row count in logical
+scalar slots. The first half stores guess bodies and the second half stores
+value bodies in row-ordinal order. In this array, `e4`, `e5`, and `e6` replay
+the preceding scalar once, twice, and three times; `e7 <count>` replays it by
+that positive compact count. A replay requires a preceding scalar and cannot
+exceed the declared count. The next named record begins after the exact
+logical slot count. These array controls do not define the same bytes in other
+scalar lanes.
 
 A type-10 circle row stores direction slots `[0, 0, 0]`, point slots
 `[f6, 1]`, a non-null center identifier, zero arc-orientation and
@@ -2457,16 +2481,15 @@ For dimension types `1` through `5`, the type-0 scalar and the selected
 dimension magnitude are equal non-negative millimetre values, and the equation
 asserts that the absolute difference of the first two coordinates equals that
 magnitude. An inline type-0 scalar, or a value resolved for that row through a
-scalar-equality component, must equal the selected dimension magnitude. A
-type-0 row with the nine-byte dimension-driven sentinel receives its resolved
-value from the magnitude of the selected complete dimension row. When a
+scalar-equality component, must equal the selected dimension magnitude. The
+full-width scalar is not an absent value to fill from the dimension. When a
 function-2 row pairs one type-3 row with one type-0 row, the type-0 key is a
 zero-based ordinal into a complete `dimtab_ptr` row of dimension type `3`.
 The type-0 scalar, selected dimension value, and type-3 radius scalar are
 equal positive millimetre values;
 each scalar may be resolved through its scalar-equality component, and the
-type-3 row key is the radius identity. The same dimension-driven sentinel rule
-applies to the type-0 scalar in this function-2 form.
+type-3 row key is the radius identity. A matching bare point key does not
+join a coordinate row to that radius or dimension.
 Function `0` has exactly six argument slots. The first two rows are the type-1 and
 type-2 coordinates of a first point. The next two rows are the type-1 and type-2
 coordinates of a second point. The fifth row has type `0` or `3` and is the
@@ -3107,8 +3130,10 @@ defined endpoint `v` values define a horizontal carrier. The carrier remains
 unbounded until the trim-vertex graph supplies both endpoints.
 The `verhor` value is also an equality constraint between the corresponding
 endpoint ordinates: value `0` equates `u`, and value `1` equates `v`. A defined
-ordinate therefore supplies the same ordinate for the other endpoint when its
-`var_arr` value is dimension-driven.
+ordinate therefore constrains the other endpoint to the same ordinate. An
+unresolved ordinate can be derived only through its complete typed equality;
+a stored full-width numeric value must agree and is not replaced by a dimension
+with the same bare key.
 
 The `ent_tab` start and end vertex identifiers orient each trimmed entity.
 Connected components of this incidence graph are profile chains. A component

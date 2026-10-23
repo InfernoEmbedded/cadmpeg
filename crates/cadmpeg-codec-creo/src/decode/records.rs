@@ -19,7 +19,7 @@ use crate::surface::{
 pub(super) mod double_xar;
 
 use crate::container::ContainerScan;
-use crate::feature::definitions::{FeatureRelationTable, VariableType};
+use crate::feature::definitions::{FeatureRelationTable, ScalarLane, VariableType};
 use crate::feature::schema::SchemaClass;
 
 use super::coverage::{source_section_ref, surface_family, surface_variant};
@@ -3154,15 +3154,21 @@ pub(super) fn sketch_records<'a>(
                             known: row.known,
                             homogeneity: row.homogeneity,
                             uvar_id: row.uvar_id,
-                            resolved_value: match row.variable_type {
-                                VariableType::U => resolved_coordinates
-                                    .get(&row.key)
-                                    .and_then(|point| point[0]),
-                                VariableType::V => resolved_coordinates
-                                    .get(&row.key)
-                                    .and_then(|point| point[1]),
-                                VariableType::Radius => resolved_radii.get(&row.key).copied(),
-                                _ => resolved_scalars.get(&(row.variable_type, row.key)).copied(),
+                            resolved_value: if row.value == ScalarLane::OpaqueFullWidth {
+                                None
+                            } else {
+                                match row.variable_type {
+                                    VariableType::U => resolved_coordinates
+                                        .get(&row.key)
+                                        .and_then(|point| point[0]),
+                                    VariableType::V => resolved_coordinates
+                                        .get(&row.key)
+                                        .and_then(|point| point[1]),
+                                    VariableType::Radius => resolved_radii.get(&row.key).copied(),
+                                    _ => {
+                                        resolved_scalars.get(&(row.variable_type, row.key)).copied()
+                                    }
+                                }
                             },
                             offset: row.offset,
                         })

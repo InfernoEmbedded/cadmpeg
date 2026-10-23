@@ -125,6 +125,20 @@ Cross-checked against code:
 
 - `crates/cadmpeg-codec-creo/src/scalar.rs` — The parser expands the local-system support frame as twelve finite `f64` slots.
 
+## `section_full_width_scalar`
+
+Spec §5 · layout: byte offsets · size: 9 B
+
+The complete owning scalar field supplies the boundary. Only supported coordinate roles interpret the payload as big-endian binary64; other roles retain opaque bytes.
+
+Parsed by:
+- `crates/cadmpeg-codec-creo/src/scalar.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `opener` | `bytes[1]` | big | spec | A section full-width scalar starts with `ed` · value `[237]` |
+| 1 | 8 | `payload` | `bytes[8]` | big | spec | byte offset 1, and occupies exactly nine bytes. |
+
 ## Not tabulated
 
 | Area | Spec | Reason |

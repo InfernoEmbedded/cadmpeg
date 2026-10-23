@@ -171,6 +171,8 @@ pub(crate) enum CreoLossCode {
     SectionIncidenceNative,
     /// Active section dimension relations retain native operands.
     SectionRelationNative,
+    /// Full-width section variable lanes retain opaque scalar roles.
+    SectionVariableScalarOpaque,
     /// Dimension-driven section solver variables retain unresolved exact values.
     SectionDimensionVariableUnresolved,
     /// Section solver pre-solve estimates use an unresolved dimension sentinel.
@@ -269,6 +271,7 @@ impl CreoLossCode {
             Self::SectionRelationJoinMissing => "section.relation-join-missing",
             Self::SectionIncidenceNative => "section.incidence-native",
             Self::SectionRelationNative => "section.relation-native",
+            Self::SectionVariableScalarOpaque => "section.variable-scalar-opaque",
             Self::SectionDimensionVariableUnresolved => "section.dimension-variable-unresolved",
             Self::SectionDimensionGuessUnresolved => "section.dimension-guess-unresolved",
             Self::SectionSolverVariableMissing => "section.solver-variable-missing",
@@ -354,6 +357,7 @@ impl CreoLossCode {
             | Self::SectionRelationJoinMissing
             | Self::SectionIncidenceNative
             | Self::SectionRelationNative
+            | Self::SectionVariableScalarOpaque
             | Self::SectionDimensionVariableUnresolved
             | Self::SectionDimensionGuessUnresolved
             | Self::SectionSolverVariableMissing
@@ -438,6 +442,7 @@ impl CreoLossCode {
             | Self::SectionRelationJoinMissing
             | Self::SectionIncidenceNative
             | Self::SectionRelationNative
+            | Self::SectionVariableScalarOpaque
             | Self::SectionDimensionVariableUnresolved
             | Self::SectionDimensionGuessUnresolved
             | Self::SectionSolverVariableMissing
@@ -552,6 +557,7 @@ mod tests {
                 "section.relation-join-missing",
                 "section.incidence-native",
                 "section.relation-native",
+                "section.variable-scalar-opaque",
                 "section.dimension-variable-unresolved",
                 "section.dimension-guess-unresolved",
                 "section.solver-variable-missing",

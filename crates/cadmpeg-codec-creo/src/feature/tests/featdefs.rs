@@ -251,8 +251,7 @@ fn scan_stops_feature_local_outlines_at_named_records() {
 
 #[test]
 fn scan_decodes_featdefs_var_arr_section_points() {
-    let mut payload =
-        b"feat_defs_40\0var_arr\0\xf8\x02\xf7\x01\xfb\xe2schema\xf1\xf7\x01\xe2".to_vec();
+    let mut payload = b"feat_defs_40\0var_arr\0\xf8\x02\xf7\x01\xfb\xe2\xf1\xf7\x01\xe2".to_vec();
     payload.extend_from_slice(&[1, 7, 0xe4, 0x0f, 1, 0, 3, 0xe2]);
     payload.extend_from_slice(&[2, 7, 0x46, 0x08, 0, 0, 0, 0, 0, 0, 0x0f, 1, 0, 4, 0xe2]);
     payload.extend_from_slice(&[1, 8, 0xe4, 0x0f, 1, 0, 5, 0xe2]);
@@ -324,7 +323,7 @@ fn scan_decodes_featdefs_var_arr_named_prototype_row() {
 }
 
 #[test]
-fn scan_classifies_named_var_arr_guess_sentinel() {
+fn scan_decodes_named_var_arr_full_width_guess() {
     let payload = b"feat_defs_40\0var_arr\0\xf8\x01\xf7\x01\xfb\xe2\
         \xe0\x05type\0\x01\xe0\x08key\0\x07\xe0\x02value\0\xe4\
         \xe0\x02guess\0\xed\x11\x12\x13\x14\x15\x16\x17\x18\
@@ -346,7 +345,7 @@ fn scan_classifies_named_var_arr_guess_sentinel() {
     );
     assert_eq!(
         row.guess,
-        crate::feature::definitions::ScalarLane::DimensionDriven
+        crate::feature::definitions::ScalarLane::Value(f64::from_bits(0x1112_1314_1516_1718))
     );
 }
 
@@ -794,8 +793,7 @@ fn scan_solves_featdefs_trim_vertex_line_intersection() {
         payload.extend_from_slice(&[0x0f, 1, 0, key, 0xe2]);
     }
 
-    let mut payload =
-        b"feat_defs_40\0var_arr\0\xf8\x08\xf7\x01\xfb\xe2schema\xf1\xf7\x01\xe2".to_vec();
+    let mut payload = b"feat_defs_40\0var_arr\0\xf8\x08\xf7\x01\xfb\xe2\xf1\xf7\x01\xe2".to_vec();
     for (point, u, v) in [(7, 0.0, 0.0), (8, 2.0, 2.0), (9, 0.0, 2.0), (10, 2.0, 0.0)] {
         variable_row(&mut payload, 1, point, u);
         variable_row(&mut payload, 2, point, v);

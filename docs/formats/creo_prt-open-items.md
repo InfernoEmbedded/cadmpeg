@@ -431,31 +431,13 @@ a fallback.
 
 **Note.** A tuple position or integer value alone does not establish a namespace. Identical tuple shapes under different relation types do not inherit each other's semantics.
 
-### SP-12. Dimension-driven variable join
+### SP-12. Full-width non-coordinate variable roles
 
-**Question.** Which fields join a dimension-driven `var_arr` value to the relation dimension that drives it?
+**Question.** Which independently owned scalar roles assign numeric semantics to full-width `var_arr` images outside point-coordinate types `1` and `2`?
 
-**Known.** `creo_prt.md` §5 "A `segtab` line whose two endpoint identifiers each have complete type-1 and" identifies the dimension-driven `var_arr` state. `uvar_id`, point key, relation identifier, relation dimension selector, and external dimension identifier are distinct identities.
-The named `dimtab_ptr` prototype may also carry `dim_ref` rows with nullable
-`item_id`, `sense`, and two nullable point slots. Those rows are distinct from
-the `var_arr` solver-variable identity. A complete `eqtn_arr` uses zero-based
-`var_arr` row ordinals for its argument slots. Function `2` transfers scalar
-equality between two referenced rows; for two type-1 rows or two type-2 rows,
-this transfers equality between the corresponding point coordinates. Function
-`3` transfers the magnitude of a complete linear dimension into an unsigned
-coordinate-difference constraint when its inline type-0 scalar agrees with
-that magnitude, its scalar-equality component resolves to that magnitude, or
-its type-0 value is the dimension-driven sentinel. The selected complete
-dimension supplies that sentinel's resolved magnitude. A function-2 type-3/type-0
-pair binds a positive type-3 radius row to a type-3 dimension row when the
-resolved scalar values agree or the type-0 row is dimension-driven; the
-selected dimension supplies the resolved scalar and radius value. A function-5
-type-6/type-6/type-5 row with a zero type-5 selector transfers direct equality
-between the two type-6 scalars; either finite scalar supplies the other row's
-dimension-driven sentinel.
+**Known.** `creo_prt.md` §5 defines complete nine-byte framing and numeric coordinate roles. Other full-width variable fields retain their exact images as opaque values. A finite IEEE reconstruction alone does not establish a numeric role. Opaque values do not select dimensions or receive equation-derived replacements. Point keys, radius keys, variable ordinals, dimension selectors, and external identifiers remain distinct namespaces.
 
-**Need.** We must know the remaining non-equality equation and relation joins
-that assign a dimension value to a dimension-driven solver variable.
+**Need.** Obtain complete source productions and independent saved-value or authored-property joins for each remaining variable role. Preserve physical framing and source values while those semantics remain unresolved.
 
 ### SP-14. Unary point incidence
 

@@ -83,3 +83,19 @@ pub(crate) mod type24_segmented_first_coordinate_bounded_round {
     /// Offset of `trailer` (`bytes[2]`). Spec §3.3.
     pub(crate) const TRAILER: usize = 54;
 }
+
+/// Byte offsets for the `section_full_width_scalar` record.
+///
+/// Spec §5. Record length 9 B.
+///
+/// ```text
+/// The complete owning scalar field supplies the boundary. Only supported coordinate roles interpret the payload as big-endian binary64; other roles retain opaque bytes.
+/// ```
+pub(crate) mod section_full_width_scalar {
+    /// Record length in bytes. Spec §5.
+    pub(crate) const LEN: usize = 9;
+    /// Stated value of `opener` (`bytes[1]`). Spec §5.
+    pub(crate) const OPENER_VALUE: [u8; 1] = [0xed];
+    /// Offset of `payload` (`bytes[8]`). Spec §5.
+    pub(crate) const PAYLOAD: usize = 1;
+}

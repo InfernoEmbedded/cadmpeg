@@ -123,6 +123,7 @@ fn outline_scalars(payload: &[u8], cache: &scalar::ScalarCache) -> [DecodedField
 pub(crate) enum ScalarLane {
     Value(f64),
     DimensionDriven,
+    OpaqueFullWidth,
     Undefined,
 }
 
@@ -130,7 +131,7 @@ impl ScalarLane {
     pub(crate) fn value(self) -> Option<f64> {
         match self {
             Self::Value(value) => Some(value),
-            Self::DimensionDriven | Self::Undefined => None,
+            Self::DimensionDriven | Self::OpaqueFullWidth | Self::Undefined => None,
         }
     }
 }
@@ -296,7 +297,11 @@ impl FeatureVariableTable {
         let mut ambiguous = BTreeSet::new();
         for point_id in point_ids {
             let mut point = [None; 2];
-            let mut conflict = false;
+            let mut conflict = self.rows.iter().any(|row| {
+                row.key == point_id
+                    && matches!(row.variable_type, VariableType::U | VariableType::V)
+                    && row.value == ScalarLane::OpaqueFullWidth
+            });
             for coordinate in 0..2 {
                 let variable_type = [VariableType::U, VariableType::V][coordinate];
                 let values = || {
@@ -364,6 +369,33 @@ pub(crate) struct FeatureEquationTable {
     pub(crate) rows: Vec<FeatureEquation>,
     /// Byte offset of the `eqtn_arr` label in the original stream.
     pub(crate) offset: usize,
+}
+
+impl FeatureVariableTable {
+    pub(crate) fn opaque_value_keys(&self) -> BTreeSet<(VariableType, u32)> {
+        self.rows
+            .iter()
+            .filter(|row| row.value == ScalarLane::OpaqueFullWidth)
+            .map(|row| (row.variable_type, row.key))
+            .collect()
+    }
+}
+
+impl FeatureEquationTable {
+    pub(crate) fn rows_without_opaque_values<'a>(
+        &'a self,
+        variables: &'a FeatureVariableTable,
+    ) -> impl Iterator<Item = &'a FeatureEquation> {
+        let opaque = variables.opaque_value_keys();
+        self.rows.iter().filter(move |equation| {
+            equation.arguments.iter().flatten().all(|ordinal| {
+                variables
+                    .rows
+                    .get(index_from_u32(*ordinal))
+                    .is_none_or(|row| !opaque.contains(&(row.variable_type, row.key)))
+            })
+        })
+    }
 }
 
 /// Defined positional segment family.
@@ -1617,6 +1649,24 @@ fn decode_section_coordinate_scalar(
     end: usize,
     cache: &scalar::ScalarCache,
 ) -> (ScalarLane, usize) {
+    if payload.get(offset) == Some(&0xed) {
+        let Some(bounded) = payload.get(..end) else {
+            return (ScalarLane::Undefined, offset);
+        };
+        return scalar::decode_section_full_width_scalar(bounded, offset).map_or(
+            (ScalarLane::Undefined, offset),
+            |(value, next)| {
+                (
+                    if value.is_finite() {
+                        ScalarLane::Value(value)
+                    } else {
+                        ScalarLane::Undefined
+                    },
+                    next,
+                )
+            },
+        );
+    }
     match payload.get(offset) {
         Some(0x00 | 0x34) if offset + 3 <= end => return (ScalarLane::Undefined, offset + 3),
         Some(0x01) if offset + 4 <= end => return (ScalarLane::Undefined, offset + 4),
@@ -1632,11 +1682,39 @@ fn decode_section_coordinate_scalar(
     decode_variable_scalar(payload, offset, end, cache)
 }
 
+fn decode_typed_variable_field(
+    payload: &[u8],
+    offset: usize,
+    end: usize,
+    cache: &scalar::ScalarCache,
+    variable_type: VariableType,
+) -> (ScalarLane, usize) {
+    if payload.get(offset) == Some(&0xed) {
+        return payload
+            .get(..end)
+            .and_then(|bounded| scalar::decode_section_full_width_scalar(bounded, offset))
+            .map_or((ScalarLane::Undefined, offset), |(value, next)| {
+                (
+                    if matches!(variable_type, VariableType::U | VariableType::V)
+                        && value.is_finite()
+                    {
+                        ScalarLane::Value(value)
+                    } else {
+                        ScalarLane::OpaqueFullWidth
+                    },
+                    next,
+                )
+            });
+    }
+    decode_section_coordinate_scalar(payload, offset, end, cache)
+}
+
 fn decode_variable_guess(
     payload: &[u8],
     offset: usize,
     end: usize,
     cache: &scalar::ScalarCache,
+    variable_type: VariableType,
 ) -> (ScalarLane, usize) {
     if payload.get(offset) == Some(&0x18) {
         let mut trailing = offset + 1;
@@ -1660,7 +1738,12 @@ fn decode_variable_guess(
             return (ScalarLane::Value(0.0), offset + 1);
         }
     }
-    let decoded = decode_section_coordinate_scalar(payload, offset, end, cache);
+    let decoded = decode_typed_variable_field(payload, offset, end, cache, variable_type);
+    // A full-width opener owns exactly nine bytes. A short image cannot use
+    // the legacy opaque-guess suffix search to borrow its delimiter bytes.
+    if payload.get(offset) == Some(&0xed) {
+        return decoded;
+    }
     if decoded.0 == ScalarLane::Undefined {
         if let Some(next) = unresolved_variable_guess_end(payload, offset, end) {
             return (ScalarLane::Undefined, next);
@@ -1669,67 +1752,107 @@ fn decode_variable_guess(
     decoded
 }
 
+fn variable_named_field(payload: &[u8], cursor: usize, name: &[u8]) -> Option<usize> {
+    let field = psb::token_at(payload, cursor)?;
+    let end = cursor.checked_add(field.length)?;
+    (field.kind == psb::TokenKind::NamedRecord && payload.get(cursor + 2..end) == Some(name))
+        .then_some(end)
+}
+
+fn named_variable_prototype(
+    payload: &[u8],
+    start: usize,
+    end: usize,
+    cache: &scalar::ScalarCache,
+) -> Option<(Option<FeatureVariableRow>, usize)> {
+    let payload = payload.get(..end)?;
+    if payload.get(start..start.checked_add(2)?) != Some(&[0xfb, 0xe2]) {
+        return None;
+    }
+    let mut cursor = start + 2;
+    if payload.get(cursor..cursor + 2) == Some(&[0xf1, psb::token::ENTITY_REF]) {
+        return Some((None, cursor));
+    }
+    let offset = cursor;
+    cursor = variable_named_field(payload, cursor, b"type\0")?;
+    let (variable_type, next) = psb::complete_compact_int(payload, cursor)?;
+    cursor = variable_named_field(payload, next, b"key\0")?;
+    let (key, next) = psb::complete_compact_int(payload, cursor)?;
+    let value_start = variable_named_field(payload, next, b"value\0")?;
+    let (value, value_end) =
+        decode_typed_variable_field(payload, value_start, end, cache, variable_type.into());
+    if value_end <= value_start {
+        return None;
+    }
+    let guess_start = variable_named_field(payload, value_end, b"guess\0")?;
+    let (guess, guess_end) =
+        decode_typed_variable_field(payload, guess_start, end, cache, variable_type.into());
+    if guess_end <= guess_start {
+        return None;
+    }
+    cursor = guess_end;
+    let mut states = [None; 3];
+    for (state, name) in
+        states
+            .iter_mut()
+            .zip([b"known\0".as_slice(), b"homogeneity\0", b"uvar_id\0"])
+    {
+        cursor = variable_named_field(payload, cursor, name)?;
+        let (value, next) = psb::complete_compact_int(payload, cursor)?;
+        *state = Some(value);
+        cursor = next;
+    }
+    if payload.get(cursor..cursor + 2) != Some(&[0xf1, psb::token::ENTITY_REF]) {
+        return None;
+    }
+    Some((
+        Some(FeatureVariableRow {
+            variable_type: variable_type.into(),
+            key,
+            value,
+            value_body: payload[value_start..value_end].to_vec(),
+            guess,
+            guess_body: payload[guess_start..guess_end].to_vec(),
+            known: states[0],
+            homogeneity: states[1],
+            uvar_id: states[2],
+            offset,
+        }),
+        cursor,
+    ))
+}
+
 fn variable_table(
     payload: &[u8],
     start: usize,
     end: usize,
     cache: &scalar::ScalarCache,
 ) -> Option<FeatureVariableTable> {
+    let payload = payload.get(..end)?;
     let table = find_bytes(payload, b"var_arr\0", start, end)?;
     let mut cursor = table + b"var_arr\0".len();
     if payload.get(cursor) != Some(&psb::token::ARRAY_OPEN) {
         return None;
     }
-    let (declared_count, after_count) = psb::compact_int(payload, cursor + 1);
+    let (declared_count, after_count) = psb::complete_compact_int(payload, cursor + 1)?;
     cursor = after_count;
-    let entity_ref = if payload.get(cursor) == Some(&psb::token::ENTITY_REF) {
-        let (value, next) = psb::compact_int(payload, cursor + 1);
-        cursor = next;
-        Some(value)
-    } else {
-        None
-    };
-    let close = find_bytes(payload, &[0xf1, psb::token::ENTITY_REF], cursor, end)?;
-    let named_row = (|| {
-        let type_label = find_bytes(payload, b"type\0", cursor, close)?;
-        let variable_type = named_compact_int(payload, b"type\0", cursor, close)?;
-        let key = named_compact_int(payload, b"key\0", cursor, close)?;
-        let value_label = find_bytes(payload, b"value\0", cursor, close)? + b"value\0".len();
-        let (value, value_end) =
-            decode_section_coordinate_scalar(payload, value_label, close, cache);
-        let guess_label = find_bytes(payload, b"guess\0", cursor, close)? + b"guess\0".len();
-        let (guess, guess_end) =
-            decode_section_coordinate_scalar(payload, guess_label, close, cache);
-        Some((
-            FeatureVariableRow {
-                variable_type: variable_type.into(),
-                key,
-                value,
-                value_body: Vec::new(),
-                guess,
-                guess_body: Vec::new(),
-                known: named_compact_int(payload, b"known\0", cursor, close),
-                homogeneity: named_compact_int(payload, b"homogeneity\0", cursor, close),
-                uvar_id: named_compact_int(payload, b"uvar_id\0", cursor, close),
-                // The row header is the two bytes before its type label. A label
-                // below offset 2 states a header outside the payload and refuses
-                // the row; the label sits at or after the table opener plus eight,
-                // so the bound holds for every table this scanner reaches.
-                offset: type_label.checked_sub(2)?,
-            },
-            (value_label, value_end),
-            (guess_label, guess_end),
-        ))
-    })();
-    let (_, after_close_ref) = psb::compact_int(payload, close + 2);
+    if payload.get(cursor) != Some(&psb::token::ENTITY_REF) {
+        return None;
+    }
+    let (row_class, next) = psb::reference_id(payload, cursor + 1).ok()?;
+    cursor = next;
+    let entity_ref = Some(row_class);
+    let (named_row, close) = named_variable_prototype(payload, cursor, end, cache)?;
+    let (closed_class, after_close_ref) = psb::reference_id(payload, close + 2).ok()?;
+    if closed_class != row_class {
+        return None;
+    }
     cursor = after_close_ref;
     if payload.get(cursor) == Some(&0xe2) {
         cursor += 1;
     }
     let mut rows = Vec::new();
-    if let Some((mut row, (value_start, value_end), (guess_start, guess_end))) = named_row {
-        row.value_body = payload[value_start..value_end].to_vec();
-        row.guess_body = payload[guess_start..guess_end].to_vec();
+    if let Some(row) = named_row {
         rows.push(row);
     }
     // Each row consumes at least one byte, so the declared count cannot admit
@@ -1753,11 +1876,19 @@ fn variable_table(
         let (key, next) = psb::compact_int(payload, cursor);
         cursor = next;
         let value_start = cursor;
-        let (value, next) = decode_section_coordinate_scalar(payload, cursor, end, cache);
+        let (value, next) =
+            decode_typed_variable_field(payload, cursor, end, cache, variable_type.into());
+        if next <= cursor {
+            break;
+        }
         cursor = next;
         let value_end = cursor;
         let guess_start = cursor;
-        let (guess, next) = decode_variable_guess(payload, cursor, end, cache);
+        let (guess, next) =
+            decode_variable_guess(payload, cursor, end, cache, variable_type.into());
+        if next <= cursor {
+            break;
+        }
         cursor = next;
         let guess_end = cursor;
         let mut trailing = [None; 3];
@@ -1846,11 +1977,19 @@ fn positional_variable_table(
         let (key, next) = psb::compact_int(payload, cursor);
         cursor = next;
         let value_start = cursor;
-        let (value, next) = decode_section_coordinate_scalar(payload, cursor, end, cache);
+        let (value, next) =
+            decode_typed_variable_field(payload, cursor, end, cache, variable_type.into());
+        if next <= cursor {
+            break;
+        }
         cursor = next;
         let value_end = cursor;
         let guess_start = cursor;
-        let (guess, next) = decode_variable_guess(payload, cursor, end, cache);
+        let (guess, next) =
+            decode_variable_guess(payload, cursor, end, cache, variable_type.into());
+        if next <= cursor {
+            break;
+        }
         cursor = next;
         let guess_end = cursor;
         let mut trailing = [None; 3];

@@ -332,6 +332,11 @@ pub(super) fn push_coverage_drop_losses(
             ),
         );
     }
+    let opaque_lanes = coverage_count(coverage, "opaque_section_variable_lane_count");
+    if opaque_lanes != 0 {
+        push_report_loss(losses, CreoLossCode::SectionVariableScalarOpaque,
+            format_args!("{opaque_lanes} full-width section variable lane(s) retain exact bytes without independently established numeric roles."));
+    }
     let unresolved_dimension_driven_variables = coverage_count(
         coverage,
         "unresolved_feature_dimension_driven_variable_count",

@@ -793,7 +793,7 @@ fn scan_partitions_multiple_depdb_recipe_rows() {
 #[test]
 fn scan_binds_standalone_depdb_section_to_its_recipe_owner() {
     let mut depdb = b"gsec2d_ptr\0\xe0\x0aname\0S2D0002\0\
-        var_arr\0\xf8\x02\xf7\x01\xfb\xe2schema\xf1\xf7\x01\xe2"
+        var_arr\0\xf8\x02\xf7\x01\xfb\xe2\xf1\xf7\x01\xe2"
         .to_vec();
     depdb.extend_from_slice(&[1, 7, 0xe4, 0x0f, 1, 0, 3, 0xe2]);
     depdb.extend_from_slice(&[2, 7, 0x46, 0x08, 0, 0, 0, 0, 0, 0, 0x0f, 1, 0, 4, 0xe2]);

@@ -309,3 +309,28 @@ area = "Section, feature, and DEPDB record grammars (§5-§8)"
 reason = "Variable-length token grammars over self-delimiting fields. About twenty-five of them state a complete ordered slot list and are transcribable as slot layouts; they are not covered in this pass. The rest are named but unspecified, and their gaps are already tracked in `creo_prt-open-items.md`."
 section = "5"
 anchor = "## 5. Topology and section records"
+
+[[record]]
+name = "section_full_width_scalar"
+parsed_by = "crates/cadmpeg-codec-creo/src/scalar.rs"
+kind = "byte"
+section = "5"
+anchor = "A section full-width scalar starts with `ed`, has an eight-byte payload"
+size = 9
+endianness = "big"
+note = "The complete owning scalar field supplies the boundary. Only supported coordinate roles interpret the payload as big-endian binary64; other roles retain opaque bytes."
+
+[[record.field]]
+name = "opener"
+offset = 0
+type = "bytes[1]"
+source = "spec"
+anchor = "A section full-width scalar starts with `ed`"
+value = [0xed]
+
+[[record.field]]
+name = "payload"
+offset = 1
+type = "bytes[8]"
+source = "spec"
+anchor = "byte offset 1, and occupies exactly nine bytes."

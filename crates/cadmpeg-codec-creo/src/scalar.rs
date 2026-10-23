@@ -766,6 +766,20 @@ pub(crate) fn is_named_local_system_coordinate_opener(byte: u8) -> bool {
     )
 }
 
+/// Read a complete full-width section scalar image.
+pub(crate) fn decode_section_full_width_scalar(data: &[u8], offset: usize) -> Option<(f64, usize)> {
+    use crate::layout::section_full_width_scalar;
+    let end = offset.checked_add(section_full_width_scalar::LEN)?;
+    let image = data.get(offset..end)?;
+    (image.get(..section_full_width_scalar::OPENER_VALUE.len())
+        == Some(&section_full_width_scalar::OPENER_VALUE))
+    .then_some(())?;
+    Some((
+        View::f64_be_at(image, section_full_width_scalar::PAYLOAD)?,
+        end,
+    ))
+}
+
 /// Decode one coordinate in a model-reference entity row.
 ///
 /// The `0xed` form stores a complete big-endian IEEE-754 value in the eight
@@ -4190,5 +4204,20 @@ mod tests {
         // A shape neither compact integer stated is not a scalar body.
         assert_eq!(admitted_scalar_body(&payload, 1, 3, 1), None);
         assert_eq!(admitted_scalar_body(&payload, 2, 2, 1), None);
+    }
+    #[test]
+    fn section_full_width_image_preserves_payload_and_exact_cursor() {
+        let data = [
+            0x18, 0xed, 0xbf, 0xf0, 0xe2, 0xe3, 0xe0, 0x00, 0x00, 0x01, 0x18,
+        ];
+        let expected = f64::from_bits(0xbff0_e2e3_e000_0001);
+        assert_eq!(
+            super::decode_section_full_width_scalar(&data, 1),
+            Some((expected, 10))
+        );
+        for len in 0..10 {
+            assert!(super::decode_section_full_width_scalar(&data[..len], 1).is_none());
+        }
+        assert!(super::decode_section_full_width_scalar(&data, 0).is_none());
     }
 }
