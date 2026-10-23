@@ -3689,6 +3689,14 @@ When both identifiers materialize as plane surfaces owned by the feature,
 complete, distinct, parallel equations make the class-204 plane the
 section-plane equation; the class-203 plane is the opposite sweep cap.
 
+A material creation recipe and its stored feature class must agree: `prot`
+requires class 917, and `cut` requires class 916. A present current modeling
+row must agree with that material class. An incompatible creation recipe does
+not define the current feature's form, Boolean effect, or regeneration parent.
+Current parent tables and prototype references define independent dependencies.
+The creation record retains its stored recipe, class, and previous-feature
+identifier as history.
+
 The section-sweep recipe determines its Boolean effect independently of the
 localized operation-family display name. A `prot` recipe joins an established
 preceding body and creates a new body when no preceding modeled body exists. A

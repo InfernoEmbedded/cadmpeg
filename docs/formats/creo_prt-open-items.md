@@ -548,13 +548,13 @@ retain native geometry instead of selecting a same-valued datum or class ID.
 
 **Need.** We must know the selector semantics to trim a one-sided, symmetric, or two-sided revolution.
 
-### SP-38. Conflicting feature recipe candidates
+### SP-38. Current recipe ownership across creation events
 
-**Question.** Which byte-backed field selects the procedural recipe when one feature-state record contains more than one complete recipe name?
+**Question.** Which complete current feature-owned production selects the sweep form when creation-event history disagrees with the current modeling structure?
 
-**Known.** `protextrude`, `cutextrude`, `protrevolve`, and `cutrevolve` are recognized recipe names. A unique DEPDB recipe binding supplies the recipe and its feature identifier.
+**Known.** A `created_features` row binds its `feat_id`, `ft_type`, and `icon_name`. A group event can contain distinct child recipes with distinct owners. Class 916 removes material and class 917 adds material; neither class selects extrusion versus revolution. An incompatible creation recipe does not define current form, Boolean effect, or regeneration ancestry. Current parent tables and prototype references remain independent of creation history. Display names, previous-feature identifiers, and pattern membership do not select the current recipe.
 
-**Need.** We must know the recipe discriminator and conflict rule to assign the feature family and Boolean effect.
+**Need.** Establish complete named and positional creation-array and event ownership, including repeated feature identifiers in separate events. Bind the current form independently of first or last audit occurrence, display text, and other child rows. Keep historical fields distinct from current recipe and dependency authority.
 
 ### SP-39. Complete outer-entry ownership for simple-drilled dimensions
 

@@ -39,7 +39,7 @@ use super::super::sketch_ids::owning_feature_definition_ref;
 use super::super::uniqueness::unique_feature_datum_plane;
 use crate::decode::sketch_transfer::constraints::close_sketch_constraint_parameter_references;
 use crate::decode::sketch_transfer::recipe::{
-    current_feature_operation, current_feature_recipe, current_feature_recipe_parent,
+    admitted_feature_recipe, admitted_feature_recipe_parent, current_feature_operation,
     row_feature_schema_classes, FeatureSchemaClasses,
 };
 
@@ -254,7 +254,7 @@ pub(super) fn emit_model_features(
         let schema_class = schema_classes.get(operation.feature_id);
         let definition = schema_class.map_or_else(
             || {
-                current_feature_recipe(&scan.features.operations, operation.feature_id)
+                admitted_feature_recipe(scan, operation.feature_id)
                     .map(|_| {
                         schema_feature_definition(
                             ctx,
@@ -348,11 +348,11 @@ pub(super) fn emit_model_features(
                     .unwrap_or(bytes);
                 String::from_utf8_lossy(stripped).into_owned()
             });
-        let source_tag = current_feature_recipe(&scan.features.operations, operation.feature_id)
+        let source_tag = admitted_feature_recipe(scan, operation.feature_id)
             .map(|recipe| recipe.name().to_owned());
         let native_ref = owning_feature_definition_ref(scan, operation.feature_id);
         let id = compose_feature_id(operation.feature_id)?;
-        let parent = current_feature_recipe_parent(&scan.features.operations, operation.feature_id)
+        let parent = admitted_feature_recipe_parent(scan, operation.feature_id)
             .and_then(|parent_feature_id| {
                 ir.model.features.iter().find(|feature| {
                     crate::identity::matches_numbered_identity(

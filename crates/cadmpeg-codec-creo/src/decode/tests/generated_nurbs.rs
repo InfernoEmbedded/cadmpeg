@@ -1562,7 +1562,7 @@ fn section_axis_line_carrier_uses_equal_decoded_ordinates() {
                 checked_classes(&[row(913, 20), row(914, 30)]),
                 6,
             ),
-            Some(crate::feature::schema::SchemaClass::Protrusion)
+            None
         );
         assert_eq!(
             resolved_feature_schema_class_from_classes(
@@ -1570,7 +1570,7 @@ fn section_axis_line_carrier_uses_equal_decoded_ordinates() {
                 checked_classes(&[row(913, 20), row(913, 30)]),
                 6,
             ),
-            Some(crate::feature::schema::SchemaClass::Protrusion)
+            None
         );
         assert_eq!(
             checked_classes(&[row(913, 20), row(914, 30)]),
