@@ -28,7 +28,11 @@ pub(super) fn table(ctx: &DecodeContext<'_>, payload: &[u8]) -> Result<Table, Co
         if node.tag_name().name() != "propertySection" {
             continue;
         }
-        if node.tag_name().namespace().is_some() {
+        if node
+            .tag_name()
+            .namespace()
+            .is_some_and(|namespace| !namespace.is_empty())
+        {
             return Err(CodecError::malformed(
                 "default-property section namespace is unsupported",
             ));
@@ -74,7 +78,11 @@ pub(super) fn table(ctx: &DecodeContext<'_>, payload: &[u8]) -> Result<Table, Co
     let mut value_index = 0;
     let mut alias_index = 0;
     for node in nodes() {
-        if node.tag_name().namespace().is_some() {
+        if node
+            .tag_name()
+            .namespace()
+            .is_some_and(|namespace| !namespace.is_empty())
+        {
             return Err(CodecError::malformed(
                 "default-property record namespace is unsupported",
             ));

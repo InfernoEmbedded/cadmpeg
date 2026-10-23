@@ -379,3 +379,26 @@ fn saved_utf16_text_is_admitted_before_allocating_the_decoded_string() {
         Err(CodecError::ResourceLimit(_))
     ));
 }
+
+#[test]
+fn explicit_empty_default_namespace_has_the_same_property_semantics_as_no_binding() {
+    let prefixed = xml(r#"<property pid="2" name="Alias"><v:i4>7</v:i4></property>"#);
+    let empty = prefixed
+        .replace("<p:Properties", "<Properties")
+        .replace("xmlns:p=", "xmlns=")
+        .replace("</p:Properties>", "</Properties>")
+        .replace("<propertySection ", "<propertySection xmlns=\"\" ");
+    let (expected, _, losses) = properties(&[(MEMBER, prefixed.as_bytes())]);
+    assert_eq!(expected.len(), 1);
+    assert!(losses.is_empty());
+    let (actual, _, losses) = properties(&[(MEMBER, empty.as_bytes())]);
+    assert_eq!(actual, expected);
+    assert!(losses.is_empty());
+    let foreign = empty.replace(
+        "<propertySection xmlns=\"\" ",
+        "<propertySection xmlns=\"urn:other\" ",
+    );
+    let (rows, _, losses) = properties(&[(MEMBER, foreign.as_bytes())]);
+    assert!(rows.is_empty());
+    assert_eq!(losses.len(), 1);
+}
