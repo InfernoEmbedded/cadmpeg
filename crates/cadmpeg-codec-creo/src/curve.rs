@@ -473,16 +473,27 @@ impl CurvePrototypeTopology {
     }
 }
 
-/// One-sided DEPDB suffix, serialized as `[0, X1, F1, 0]`.
+/// One-sided cross-section pointers in stored field order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct DepdbCurveSuffix {
-    x1: u32,
-    face_id: u32,
+    section_plane_id: u32,
+    next_curve_id: u32,
+    reference_surface_id: u32,
 }
 
 impl serde::Serialize for DepdbCurveSuffix {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serde::Serialize::serialize(&[0, self.x1, self.face_id, 0], serializer)
+        serde::Serialize::serialize(
+            &[
+                0,
+                self.section_plane_id,
+                0,
+                self.next_curve_id,
+                self.reference_surface_id,
+                0,
+            ],
+            serializer,
+        )
     }
 }
 
@@ -497,7 +508,7 @@ pub(crate) struct DepdbCurveRow {
     pub(crate) feature_id: u32,
     /// Stored per-side direction flags.
     pub(crate) directions: [u8; 2],
-    /// The `[0, X1, F1, 0]` one-sided suffix.
+    /// Stored face, successor, and reference-geometry pointer pairs.
     pub(crate) suffix: DepdbCurveSuffix,
     /// Exact bytes between the fixed prefix and one-sided suffix.
     pub(crate) body: Vec<u8>,
@@ -6832,6 +6843,18 @@ pub(crate) fn depdb_cross_section_rows(
     }
 }
 
+fn cross_section_suffix_fields(segment: &[u8], start: usize) -> Option<[u32; 6]> {
+    let mut fields = [0; 6];
+    let mut cursor = start;
+    for field in &mut fields {
+        let (value, next) = psb::reference_id(segment, cursor).ok()?;
+        *field = value;
+        cursor = next;
+    }
+    (cursor == segment.len() && fields[0] == 0 && fields[2] == 0 && fields[5] == 0)
+        .then_some(fields)
+}
+
 fn parse_depdb_curve_segment(
     ctx: &cadmpeg_core::decode::DecodeContext<'_>,
     segment: &[u8],
@@ -6839,20 +6862,17 @@ fn parse_depdb_curve_segment(
     cache: &scalar::ScalarCache,
 ) -> Result<Option<DepdbCurveRow>, cadmpeg_core::CodecError> {
     let mut suffix_candidate = None;
-    for suffix_length in 4..=11 {
+    for suffix_length in 6..=9 {
         let Some(start) = segment.len().checked_sub(suffix_length) else {
             continue;
         };
-        let (zero0, p1) = compact_int(segment, start);
-        let (x1, p2) = compact_int(segment, p1);
-        let (f1, p3) = compact_int(segment, p2);
-        let (zero1, end) = compact_int(segment, p3);
-        if p1 > start && p2 > p1 && p3 > p2 && end == segment.len() && zero0 == 0 && zero1 == 0 {
-            if suffix_candidate.is_some() {
-                return Ok(None);
-            }
-            suffix_candidate = Some((start, [zero0, x1, f1, zero1]));
+        let Some(fields) = cross_section_suffix_fields(segment, start) else {
+            continue;
+        };
+        if suffix_candidate.is_some() {
+            return Ok(None);
         }
+        suffix_candidate = Some((start, fields));
     }
     let Some((suffix_start, suffix)) = suffix_candidate else {
         return Ok(None);
@@ -6886,8 +6906,9 @@ fn parse_depdb_curve_segment(
         feature_id: prefix.feature_id,
         directions: prefix.directions,
         suffix: DepdbCurveSuffix {
-            x1: suffix[1],
-            face_id: suffix[2],
+            section_plane_id: suffix[1],
+            next_curve_id: suffix[3],
+            reference_surface_id: suffix[4],
         },
         body,
         scalar_tokens,

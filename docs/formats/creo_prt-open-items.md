@@ -600,13 +600,23 @@ in the next 24 bytes. The specification does not give this window.
 
 **Need.** Bind complete body identities to the same model owner and current feature scope, then resolve their topology roster independently. Validate the part's material regime before applying a legacy single-material replay rule. Missing, duplicate, unresolved, or conflicting target identities must remain unresolved; neither chronology nor the first or sole decoded body selects a modern target. Creation history alone does not establish the current recipe or its body operands.
 
-### TP-02. Sparse-edge topology binding
+### TP-02. Cross-section parameter framing and contour ownership
 
-**Question.** Which DEPDB fields bind a sparse edge record to its final vertices, faces, and loops?
+**Question.** Which complete parameter grammar distinguishes structural row
+closes from delimiter-like bytes inside opaque and scalar parameter data?
 
-**Known.** Sparse DEPDB curve rows are one-sided topology views and retain their identifiers and suffix fields.
+**Known.** `Sld_Xsections.xsec_geom.crv_array` has six-reference
+`[0, P, 0, N, S, 0]` tails. Its plane, successor, and reference-surface
+identities belong to the cross-section and generating-feature namespaces.
+They do not identify final-solid vertices, faces, or loops.
 
-**Need.** We must know the binding to reconstruct the final B-rep.
+**Need.** Bound every parameter form and each row close within its owning
+array. Require unique same-feature surface and curve targets and a complete
+successor permutation before constructing section contours. Preserve all
+independently closed cycles; a feature does not imply one contour.
+
+**Note.** A tail split alone does not establish the complete row grammar or
+prove that a section contour is current material topology.
 
 ### TP-03. Remaining contour roles and incomplete joins
 
@@ -816,7 +826,7 @@ neutral loop ownership or face admission.
 
 **Question.** What grammar does each `DEPDB_DATA` body outside the defined surface rows, section definitions, and feature recipes use?
 
-**Known.** `creo_prt.md` §7 "DEPDB `crv_array` rows are sparse topology views with one-sided `[0, X1, F1, 0]` suffixes. They" defines fixed-prefix surface rows in `DEPDB_DATA`. `creo_prt.md` §6 "Within one current-state record, `protextrude` identifies an additive linear" through `creo_prt.md` §6 "Classes 913" define section and feature-definition boundaries.
+**Known.** `creo_prt.md` §7 "`Sld_Xsections.xsec_geom.crv_array` rows store one-sided section contours with six-reference `[0, P, 0, N, S, 0]` tails. They" defines fixed-prefix surface rows in `DEPDB_DATA`. `creo_prt.md` §6 "Within one current-state record, `protextrude` identifies an additive linear" through `creo_prt.md` §6 "Classes 913" define section and feature-definition boundaries.
 
 **Need.** We must know the other grammars to transfer their design data.
 
@@ -824,7 +834,7 @@ neutral loop ownership or face admission.
 
 **Question.** What initial dictionary and code-width state does the compressed `DispDataTable` variant use?
 
-**Known.** `creo_prt.md` §7 "DEPDB `crv_array` rows are sparse topology views with one-sided `[0, X1, F1, 0]` suffixes. They" defines `1f 9d 10` Unix-compress streams. `creo_prt.md` §8.3 "Unix-compress streams with header `1f 9d 10` grow code width" states that code 256 is a literal dictionary entry and not a clear code.
+**Known.** `creo_prt.md` §7 "`Sld_Xsections.xsec_geom.crv_array` rows store one-sided section contours with six-reference `[0, P, 0, N, S, 0]` tails. They" defines `1f 9d 10` Unix-compress streams. `creo_prt.md` §8.3 "Unix-compress streams with header `1f 9d 10` grow code width" states that code 256 is a literal dictionary entry and not a clear code.
 
 **Need.** We must define the initial dictionary, first available code, initial code width, and width-transition rule for this stream variant.
 

@@ -2014,7 +2014,7 @@ body is retained as exact native bytes and has no neutral loop meaning.
 | DEPDB count            | `crv_array\0 f2 f8 <count>`                                    |
 | Positional row header  | `<crv_id_ci> <type_byte> <feat_id_ci> <dir0_flag> <dir1_flag>` |
 | Standard suffix        | `[F0, F1, E0, E1, R0, R1] e3`                                  |
-| DEPDB one-sided suffix | `[0, X1, F1, 0]`; `127` terminates `X1`                        |
+| Cross-section one-sided suffix | `[0, P, 0, N, S, 0]` in `Sld_Xsections.xsec_geom` |
 | Row terminators        | `e1 e3` or `e1 f5 05 f6 e3`                                    |
 
 The curve namespace ends at the next `crv_array`, `lo_array`, `qlt_array`, or
@@ -2045,14 +2045,28 @@ terminal topology suffix.
 
 A DEPDB cross-section curve count includes one labeled prototype followed by
 `count - 1` positional rows. Each positional row has one fixed prefix and one
-uniquely bounded `[0, X1, F1, 0]` suffix. The bytes between them are the row's
+uniquely bounded six-reference `[0, P, 0, N, S, 0]` suffix. The bytes between them are the row's
 parameter body. The final positional row can end at the `e1` immediately
 before the next `e0` named-record header. These one-sided rows remain in the
 cross-section namespace and do not define model half-edge topology. Parameter
 bodies use the positional curve scalar and canonical-reference token lanes;
 unclaimed spans remain exact opaque bytes.
 
-`F0` and `F1` reference faces in the `srf_array` namespace. `E0` and `E1`
+In `Sld_Xsections.xsec_geom`, the six fields are
+`crv_hdr_geom_ptr[0]`, `crv_hdr_geom_ptr[1]`, `next_crv_hdr_ptr[0]`,
+`next_crv_hdr_ptr[1]`, `ref_geom[0]`, and `ref_geom[1]`. `P` identifies the
+section plane, `N` identifies the successor curve around that plane's
+contour, and `S` identifies the reference surface that supplies the section
+curve. Each reference requires a unique target in the same cross-section
+namespace and generator-feature scope. The absent opposite side has zero
+surface and successor references. The second reference-geometry slot is zero.
+These are canonical reference identifiers. The three zero fields each occupy
+one byte; each other field occupies one or two bytes. The complete tail is
+six to nine bytes. `N` defines section-contour cycles when the successors form
+a permutation. A feature can contain multiple cycles. Section-contour
+incidence does not supply final-solid vertex, face, or edge identities.
+
+In model topology, `F0` and `F1` reference faces in the `srf_array` namespace. `E0` and `E1`
 reference the next edge for the two half-edge sides. When `previous(h)` is
 unique, the equivalence relation `h ~ twin(previous(h))` defines topological
 vertex orbits. The relation is symmetric and transitive; source identifier
@@ -4450,7 +4464,7 @@ Parallel plane references and set flip fields do not use this transform case.
 
 ## 7. DEPDB layout
 
-DEPDB `crv_array` rows are sparse topology views with one-sided `[0, X1, F1, 0]` suffixes. They do not encode final loops or trim topology. Reconstruct the final B-rep by evaluating the profile and its `protextrude` or `protrevolve` operation. Embedded `1f 9d 10` streams use Unix-compress LZW with header flag `10` and block mode `0`; they contain display, XML, color, and shader data.
+`Sld_Xsections.xsec_geom.crv_array` rows store one-sided section contours with six-reference `[0, P, 0, N, S, 0]` tails. They do not encode final-solid loops or trim topology. Reconstruct the final B-rep by evaluating the profile and its `protextrude` or `protrevolve` operation. Embedded `1f 9d 10` streams use Unix-compress LZW with header flag `10` and block mode `0`; they contain display, XML, color, and shader data.
 `DEPDB_DATA` carries the same fixed-prefix `srf_array` rows and bounded surface
 parameter records as visible-geometry namespaces. Row acceptance uses the
 stored family, feature, orientation, boundary, and next-surface fields; the
