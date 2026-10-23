@@ -511,3 +511,117 @@ pub(crate) mod rolling_ball_tail_unmapped_suffix {
     /// Offset of `maximal_u` (`f64[2]`, little-endian). Spec §6.2.
     pub(crate) const MAXIMAL_U: usize = 6;
 }
+
+/// Byte offsets for the `b5_plane_payload` record.
+///
+/// Spec §6.7. Record length 121 B.
+pub(crate) mod b5_plane_payload {
+    /// Record length in bytes. Spec §6.7.
+    pub(crate) const LEN: usize = 121;
+    /// Offset of `lead` (`u8`). Spec §6.7.
+    pub(crate) const LEAD: usize = 0;
+    /// Offset of `origin` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const ORIGIN: usize = 1;
+    /// Offset of `direction_u` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const DIRECTION_U: usize = 25;
+    /// Offset of `direction_v` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const DIRECTION_V: usize = 49;
+    /// Offset of `fixed_values` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const FIXED_VALUES: usize = 73;
+    /// Offset of `u_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const U_RANGE: usize = 89;
+    /// Offset of `v_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const V_RANGE: usize = 105;
+}
+
+/// Byte offsets for the `b5_cylinder_payload` record.
+///
+/// Spec §6.7. Record length 137 B.
+pub(crate) mod b5_cylinder_payload {
+    /// Record length in bytes. Spec §6.7.
+    pub(crate) const LEN: usize = 137;
+    /// Offset of `lead` (`u8`). Spec §6.7.
+    pub(crate) const LEAD: usize = 0;
+    /// Offset of `origin` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const ORIGIN: usize = 1;
+    /// Offset of `reference_x` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const REFERENCE_X: usize = 25;
+    /// Offset of `stored_v` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const STORED_V: usize = 49;
+    /// Offset of `radius` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const RADIUS: usize = 73;
+    /// Offset of `u_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const U_RANGE: usize = 81;
+    /// Offset of `v_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const V_RANGE: usize = 97;
+    /// Offset of `angular_factor` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const ANGULAR_FACTOR: usize = 113;
+    /// Offset of `one` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const ONE: usize = 121;
+    /// Offset of `chart_origin` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const CHART_ORIGIN: usize = 129;
+}
+
+/// Byte offsets for the `b5_sphere_payload` record.
+///
+/// Spec §6.7. Record length 153 B.
+pub(crate) mod b5_sphere_payload {
+    /// Record length in bytes. Spec §6.7.
+    pub(crate) const LEN: usize = 153;
+    /// Offset of `lead` (`u8`). Spec §6.7.
+    pub(crate) const LEAD: usize = 0;
+    /// Offset of `center` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const CENTER: usize = 1;
+    /// Offset of `scaled_x` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const SCALED_X: usize = 25;
+    /// Offset of `scaled_y` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const SCALED_Y: usize = 49;
+    /// Offset of `scaled_axis` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const SCALED_AXIS: usize = 73;
+    /// Offset of `radius` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const RADIUS: usize = 97;
+    /// Offset of `azimuth_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const AZIMUTH_RANGE: usize = 105;
+    /// Offset of `latitude_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const LATITUDE_RANGE: usize = 121;
+    /// Offset of `construction_radius` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const CONSTRUCTION_RADIUS: usize = 137;
+    /// Offset of `chart_origin` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const CHART_ORIGIN: usize = 145;
+}
+
+/// Byte offsets for the `b5_torus_payload` record.
+///
+/// Spec §6.7. Record length 201 B.
+pub(crate) mod b5_torus_payload {
+    /// Record length in bytes. Spec §6.7.
+    pub(crate) const LEN: usize = 201;
+    /// Offset of `lead` (`u8`). Spec §6.7.
+    pub(crate) const LEAD: usize = 0;
+    /// Offset of `center` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const CENTER: usize = 1;
+    /// Offset of `direction_x` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const DIRECTION_X: usize = 25;
+    /// Offset of `direction_y` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const DIRECTION_Y: usize = 49;
+    /// Offset of `axis` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const AXIS: usize = 73;
+    /// Offset of `major_radius` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const MAJOR_RADIUS: usize = 97;
+    /// Offset of `minor_radius` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const MINOR_RADIUS: usize = 105;
+    /// Offset of `major_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const MAJOR_RANGE: usize = 113;
+    /// Offset of `major_domain` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const MAJOR_DOMAIN: usize = 129;
+    /// Offset of `minor_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const MINOR_RANGE: usize = 145;
+    /// Offset of `minor_domain` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const MINOR_DOMAIN: usize = 161;
+    /// Offset of `major_scale` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const MAJOR_SCALE: usize = 177;
+    /// Offset of `minor_scale` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const MINOR_SCALE: usize = 185;
+    /// Offset of `reserved` (`bytes[8]`). Spec §6.7.
+    pub(crate) const RESERVED: usize = 193;
+}

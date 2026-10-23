@@ -1125,6 +1125,87 @@ Tail-relative offsets after five variable-width object references.
 | 20 | 1 | `contact_order` | `u8` | little | spec | \| `+20` \| `u8` \| support contact order: |
 | 21 | 1 | `closure` | `u8` | little | spec | \| `+21` \| `u8` \| sphere pole closure, or `05` for a non-sphere result \| |
 
+## `b5_plane_payload`
+
+Spec §6.7 · layout: byte offsets · size: 121 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/families/b5/graph.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `lead` | `u8` | little | spec | For `b5 03 27`, the 121-byte payload |
+| 1 | 24 | `origin` | `f64[3]` | little | spec | For `b5 03 27`, the 121-byte payload |
+| 25 | 24 | `direction_u` | `f64[3]` | little | spec | For `b5 03 27`, the 121-byte payload |
+| 49 | 24 | `direction_v` | `f64[3]` | little | spec | For `b5 03 27`, the 121-byte payload |
+| 73 | 16 | `fixed_values` | `f64[2]` | little | spec | For `b5 03 27`, the 121-byte payload |
+| 89 | 16 | `u_range` | `f64[2]` | little | spec | For `b5 03 27`, the 121-byte payload |
+| 105 | 16 | `v_range` | `f64[2]` | little | spec | For `b5 03 27`, the 121-byte payload |
+
+## `b5_cylinder_payload`
+
+Spec §6.7 · layout: byte offsets · size: 137 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/families/b5/graph.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `lead` | `u8` | little | spec | For `b5 03 28`, the 137-byte payload |
+| 1 | 24 | `origin` | `f64[3]` | little | spec | For `b5 03 28`, the 137-byte payload |
+| 25 | 24 | `reference_x` | `f64[3]` | little | spec | For `b5 03 28`, the 137-byte payload |
+| 49 | 24 | `stored_v` | `f64[3]` | little | spec | For `b5 03 28`, the 137-byte payload |
+| 73 | 8 | `radius` | `f64` | little | spec | For `b5 03 28`, the 137-byte payload |
+| 81 | 16 | `u_range` | `f64[2]` | little | spec | For `b5 03 28`, the 137-byte payload |
+| 97 | 16 | `v_range` | `f64[2]` | little | spec | For `b5 03 28`, the 137-byte payload |
+| 113 | 8 | `angular_factor` | `f64` | little | spec | For `b5 03 28`, the 137-byte payload |
+| 121 | 8 | `one` | `f64` | little | spec | For `b5 03 28`, the 137-byte payload |
+| 129 | 8 | `chart_origin` | `f64` | little | spec | For `b5 03 28`, the 137-byte payload |
+
+## `b5_sphere_payload`
+
+Spec §6.7 · layout: byte offsets · size: 153 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/families/b5/graph.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `lead` | `u8` | little | spec | For `b5 03 2a`, the 153-byte payload |
+| 1 | 24 | `center` | `f64[3]` | little | spec | For `b5 03 2a`, the 153-byte payload |
+| 25 | 24 | `scaled_x` | `f64[3]` | little | spec | For `b5 03 2a`, the 153-byte payload |
+| 49 | 24 | `scaled_y` | `f64[3]` | little | spec | For `b5 03 2a`, the 153-byte payload |
+| 73 | 24 | `scaled_axis` | `f64[3]` | little | spec | For `b5 03 2a`, the 153-byte payload |
+| 97 | 8 | `radius` | `f64` | little | spec | For `b5 03 2a`, the 153-byte payload |
+| 105 | 16 | `azimuth_range` | `f64[2]` | little | spec | For `b5 03 2a`, the 153-byte payload |
+| 121 | 16 | `latitude_range` | `f64[2]` | little | spec | For `b5 03 2a`, the 153-byte payload |
+| 137 | 8 | `construction_radius` | `f64` | little | spec | For `b5 03 2a`, the 153-byte payload |
+| 145 | 8 | `chart_origin` | `f64` | little | spec | For `b5 03 2a`, the 153-byte payload |
+
+## `b5_torus_payload`
+
+Spec §6.7 · layout: byte offsets · size: 201 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/families/b5/graph.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `lead` | `u8` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 1 | 24 | `center` | `f64[3]` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 25 | 24 | `direction_x` | `f64[3]` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 49 | 24 | `direction_y` | `f64[3]` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 73 | 24 | `axis` | `f64[3]` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 97 | 8 | `major_radius` | `f64` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 105 | 8 | `minor_radius` | `f64` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 113 | 16 | `major_range` | `f64[2]` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 129 | 16 | `major_domain` | `f64[2]` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 145 | 16 | `minor_range` | `f64[2]` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 161 | 16 | `minor_domain` | `f64[2]` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 177 | 8 | `major_scale` | `f64` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 185 | 8 | `minor_scale` | `f64` | little | spec | For `b5 03 2b`, the 201-byte payload |
+| 193 | 8 | `reserved` | `bytes[8]` | little | spec | For `b5 03 2b`, the 201-byte payload |
+
 ## Not tabulated
 
 | Area | Spec | Reason |

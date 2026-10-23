@@ -834,3 +834,5 @@ fn decode_reconstructs_inline_poles_from_nonphysical_extent_order() {
 }
 
 mod float_packed_fixtures;
+
+mod selected_shell_plane;
