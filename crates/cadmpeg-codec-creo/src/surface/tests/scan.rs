@@ -1006,7 +1006,7 @@ fn direct_round_radii_cover_homogeneous_and_mixed_carrier_sets() {
             ref groups,
         }) if matches!(groups.as_slice(), [cadmpeg_ir::features::edge_treatments::FilletGroup {
             radius: cadmpeg_ir::features::edge_treatments::RadiusSpec::Unresolved {
-                form: Some(cadmpeg_ir::features::edge_treatments::RadiusForm::Variable)
+                form: None
             },
             ..
         }])
@@ -1040,7 +1040,7 @@ fn direct_round_radii_cover_homogeneous_and_mixed_carrier_sets() {
             ref groups,
         }) if matches!(groups.as_slice(), [cadmpeg_ir::features::edge_treatments::FilletGroup {
             radius: cadmpeg_ir::features::edge_treatments::RadiusSpec::Unresolved {
-                form: Some(cadmpeg_ir::features::edge_treatments::RadiusForm::Variable)
+                form: None
             },
             ..
         }])
@@ -1050,7 +1050,7 @@ fn direct_round_radii_cover_homogeneous_and_mixed_carrier_sets() {
             result.report(),
             crate::coverage::TRANSFERRED_VARIABLE_RADIUS_FILLET_FEATURE_COUNT.as_str()
         ),
-        1
+        0
     );
 
     let conflicting = round(&[

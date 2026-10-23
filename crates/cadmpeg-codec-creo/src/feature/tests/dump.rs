@@ -19,7 +19,7 @@ use crate::loss::CreoLossCode;
 use crate::CreoCodec;
 
 #[test]
-fn decode_identifies_variable_round_form_from_differing_complete_envelopes() {
+fn decode_keeps_differing_complete_round_carriers_unresolved() {
     let geometry = |type_bytes: [u8; 2]| {
         let mut geometry = b"srf_array\0\xf8\x02".to_vec();
         for ((surface_id, next_surface, diameter, extent), type_byte) in
@@ -66,7 +66,7 @@ fn decode_identifies_variable_round_form_from_differing_complete_envelopes() {
             ref groups,
         }) if matches!(groups.as_slice(), [cadmpeg_ir::features::edge_treatments::FilletGroup {
             radius: cadmpeg_ir::features::edge_treatments::RadiusSpec::Unresolved {
-                form: Some(cadmpeg_ir::features::edge_treatments::RadiusForm::Variable)
+                form: None
             },
             ..
         }])

@@ -274,11 +274,11 @@ witnesses; it does not by itself define the remaining carrier equation.
 
 ### GS-21. Non-prismatic round radii
 
-**Question.** Which fields define the varying radius of a non-prismatic round?
+**Question.** Which class-913 instance fields encode round sets, their shape options, ordered governing-point radius entries, and radius-leg values or references?
 
-**Known.** `creo_prt.md` §6 "Classes 913" through `creo_prt.md` §6 "For a class-913 cylindrical slot fillet, the first two `geoms_affected`" define the recognized edge-treatment schemas, positional replay, resolved constant-radius forms, and the legacy Sld_Features/Sld_FullData constant-radius join. That join does not define a varying-radius blend.
+**Known.** `creo_prt.md` §6 defines the per-set variable-round element contract and the resolved constant-radius forms. The named `data(subft_rndset)` definition retains chain, spine, point-set, and subset fields. Its point-set fields do not establish native instance station ownership. Unequal generated carrier radii define neither set boundaries nor a variable-radius law.
 
-**Need.** We must know the fields to construct the varying-radius blend.
+**Need.** A native instance with independently known element-tree values must establish set-array boundaries, the shape-option selector, radius-entry order, governing-point references, and the two leg grammars.
 
 ### GS-22. Round flank geometry
 
