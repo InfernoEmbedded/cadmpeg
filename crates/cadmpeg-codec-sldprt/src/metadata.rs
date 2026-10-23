@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //! Typed SW Objects document metadata.
 
+pub(crate) mod default_properties;
 pub(crate) mod part;
 
 use crate::container::{ContainerScan, Section};
@@ -54,6 +55,7 @@ pub(crate) fn attributes(
         scan_units_xml(ctx, section, &mut out, annotations)?;
         scan_length_user_units(ctx, section, &mut out, annotations)?;
     }
+    default_properties::append(ctx, scan, &mut out, annotations, losses)?;
     Ok(out)
 }
 

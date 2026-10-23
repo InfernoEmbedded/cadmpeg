@@ -4796,16 +4796,14 @@ fn stamp_local_digests(ctx: &DecodeContext<'_>, ir: &mut CadIr) -> Result<(), Co
             brep_hash,
         );
     }
-    let has_swobjects_semantics = ir
+    let has_swobjects_semantics = ir.model.attributes.iter().any(|attribute| {
+        attribute.id.as_str().starts_with("sldprt:metadata:")
+            && !crate::metadata::default_properties::is_attribute(attribute)
+    }) || ir
         .model
-        .attributes
+        .appearances
         .iter()
-        .any(|attribute| attribute.id.as_str().starts_with("sldprt:metadata:"))
-        || ir
-            .model
-            .appearances
-            .iter()
-            .any(|appearance| appearance.schema.as_deref() == Some("moVisualProperties_c"));
+        .any(|appearance| appearance.schema.as_deref() == Some("moVisualProperties_c"));
     if has_swobjects_semantics {
         match (
             crate::writer::swobjects_local_sha256(ctx, ir),

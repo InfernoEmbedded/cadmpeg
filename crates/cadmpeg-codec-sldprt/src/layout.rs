@@ -2943,3 +2943,91 @@ pub(crate) mod component_edge_type_signature {
     /// Offset of `native_feature_object_id` (`u32`, little-endian). Spec §2.
     pub(crate) const NATIVE_FEATURE_OBJECT_ID: usize = 4;
 }
+
+/// Byte offsets for the `oleps_stream_header` record.
+///
+/// Spec §8.1. Record length 28 B.
+pub(crate) mod oleps_stream_header {
+    /// Record length in bytes. Spec §8.1.
+    pub(crate) const LEN: usize = 28;
+    /// Offset of `byte_order` (`u16`, little-endian). Spec §8.1.
+    pub(crate) const BYTE_ORDER: usize = 0;
+    /// Stated value of `byte_order` (`u16`). Spec §8.1.
+    pub(crate) const BYTE_ORDER_VALUE: u16 = 0xfffe;
+    /// Offset of `version` (`u16`, little-endian). Spec §8.1.
+    pub(crate) const VERSION: usize = 2;
+    /// Offset of `section_count` (`u32`, little-endian). Spec §8.1.
+    pub(crate) const SECTION_COUNT: usize = 24;
+}
+
+/// Byte offsets for the `oleps_section_descriptor` record.
+///
+/// Spec §8.1. Record length 20 B.
+pub(crate) mod oleps_section_descriptor {
+    /// Record length in bytes. Spec §8.1.
+    pub(crate) const LEN: usize = 20;
+    /// Offset of `fmtid` (`bytes[16]`). Spec §8.1.
+    pub(crate) const FMTID: usize = 0;
+    /// Offset of `section_offset` (`u32`, little-endian). Spec §8.1.
+    pub(crate) const SECTION_OFFSET: usize = 16;
+}
+
+/// Byte offsets for the `oleps_property_set_header` record.
+///
+/// Spec §8.1. Record length 8 B.
+pub(crate) mod oleps_property_set_header {
+    /// Record length in bytes. Spec §8.1.
+    pub(crate) const LEN: usize = 8;
+    /// Offset of `size` (`u32`, little-endian). Spec §8.1.
+    pub(crate) const SIZE: usize = 0;
+    /// Offset of `property_count` (`u32`, little-endian). Spec §8.1.
+    pub(crate) const PROPERTY_COUNT: usize = 4;
+}
+
+/// Byte offsets for the `oleps_property_identifier_offset` record.
+///
+/// Spec §8.1. Record length 8 B.
+pub(crate) mod oleps_property_identifier_offset {
+    /// Record length in bytes. Spec §8.1.
+    pub(crate) const LEN: usize = 8;
+    /// Offset of `pid` (`u32`, little-endian). Spec §8.1.
+    pub(crate) const PID: usize = 0;
+    /// Offset of `value_offset` (`u32`, little-endian). Spec §8.1.
+    pub(crate) const VALUE_OFFSET: usize = 4;
+}
+
+/// Byte offsets for the `oleps_typed_value_header` record.
+///
+/// Spec §8.1. Record length 4 B.
+pub(crate) mod oleps_typed_value_header {
+    /// Record length in bytes. Spec §8.1.
+    pub(crate) const LEN: usize = 4;
+    /// Offset of `type` (`u16`, little-endian). Spec §8.1.
+    pub(crate) const TYPE: usize = 0;
+    /// Offset of `padding` (`u16`, little-endian). Spec §8.1.
+    pub(crate) const PADDING: usize = 2;
+    /// Stated value of `padding` (`u16`). Spec §8.1.
+    pub(crate) const PADDING_VALUE: u16 = 0x0000;
+}
+
+/// Byte offsets for the `oleps_dictionary_header` record.
+///
+/// Spec §8.1. Record length 4 B.
+pub(crate) mod oleps_dictionary_header {
+    /// Record length in bytes. Spec §8.1.
+    pub(crate) const LEN: usize = 4;
+    /// Offset of `entry_count` (`u32`, little-endian). Spec §8.1.
+    pub(crate) const ENTRY_COUNT: usize = 0;
+}
+
+/// Byte offsets for the `oleps_dictionary_entry_prefix` record.
+///
+/// Spec §8.1. Record length 8 B.
+pub(crate) mod oleps_dictionary_entry_prefix {
+    /// Record length in bytes. Spec §8.1.
+    pub(crate) const LEN: usize = 8;
+    /// Offset of `pid` (`u32`, little-endian). Spec §8.1.
+    pub(crate) const PID: usize = 0;
+    /// Offset of `name_length` (`u32`, little-endian). Spec §8.1.
+    pub(crate) const NAME_LENGTH: usize = 4;
+}

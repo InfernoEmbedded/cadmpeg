@@ -26,6 +26,15 @@ use cadmpeg_ir::report::{
 pub(crate) enum SldprtLossCode {
     /// Part root scalar prefix has no supported class-specific reading.
     MetadataPartRootUnsupported,
+    /// Default-property carrier has no complete supported reading.
+    MetadataDefaultCarrierUnsupported,
+    /// Default properties have multiple physical namespace owners.
+    MetadataDefaultOwnerAmbiguous,
+    /// Saved alias or value identifiers are not unique.
+    MetadataDefaultAliasAmbiguous,
+    /// Saved property has no represented usable scalar value.
+    MetadataDefaultValueUnsupported,
+
     /// Active configuration identity does not resolve to exactly one record.
     ConfigActiveIdentityUnresolved,
     /// Active configuration does not resolve to the active geometry partition.
@@ -185,6 +194,10 @@ impl SldprtLossCode {
     #[cfg(test)]
     const ALL: &'static [SldprtLossCode] = &[
         Self::MetadataPartRootUnsupported,
+        Self::MetadataDefaultCarrierUnsupported,
+        Self::MetadataDefaultOwnerAmbiguous,
+        Self::MetadataDefaultAliasAmbiguous,
+        Self::MetadataDefaultValueUnsupported,
         Self::ConfigActiveIdentityUnresolved,
         Self::ConfigActivePartitionMismatch,
         Self::ConfigInferredWithoutNative,
@@ -332,6 +345,10 @@ impl SldprtLossCode {
             Self::SourceDialectDisplaced => "target.source-dialect-displaced",
             Self::SourcePropertyKeyBlank => "source.property-key-blank",
             Self::MetadataPartRootUnsupported => "metadata.part-root-unsupported",
+            Self::MetadataDefaultCarrierUnsupported => "metadata.default-carrier-unsupported",
+            Self::MetadataDefaultOwnerAmbiguous => "metadata.default-owner-ambiguous",
+            Self::MetadataDefaultAliasAmbiguous => "metadata.default-alias-ambiguous",
+            Self::MetadataDefaultValueUnsupported => "metadata.default-value-unsupported",
         }
     }
 
@@ -408,7 +425,11 @@ impl SldprtLossCode {
             | Self::DialectLayerCollision
             | Self::SourceDialectDisplaced
             | Self::SourcePropertyKeyBlank
-            | Self::MetadataPartRootUnsupported => Severity::Warning,
+            | Self::MetadataPartRootUnsupported
+            | Self::MetadataDefaultCarrierUnsupported
+            | Self::MetadataDefaultOwnerAmbiguous
+            | Self::MetadataDefaultAliasAmbiguous
+            | Self::MetadataDefaultValueUnsupported => Severity::Warning,
         }
     }
 
@@ -429,9 +450,12 @@ impl SldprtLossCode {
             }
             Self::DialectLayerCollision => LossTaxonomy::DecodeDiagnostic,
             Self::SourceDialectDisplaced => LossTaxonomy::SourceDialectDisplaced,
-            Self::SourcePropertyKeyBlank | Self::MetadataPartRootUnsupported => {
-                LossTaxonomy::AttributesNotTransferred
-            }
+            Self::SourcePropertyKeyBlank
+            | Self::MetadataPartRootUnsupported
+            | Self::MetadataDefaultCarrierUnsupported
+            | Self::MetadataDefaultOwnerAmbiguous
+            | Self::MetadataDefaultAliasAmbiguous
+            | Self::MetadataDefaultValueUnsupported => LossTaxonomy::AttributesNotTransferred,
             Self::TopologyBodyHierarchyDerived | Self::TopologyFaceSenseConflict => {
                 LossTaxonomy::TopologyGaugeSubstituted
             }
@@ -631,6 +655,10 @@ mod tests {
             codes,
             [
                 "metadata.part-root-unsupported",
+                "metadata.default-carrier-unsupported",
+                "metadata.default-owner-ambiguous",
+                "metadata.default-alias-ambiguous",
+                "metadata.default-value-unsupported",
                 "config.active-identity-unresolved",
                 "config.active-partition-mismatch",
                 "config.inferred-without-native",

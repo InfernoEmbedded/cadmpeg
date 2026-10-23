@@ -600,3 +600,5 @@ fn generation_with_retained_envelope_tokens_names_the_catalog_row() {
 }
 
 mod terminal_edge_ownership;
+
+mod default_properties;

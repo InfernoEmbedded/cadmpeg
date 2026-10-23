@@ -6,6 +6,7 @@ use std::io::Write;
 use std::num::NonZeroU16;
 
 mod accounting;
+mod default_properties;
 mod envelope;
 mod ownership;
 pub(crate) mod target;
@@ -115,6 +116,21 @@ pub(crate) fn write_semantic_with_records(
         .map(|(ctx, root)| crate::container::scan(ctx, *root))
         .transpose()?;
     let mut source_baseline = None;
+    if default_properties::requires_guard(&normalized, source_scan.as_ref()) {
+        let scan = source_scan.as_ref().ok_or_else(|| {
+            CodecError::NotImplemented(
+                "SLDPRT default properties require their retained source carrier".into(),
+            )
+        })?;
+        let baseline = retained_source_baseline(&mut source_baseline, source_context.as_ref())?
+            .ok_or_else(|| {
+                CodecError::NotImplemented(
+                    "SLDPRT default properties require their retained source document".into(),
+                )
+            })?;
+        default_properties::validate(&normalized, &baseline.ir, scan)?;
+        default_properties::validate_retention(scan, retained_records, annotations)?;
+    }
     let retained_partition =
         retained_partition(&normalized, source_scan.as_ref(), native.as_ref())?;
     let feature_name_changes =
@@ -383,6 +399,9 @@ pub(crate) fn write_semantic_with_records(
     let written_dialect =
         crate::dialect::SldprtDialect::from_declaration(written_declaration.as_deref()).id();
 
+    if let Some(scan) = source_scan.as_ref() {
+        default_properties::validate_emitted(scan, &sections)?;
+    }
     let type_ids = section_type_ids(source_scan.as_ref(), &sections)?;
     let envelope = envelope::build(&sections, &type_ids, source_scan.as_ref())?;
     writer.write_all(&envelope.bytes)?;
@@ -1999,7 +2018,9 @@ fn scaled<const N: usize>(values: [f64; N], scale: f64) -> Option<[f64; N]> {
 fn metadata_attributes(ir: &CadIr) -> Vec<&cadmpeg_ir::attributes::SourceAttribute> {
     let mut positioned = Vec::new();
     for attribute in &ir.model.attributes {
-        if attribute.id.as_str().starts_with("sldprt:") {
+        if attribute.id.as_str().starts_with("sldprt:")
+            && !crate::metadata::default_properties::is_attribute(attribute)
+        {
             let position = metadata_source_position(attribute.id.as_str());
             positioned.push(((position.is_none(), position), attribute));
         }
