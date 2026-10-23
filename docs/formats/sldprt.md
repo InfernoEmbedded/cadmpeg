@@ -2165,6 +2165,20 @@ BODY `ATOM_ID_2001` owner. A conflicting or missing owner supplies no body
 appearance scope.
 
 
+### 8.1 Default document properties
+
+The document default-property namespace is owned by the block member `docProps/ISolidWorksInformation.xml` or the root compound stream `ISolidWorksInformation`. The UserDefinedProperties FMTID is `{D5CDD505-2E9C-101B-9397-08002B2CF9AE}`. The complete carrier identity, FMTID and PID identify a saved value. FMTID alone does not select a namespace: `docProps/custom.xml` or the root `\005DocumentSummaryInformation` stream owns document custom properties, and `docProps/Config-N-Properties.xml` or the root `Config-N-Properties` stream owns configuration custom properties. `Contents/CusProps` is a separate optional cache.
+
+The default XML root is `Properties` in namespace `http://schemas.openxmlformats.org/officeDocument/2006/SolidworksInformation-properties`. Its `propertySection`, `property` and `propertyNameDictionaryElement` records use the empty namespace. A section has a `fmtid`; a property has a decimal `pid`, an optional `name` and a typed child in namespace `http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes`. A dictionary entry has a `name` and `pid`. XML prefixes do not change these namespace identities.
+
+The legacy stream uses MS-OLEPS PropertySetStream framing. Its fixed header is byte-order u16, version u16, system identifier u32, CLSID bytes[16] and section count u32, all integer fields little-endian. Byte order is 0xfffe, version is 0 or 1, and section count is 1 or 2. Each descriptor is FMTID bytes[16] followed by a stream-relative section offset u32. The two-section form orders DocumentSummaryInformation FMTID `{D5CDD502-2E9C-101B-9397-08002B2CF9AE}` before UserDefinedProperties. GUID fields use the standard mixed-endian GUID representation.
+
+A property set begins with total size u32 and property count u32. Each property-directory entry is PID u32 followed by set-relative value offset u32. Entries are ordered by increasing value offset; PID order is independent. Offsets are unique, aligned to four bytes, outside the directory and within the declared set size. A typed value begins with type u16 and zero padding u16. PID 0 instead begins with dictionary-entry count u32. A dictionary entry starts with PID u32 and name length u32. Code page 1200 counts UTF-16 code units including the null terminator and pads each name to four bytes; other codepages count 8-bit characters including the null terminator and do not pad each name.
+
+Every property set has unnamed PID 1 with type VT_I2 as its codepage control. The control denotes a codepage identifier; its word is not a user property value. The XML rendering can state 65001 in its `vt:i2` element. Decode dictionary and LPSTR strings with the declared codepage; LPWSTR strings use UTF-16LE.
+
+The native default dictionary permits multiple names for one PID and an administrative empty-name PID 0 entry. These extend the generic MS-OLEPS dictionary rules. Retain all alias entries. A name identifies a saved default value only when it selects one PID and that PID has one usable typed value. Names, whitespace and parenthesized suffixes remain exact source text. An alias with an empty or absent saved value does not select another PID by similarity. A name assigned to conflicting PIDs supplies no unique value. Saved values and formula companions are distinct records; a stored snapshot does not establish live calculation or cache freshness.
+
 ## 9. Units
 
 - **Length fields are metres.** Model-space coordinates, radii, and length-bearing values in compact analytic records, `00 1d` points, and B-spline control grids are stored in metres.

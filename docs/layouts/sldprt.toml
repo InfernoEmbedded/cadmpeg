@@ -12157,3 +12157,173 @@ offset = 8
 type = "bytes[4]"
 source = "spec"
 anchor = "type-signature bytes 4 through 7 contain the native feature object ID"
+
+[[record]]
+name = "oleps_stream_header"
+kind = "byte"
+section = "8.1"
+anchor = "Its fixed header is byte-order u16"
+size = 28
+endianness = "little"
+
+[[record.field]]
+name = "byte_order"
+offset = 0
+type = "u16"
+source = "spec"
+anchor = "byte-order u16"
+value = 0xfffe
+
+[[record.field]]
+name = "version"
+offset = 2
+type = "u16"
+source = "spec"
+anchor = "version u16"
+
+[[record.field]]
+name = "system_identifier"
+offset = 4
+type = "u32"
+source = "spec"
+anchor = "system identifier u32"
+
+[[record.field]]
+name = "clsid"
+offset = 8
+type = "bytes[16]"
+source = "spec"
+anchor = "CLSID bytes[16]"
+
+[[record.field]]
+name = "section_count"
+offset = 24
+type = "u32"
+source = "spec"
+anchor = "section count u32"
+
+[[record]]
+name = "oleps_section_descriptor"
+kind = "byte"
+section = "8.1"
+anchor = "Each descriptor is FMTID bytes[16]"
+size = 20
+endianness = "little"
+
+[[record.field]]
+name = "fmtid"
+offset = 0
+type = "bytes[16]"
+source = "spec"
+anchor = "FMTID bytes[16]"
+
+[[record.field]]
+name = "section_offset"
+offset = 16
+type = "u32"
+source = "spec"
+anchor = "stream-relative section offset u32"
+
+[[record]]
+name = "oleps_property_set_header"
+kind = "byte"
+section = "8.1"
+anchor = "A property set begins with total size u32"
+size = 8
+endianness = "little"
+
+[[record.field]]
+name = "size"
+offset = 0
+type = "u32"
+source = "spec"
+anchor = "total size u32"
+
+[[record.field]]
+name = "property_count"
+offset = 4
+type = "u32"
+source = "spec"
+anchor = "property count u32"
+
+[[record]]
+name = "oleps_property_identifier_offset"
+kind = "byte"
+section = "8.1"
+anchor = "Each property-directory entry is PID u32"
+size = 8
+endianness = "little"
+
+[[record.field]]
+name = "pid"
+offset = 0
+type = "u32"
+source = "spec"
+anchor = "PID u32"
+
+[[record.field]]
+name = "value_offset"
+offset = 4
+type = "u32"
+source = "spec"
+anchor = "set-relative value offset u32"
+
+[[record]]
+name = "oleps_typed_value_header"
+kind = "byte"
+section = "8.1"
+anchor = "A typed value begins with type u16"
+size = 4
+endianness = "little"
+
+[[record.field]]
+name = "type"
+offset = 0
+type = "u16"
+source = "spec"
+anchor = "type u16"
+
+[[record.field]]
+name = "padding"
+offset = 2
+type = "u16"
+source = "spec"
+anchor = "zero padding u16"
+value = 0
+
+[[record]]
+name = "oleps_dictionary_header"
+kind = "byte"
+section = "8.1"
+anchor = "PID 0 instead begins with dictionary-entry count u32"
+size = 4
+endianness = "little"
+
+[[record.field]]
+name = "entry_count"
+offset = 0
+type = "u32"
+source = "spec"
+anchor = "dictionary-entry count u32"
+
+[[record]]
+name = "oleps_dictionary_entry_prefix"
+kind = "byte"
+section = "8.1"
+anchor = "A dictionary entry starts with PID u32"
+size = 8
+endianness = "little"
+
+[[record.field]]
+name = "pid"
+offset = 0
+type = "u32"
+source = "spec"
+anchor = "PID u32"
+
+[[record.field]]
+name = "name_length"
+offset = 4
+type = "u32"
+source = "spec"
+anchor = "name length u32"

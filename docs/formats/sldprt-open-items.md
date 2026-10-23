@@ -188,13 +188,13 @@ The decoder treats a later `PS\0\0` as a boundary only when the bytes from that 
 
 **Need.** We must know the document mode to evaluate a bare numeric trigonometric operand.
 
-### DI-03. Default document properties
+### DI-03. Calculated default-property caches
 
-**Question.** Which native carrier stores the default document-property namespace used by equations?
+**Question.** Which native state establishes that a saved calculated default-property cache is current for the requested property operand?
 
-**Known.** `sldprt.md` §2 "When exactly one line-distance operand identifies a profile line, the other operand identifies" through `sldprt.md` §2 "A bare `0` or `1` Keywords dimension bound to a unique driving distance" define configuration records, configuration-local properties, and equation evaluation. They do not bind a default document-property carrier.
+**Known.** `sldprt.md` §8.1 "The document default-property namespace is owned by" defines the complete carrier, FMTID, PID and alias identity. It distinguishes saved values from formula companions and live calculation. Configuration-qualified property namespace lookup is DI-04.
 
-**Need.** We must find the carrier to resolve an equation that references a default file property.
+**Need.** A source-level freshness rule and an independently validated cache-owner relation before a stored calculated snapshot can supply a live value. Saved scalar and dictionary identity alone do not establish either relation.
 
 ### DI-04. Configuration property lookup
 

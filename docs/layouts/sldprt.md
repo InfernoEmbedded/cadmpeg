@@ -3199,6 +3199,71 @@ Parsed by:
 | 4 | 4 | `native_feature_object_id` | `u32` | little | spec | type-signature bytes 4 through 7 contain the native feature object ID |
 | 8 | 4 | `opaque_suffix` | `bytes[4]` | little | spec | type-signature bytes 4 through 7 contain the native feature object ID |
 
+## `oleps_stream_header`
+
+Spec §8.1 · layout: byte offsets · size: 28 B
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 2 | `byte_order` | `u16` | little | spec | byte-order u16 · value `65534` |
+| 2 | 2 | `version` | `u16` | little | spec | version u16 |
+| 4 | 4 | `system_identifier` | `u32` | little | spec | system identifier u32 |
+| 8 | 16 | `clsid` | `bytes[16]` | little | spec | CLSID bytes[16] |
+| 24 | 4 | `section_count` | `u32` | little | spec | section count u32 |
+
+## `oleps_section_descriptor`
+
+Spec §8.1 · layout: byte offsets · size: 20 B
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 16 | `fmtid` | `bytes[16]` | little | spec | FMTID bytes[16] |
+| 16 | 4 | `section_offset` | `u32` | little | spec | stream-relative section offset u32 |
+
+## `oleps_property_set_header`
+
+Spec §8.1 · layout: byte offsets · size: 8 B
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `size` | `u32` | little | spec | total size u32 |
+| 4 | 4 | `property_count` | `u32` | little | spec | property count u32 |
+
+## `oleps_property_identifier_offset`
+
+Spec §8.1 · layout: byte offsets · size: 8 B
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `pid` | `u32` | little | spec | PID u32 |
+| 4 | 4 | `value_offset` | `u32` | little | spec | set-relative value offset u32 |
+
+## `oleps_typed_value_header`
+
+Spec §8.1 · layout: byte offsets · size: 4 B
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 2 | `type` | `u16` | little | spec | type u16 |
+| 2 | 2 | `padding` | `u16` | little | spec | zero padding u16 · value `0` |
+
+## `oleps_dictionary_header`
+
+Spec §8.1 · layout: byte offsets · size: 4 B
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `entry_count` | `u32` | little | spec | dictionary-entry count u32 |
+
+## `oleps_dictionary_entry_prefix`
+
+Spec §8.1 · layout: byte offsets · size: 8 B
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `pid` | `u32` | little | spec | PID u32 |
+| 4 | 4 | `name_length` | `u32` | little | spec | name length u32 |
+
 ## Not tabulated
 
 | Area | Spec | Reason |
