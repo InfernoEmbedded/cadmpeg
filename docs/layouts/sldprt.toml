@@ -12051,3 +12051,109 @@ offset = 4
 type = "u16"
 source = "spec"
 anchor = "transmit index is u16 BE at body +4"
+
+[[record]]
+name = "mfc_new_class_header"
+parsed_by = "crates/cadmpeg-codec-sldprt/src/metadata/part.rs"
+kind = "byte"
+section = "8"
+anchor = "An MFC new-class declaration starts with"
+size = 6
+endianness = "little"
+
+[[record.field]]
+name = "tag"
+offset = 0
+type = "u16"
+source = "spec"
+anchor = "`u16 LE 0xffff`"
+
+[[record.field]]
+name = "schema"
+offset = 2
+type = "u16"
+source = "spec"
+anchor = "a `u16 LE` schema"
+
+[[record.field]]
+name = "name_length"
+offset = 4
+type = "u16"
+source = "spec"
+anchor = "a `u16 LE` ASCII class-name byte count"
+
+[[record]]
+name = "part_root_short"
+parsed_by = "crates/cadmpeg-codec-sldprt/src/metadata/part.rs"
+kind = "byte"
+section = "8"
+anchor = "Its short direct scalar prefix is one u32 LE word"
+size = 4
+endianness = "little"
+
+[[record.field]]
+name = "first_word"
+offset = 0
+type = "u32"
+source = "spec"
+anchor = "Its short direct scalar prefix is one u32 LE word"
+
+[[record]]
+name = "part_root_long"
+parsed_by = "crates/cadmpeg-codec-sldprt/src/metadata/part.rs"
+kind = "byte"
+section = "8"
+anchor = "Its long direct scalar prefix is three u32 LE words"
+size = 12
+endianness = "little"
+
+[[record.field]]
+name = "first_word"
+offset = 0
+type = "u32"
+source = "spec"
+anchor = "Its long direct scalar prefix is three u32 LE words"
+
+[[record.field]]
+name = "reserved"
+offset = 4
+type = "u32"
+source = "spec"
+anchor = "with the middle word zero"
+
+[[record.field]]
+name = "trailing_word"
+offset = 8
+type = "u32"
+source = "spec"
+anchor = "The short prefix has no third word."
+
+[[record]]
+name = "component_edge_type_signature"
+parsed_by = "crates/cadmpeg-codec-sldprt/src/resolved_features/selections/edge_owners.rs"
+kind = "byte"
+section = "2"
+anchor = "type-signature bytes 4 through 7 contain the native feature object ID"
+size = 12
+endianness = "little"
+
+[[record.field]]
+name = "opaque_prefix"
+offset = 0
+type = "bytes[4]"
+source = "spec"
+anchor = "type-signature bytes 4 through 7 contain the native feature object ID"
+
+[[record.field]]
+name = "native_feature_object_id"
+offset = 4
+type = "u32"
+source = "spec"
+anchor = "type-signature bytes 4 through 7 contain the native feature object ID"
+
+[[record.field]]
+name = "opaque_suffix"
+offset = 8
+type = "bytes[4]"
+source = "spec"
+anchor = "type-signature bytes 4 through 7 contain the native feature object ID"

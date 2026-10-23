@@ -1684,6 +1684,20 @@ fn append_design_losses(
         )));
     }
 
+    let refused_edge_terminals = match native.as_ref() {
+        Some(native) => crate::resolved_features::selections::edge_owners::refused_selection_count(
+            ctx,
+            &native.feature_histories,
+            &native.feature_input_lanes,
+        )?,
+        None => 0,
+    };
+    if refused_edge_terminals > 0 {
+        report.losses.push(SldprtLossCode::FeatureEdgeTerminalUnresolved.note(format!(
+            "{refused_edge_terminals} native edge selection(s) retain an unresolved terminal feature owner."
+        )));
+    }
+
     let ambiguous_thin_operations = native.as_ref().map_or(0, |native| {
         let histories = crate::records::HistoryFeatures::new(&native.feature_histories);
         let lane_names = native
@@ -2629,7 +2643,7 @@ fn build_geometry_ir(
         sketch_lanes,
     );
     stamp_feature_baseline(ctx, &mut ir)?;
-    let mut attributes = crate::metadata::attributes(ctx, scan, &mut annotations)?;
+    let mut attributes = crate::metadata::attributes(ctx, scan, &mut annotations, &mut pmi_losses)?;
     let custom_properties = crate::history::project::custom_property_attributes(&histories)?;
     attributes.extend(custom_properties);
     ir.model.attributes = attributes;
@@ -3698,7 +3712,8 @@ fn build_metadata_ir(
         entities: sketch_entities,
         constraints: sketch_constraints,
     } = crate::resolved_features::sketch_projection::sketches(ctx, scan, &mut annotations)?;
-    let mut model_attributes = crate::metadata::attributes(ctx, scan, &mut annotations)?;
+    let mut model_attributes =
+        crate::metadata::attributes(ctx, scan, &mut annotations, &mut pmi_losses)?;
     let custom_properties = crate::history::project::custom_property_attributes(&histories)?;
     model_attributes.extend(custom_properties);
     ir.model.attributes = model_attributes;

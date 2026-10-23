@@ -1,8 +1,8 @@
 //! Compact body, edge and surface selection decoding.
 
 use super::component_paths::{
-    component_feature_precedes, component_path_consumer, component_path_input_features,
-    component_path_terminal_feature, surface_selection_producer_features,
+    component_path_input_features, component_path_terminal_feature,
+    surface_selection_producer_features,
 };
 use super::endpoints::{
     legacy_wide_profile_roster_curve, marker_profile_curve_role,
@@ -46,6 +46,8 @@ use crate::layout::{
 };
 use crate::records::ObjectId;
 use cadmpeg_core::decode::u64_from_index;
+
+pub(crate) mod edge_owners;
 
 const SELECTION_ORDINAL_OVERFLOW: &str = "SLDPRT feature-input selection ordinal overflows u32";
 
@@ -294,6 +296,7 @@ pub(super) fn compact_edge_selections(
 ) -> Result<Vec<FeatureInputEdgeSelection>, CodecError> {
     let history_features = history_features_with_object_sources(histories, lane);
     let selection_features = FeatureSources::new(&history_features);
+    let mut owner_features = None;
     let objects = selection_objects(histories, lane);
     let lane_key = lane
         .id
@@ -354,6 +357,8 @@ pub(super) fn compact_edge_selections(
         selections.dedup_by_key(|selection| selection.0);
         let mut feature_selections = Vec::new();
         for (offset, local_edge_ids) in selections {
+            let owner_features = owner_features
+                .get_or_insert_with(|| edge_owners::OwnerFeatures::new(&selection_features));
             let references = compact_edge_reference_list_for_feature(
                 &lane.native_payload,
                 offset,
@@ -372,7 +377,7 @@ pub(super) fn compact_edge_selections(
                 &lane.native_payload,
                 offset,
                 &components,
-                &selection_features,
+                owner_features,
                 &feature.id,
             )?;
             let producer_feature_refs = compact_edge_producer_features_at(
@@ -381,6 +386,7 @@ pub(super) fn compact_edge_selections(
                 offset,
                 &components,
                 &selection_features,
+                owner_features,
                 &feature.id,
             )?;
             let id = format!("sldprt:feature-input:edge-selection#{lane_key}:{offset}");
@@ -2970,40 +2976,13 @@ pub(crate) fn compact_edge_owner_feature_at(
     payload: &[u8],
     marker: usize,
     components: &[FeatureInputComponentPathEntry],
-    features: &FeatureSources<'_>,
+    features: &edge_owners::OwnerFeatures<'_>,
     consumer_ref: &str,
 ) -> Result<Option<String>, CodecError> {
-    let count = marker
-        .checked_sub(12)
-        .and_then(|offset| View::u32_le_at(payload, offset))
-        .and_then(|count| usize::try_from(count).ok());
-    let Some(count) = count else {
-        return Ok(None);
-    };
-    let owner_source = if compact_component_reference_list_at(payload, marker).is_some() {
-        None
-    } else {
-        let Some(ComponentPathReference(_, owner)) =
-            compact_edge_component_path(ctx, payload, marker, count)?
-        else {
-            return Ok(None);
-        };
-        owner
-    };
-    if let Some(source) = owner_source {
-        for feature in features.iter() {
-            if feature.source_value() != Some(source) {
-                continue;
-            }
-            if let Some(consumer) = component_path_consumer(features, consumer_ref) {
-                if component_feature_precedes(feature, consumer) {
-                    return Ok(Some(feature.feature.id.clone()));
-                }
-            }
-            break;
-        }
-    }
-    Ok(component_path_input_features(components, features, consumer_ref).pop())
+    Ok(
+        edge_owners::resolve(ctx, payload, marker, components, features, consumer_ref)?
+            .into_feature(),
+    )
 }
 
 pub(crate) fn compact_edge_producer_features_at(
@@ -3012,11 +2991,12 @@ pub(crate) fn compact_edge_producer_features_at(
     marker: usize,
     components: &[FeatureInputComponentPathEntry],
     features: &FeatureSources<'_>,
+    owners: &edge_owners::OwnerFeatures<'_>,
     consumer_ref: &str,
 ) -> Result<Vec<String>, CodecError> {
     let mut producers = component_path_input_features(components, features, consumer_ref);
     if let Some(owner) =
-        compact_edge_owner_feature_at(ctx, payload, marker, components, features, consumer_ref)?
+        compact_edge_owner_feature_at(ctx, payload, marker, components, owners, consumer_ref)?
     {
         let mut duplicate = false;
         for producer in &producers {

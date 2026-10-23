@@ -1377,10 +1377,32 @@ fn patch_retained_swobjects_metadata(
                     &bytes,
                 )?;
             }
-            Some(MetadataRecord::PartRecord { id, version }) => {
-                let start = offset + PART_RECORD_TOKEN.len();
-                overwrite_bytes(payload, start, &id.to_le_bytes())?;
-                overwrite_bytes(payload, start + 8, &version.to_le_bytes())?;
+            Some(MetadataRecord::PartRecord {
+                first_word,
+                trailing_word,
+            }) => {
+                let crate::metadata::part::Root::Supported(resident) =
+                    crate::metadata::part::parse(payload)
+                else {
+                    return Err(CodecError::NotImplemented(
+                        "SLDPRT Part edit requires a supported root scalar prefix".into(),
+                    ));
+                };
+                if offset != resident.token_offset
+                    || trailing_word.is_some() != resident.trailing_word.is_some()
+                {
+                    return Err(CodecError::NotImplemented(
+                        "SLDPRT Part edit cannot change root ownership or scalar form".into(),
+                    ));
+                }
+                overwrite_bytes(payload, resident.body_offset, &first_word.to_le_bytes())?;
+                if let Some(word) = trailing_word {
+                    overwrite_bytes(
+                        payload,
+                        resident.body_offset + crate::layout::part_root_long::TRAILING_WORD,
+                        &word.to_le_bytes(),
+                    )?;
+                }
             }
             Some(MetadataRecord::ConfigurationManager {
                 minor,
@@ -1811,8 +1833,10 @@ enum MetadataRecord {
         lower: [f64; 3],
         radius: f64,
     },
-    /// Part identity and version.
-    PartRecord { id: u32, version: u32 },
+    PartRecord {
+        first_word: u32,
+        trailing_word: Option<u32>,
+    },
     /// Configuration-manager version, state count and timestamp.
     ConfigurationManager {
         minor: u32,
@@ -1893,13 +1917,20 @@ impl MetadataRecord {
                 }
             }
             "part_record" => {
-                let [AttributeValue::Integer(id), AttributeValue::Integer(version)] = values else {
-                    return Err(invalid("part record"));
-                };
                 retained(PART_RECORD_TOKEN)?;
+                let (first, trailing) = match values {
+                    [AttributeValue::Integer(first)] => (*first, None),
+                    [AttributeValue::Integer(first), AttributeValue::Integer(last)] => {
+                        (*first, Some(*last))
+                    }
+                    _ => return Err(invalid("part scalar prefix")),
+                };
                 Self::PartRecord {
-                    id: u32::try_from(*id).map_err(|_| invalid("part id"))?,
-                    version: u32::try_from(*version).map_err(|_| invalid("part version"))?,
+                    first_word: u32::try_from(first).map_err(|_| invalid("Part first word"))?,
+                    trailing_word: trailing
+                        .map(u32::try_from)
+                        .transpose()
+                        .map_err(|_| invalid("Part trailing word"))?,
                 }
             }
             "configuration_manager" => {
@@ -2016,12 +2047,11 @@ fn metadata_payloads(
                         .into(),
                 ));
             }
-            Some(MetadataRecord::PartRecord { id, version }) => {
-                objects.extend_from_slice(PART_RECORD_TOKEN);
-                objects.extend_from_slice(&id.to_le_bytes());
-                objects.extend_from_slice(&0u32.to_le_bytes());
-                objects.extend_from_slice(&version.to_le_bytes());
-                objects.push(0);
+            Some(MetadataRecord::PartRecord { .. }) if retained_swobjects => {}
+            Some(MetadataRecord::PartRecord { .. }) => {
+                return Err(CodecError::NotImplemented(
+                    "SLDPRT Part generation requires a retained supported root serializer".into(),
+                ));
             }
             Some(MetadataRecord::ConfigurationManager {
                 minor,

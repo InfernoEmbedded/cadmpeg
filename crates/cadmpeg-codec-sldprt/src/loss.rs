@@ -24,6 +24,8 @@ use cadmpeg_ir::report::{
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum SldprtLossCode {
+    /// Part root scalar prefix has no supported class-specific reading.
+    MetadataPartRootUnsupported,
     /// Active configuration identity does not resolve to exactly one record.
     ConfigActiveIdentityUnresolved,
     /// Active configuration does not resolve to the active geometry partition.
@@ -87,6 +89,8 @@ pub(crate) enum SldprtLossCode {
     FeatureTypedOperandIncomplete,
     /// Thin extrusion retains an ambiguous inline Boolean operation.
     FeatureThinOperationAmbiguous,
+    /// Native edge selection has a refused terminal feature owner.
+    FeatureEdgeTerminalUnresolved,
     /// Body delete/keep feature retains native selection without a decoded mode.
     FeatureBodyRetentionUnresolved,
     /// Face or procedural construction references an untyped support surface.
@@ -180,6 +184,7 @@ impl SldprtLossCode {
     /// Every code, in declaration order.
     #[cfg(test)]
     const ALL: &'static [SldprtLossCode] = &[
+        Self::MetadataPartRootUnsupported,
         Self::ConfigActiveIdentityUnresolved,
         Self::ConfigActivePartitionMismatch,
         Self::ConfigInferredWithoutNative,
@@ -210,6 +215,7 @@ impl SldprtLossCode {
         Self::FeatureInputObjectUnbound,
         Self::FeatureTypedOperandIncomplete,
         Self::FeatureThinOperationAmbiguous,
+        Self::FeatureEdgeTerminalUnresolved,
         Self::FeatureBodyRetentionUnresolved,
         Self::GeometryFaceSupportSurfaceUntyped,
         Self::GeometryEdgeSupportCurveUntyped,
@@ -284,6 +290,7 @@ impl SldprtLossCode {
             Self::FeatureInputObjectUnbound => "feature.input-object-unbound",
             Self::FeatureTypedOperandIncomplete => "feature.typed-operand-incomplete",
             Self::FeatureThinOperationAmbiguous => "feature.thin-operation-ambiguous",
+            Self::FeatureEdgeTerminalUnresolved => "feature.edge-terminal-unresolved",
             Self::FeatureBodyRetentionUnresolved => "feature.body-retention-unresolved",
             Self::GeometryFaceSupportSurfaceUntyped => "geometry.face-support-surface-untyped",
             Self::GeometryEdgeSupportCurveUntyped => "geometry.edge-support-curve-untyped",
@@ -324,6 +331,7 @@ impl SldprtLossCode {
             }
             Self::SourceDialectDisplaced => "target.source-dialect-displaced",
             Self::SourcePropertyKeyBlank => "source.property-key-blank",
+            Self::MetadataPartRootUnsupported => "metadata.part-root-unsupported",
         }
     }
 
@@ -373,6 +381,7 @@ impl SldprtLossCode {
             | Self::FeatureInputObjectUnbound
             | Self::FeatureTypedOperandIncomplete
             | Self::FeatureThinOperationAmbiguous
+            | Self::FeatureEdgeTerminalUnresolved
             | Self::FeatureBodyRetentionUnresolved
             | Self::GeometryFaceSupportSurfaceUntyped
             | Self::GeometryEdgeSupportCurveUntyped
@@ -398,7 +407,8 @@ impl SldprtLossCode {
             | Self::KernelDialectUnverified
             | Self::DialectLayerCollision
             | Self::SourceDialectDisplaced
-            | Self::SourcePropertyKeyBlank => Severity::Warning,
+            | Self::SourcePropertyKeyBlank
+            | Self::MetadataPartRootUnsupported => Severity::Warning,
         }
     }
 
@@ -419,7 +429,9 @@ impl SldprtLossCode {
             }
             Self::DialectLayerCollision => LossTaxonomy::DecodeDiagnostic,
             Self::SourceDialectDisplaced => LossTaxonomy::SourceDialectDisplaced,
-            Self::SourcePropertyKeyBlank => LossTaxonomy::AttributesNotTransferred,
+            Self::SourcePropertyKeyBlank | Self::MetadataPartRootUnsupported => {
+                LossTaxonomy::AttributesNotTransferred
+            }
             Self::TopologyBodyHierarchyDerived | Self::TopologyFaceSenseConflict => {
                 LossTaxonomy::TopologyGaugeSubstituted
             }
@@ -475,6 +487,7 @@ impl SldprtLossCode {
             | Self::FeatureInputObjectUnbound
             | Self::FeatureTypedOperandIncomplete
             | Self::FeatureThinOperationAmbiguous
+            | Self::FeatureEdgeTerminalUnresolved
             | Self::FeatureBodyRetentionUnresolved => LossTaxonomy::FeatureHistoryRetained,
         }
     }
@@ -617,6 +630,7 @@ mod tests {
         assert_eq!(
             codes,
             [
+                "metadata.part-root-unsupported",
                 "config.active-identity-unresolved",
                 "config.active-partition-mismatch",
                 "config.inferred-without-native",
@@ -647,6 +661,7 @@ mod tests {
                 "feature.input-object-unbound",
                 "feature.typed-operand-incomplete",
                 "feature.thin-operation-ambiguous",
+                "feature.edge-terminal-unresolved",
                 "feature.body-retention-unresolved",
                 "geometry.face-support-surface-untyped",
                 "geometry.edge-support-curve-untyped",

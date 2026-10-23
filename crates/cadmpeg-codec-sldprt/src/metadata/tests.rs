@@ -24,7 +24,7 @@ fn metadata_from_nameless_block_keeps_annotation_owner() {
     let (ctx, _) =
         DecodeContext::from_root_bytes(&source, &arena, &DecodePolicy::service()).unwrap();
     let mut annotations = cadmpeg_ir::annotations::Annotations::default();
-    let attributes = super::attributes(&ctx, &scan, &mut annotations).unwrap();
+    let attributes = super::attributes(&ctx, &scan, &mut annotations, &mut Vec::new()).unwrap();
 
     assert!(attributes
         .iter()
@@ -296,6 +296,7 @@ fn scanned_metadata(payload: &[u8]) -> Vec<cadmpeg_ir::attributes::SourceAttribu
         &ctx,
         &scan,
         &mut cadmpeg_ir::annotations::Annotations::default(),
+        &mut Vec::new(),
     )
     .unwrap()
 }
@@ -483,4 +484,141 @@ fn enclosure_metadata_edit_preserves_config_owner_and_opaque_prologue() {
     assert_eq!(&bytes[..52], &payload[..52]);
     assert_eq!(super::transformed_enclosure(bytes, 6).unwrap()[0], 0.025);
     assert_eq!(&bytes[60..], &payload[60..]);
+}
+
+fn authored_part_root(words: &[u32]) -> Vec<u8> {
+    let mut bytes = vec![255, 255, 1, 0, 8, 0];
+    bytes.extend_from_slice(b"moPart_c");
+    for word in words {
+        bytes.extend(word.to_le_bytes());
+    }
+    let successor: &[u8] = if words.len() == 1 {
+        b"moHeader_c"
+    } else {
+        b"moNodeName_c"
+    };
+    bytes.extend([255, 255, 1, 0]);
+    bytes.extend(u16::try_from(successor.len()).unwrap().to_le_bytes());
+    bytes.extend(successor);
+    bytes.extend_from_slice(b"authored continuation");
+    bytes
+}
+
+#[test]
+fn unsupported_part_roots_report_loss_and_embedded_tokens_do_not_create_metadata() {
+    for (payload, unsupported) in [
+        (authored_part_root(&[7, 3, 11]), true),
+        (
+            b"unqlite\xa5class\xa8moPart_c\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(),
+            false,
+        ),
+        (
+            [
+                b"\xff\xff\x01\x00\x05\x00Other".as_slice(),
+                &authored_part_root(&[7, 0, 11]),
+            ]
+            .concat(),
+            false,
+        ),
+        (b"moPart_c\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(), false),
+    ] {
+        let mut source = outer_header();
+        source.extend(make_block(0x43, "AuthoredMetadata", &payload));
+        let scan = crate::test_support::container::scan(&source);
+        let arena = DecodeArena::new();
+        let (ctx, _) =
+            DecodeContext::from_root_bytes(&source, &arena, &DecodePolicy::service()).unwrap();
+        let mut losses = Vec::new();
+        let attributes =
+            super::attributes(&ctx, &scan, &mut Default::default(), &mut losses).unwrap();
+        assert!(!attributes
+            .iter()
+            .any(|attribute| attribute.name == "part_record"));
+        assert_eq!(losses.len(), usize::from(unsupported));
+        if unsupported {
+            assert_eq!(
+                losses[0].code.local_code(),
+                "metadata.part-root-unsupported"
+            );
+        }
+    }
+}
+
+#[test]
+fn retained_part_roots_preserve_scalar_form_and_all_other_owned_bytes() {
+    use cadmpeg_ir::attributes::AttributeValue;
+    for words in [vec![17], vec![29, 0, 37]] {
+        let payload = authored_part_root(&words);
+        let mut source = sldprt_with_body(&triangle_body());
+        source.extend(make_block(0x43, "AuthoredPartRoot", &payload));
+        let source = crate::test_support::container::native_envelope_fixture(&source);
+        let decoded = SldprtCodec
+            .decode(&mut Cursor::new(&source), &DecodeOptions::default())
+            .unwrap();
+        let mut decoded = cadmpeg_test_support::EditableDecodeResult::from(decoded);
+        let attribute = decoded
+            .ir()
+            .model
+            .attributes
+            .iter()
+            .find(|attribute| attribute.name == "part_record")
+            .unwrap();
+        let mut expected_values = vec![AttributeValue::Integer(i64::from(words[0]))];
+        if let Some(last) = words.get(2) {
+            expected_values.push(AttributeValue::Integer(i64::from(*last)));
+        }
+        assert_eq!(attribute.values, expected_values);
+        let mut unchanged = Vec::new();
+        crate::test_support::plan_inherited_write(
+            decoded.ir(),
+            decoded.source_fidelity(),
+            &mut unchanged,
+        )
+        .unwrap();
+        assert_eq!(unchanged, source);
+        let mut edited = decoded.ir_mut();
+        let attribute = edited
+            .model
+            .attributes
+            .iter_mut()
+            .find(|attribute| attribute.name == "part_record")
+            .unwrap();
+        attribute.values[0] = AttributeValue::Integer(73);
+        if attribute.values.len() == 2 {
+            attribute.values[1] = AttributeValue::Integer(89);
+        }
+        drop(edited);
+        let mut encoded = Vec::new();
+        crate::test_support::plan_inherited_write(
+            decoded.ir(),
+            decoded.source_fidelity(),
+            &mut encoded,
+        )
+        .unwrap();
+        let scan = crate::test_support::container::scan(&encoded);
+        let block = scan
+            .blocks
+            .iter()
+            .find(|block| block.section.name() == Some("AuthoredPartRoot"))
+            .unwrap();
+        let mut expected = payload;
+        expected[14..18].copy_from_slice(&73u32.to_le_bytes());
+        if words.len() == 3 {
+            expected[22..26].copy_from_slice(&89u32.to_le_bytes());
+        }
+        assert_eq!(block.payload, expected);
+        let reread = SldprtCodec
+            .decode(&mut Cursor::new(encoded), &DecodeOptions::default())
+            .unwrap();
+        let values = &reread
+            .ir()
+            .model
+            .attributes
+            .iter()
+            .find(|attribute| attribute.name == "part_record")
+            .unwrap()
+            .values;
+        assert_eq!(values[0], AttributeValue::Integer(73));
+        assert_eq!(values.len(), if words.len() == 1 { 1 } else { 2 });
+    }
 }

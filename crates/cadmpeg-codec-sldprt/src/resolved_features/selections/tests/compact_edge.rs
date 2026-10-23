@@ -1321,3 +1321,170 @@ fn variable_fillet_control_names_require_canonical_unsigned_indices() {
     assert_eq!(index(&feature, "D1"), None);
     assert_eq!(index(&feature, "D01"), Some(1));
 }
+
+#[test]
+fn compact_edge_terminal_must_resolve_before_predecessor_filtering() {
+    use crate::resolved_features::feature_sources::FeatureSources;
+    use crate::resolved_features::selections::compact_edge_owner_feature_at;
+    use crate::resolved_features::selections::edge_owners::{
+        OwnerFeatures, OwnerRefusal, OwnerResolution,
+    };
+    let arena = cadmpeg_core::decode::DecodeArena::new();
+    let (ctx, _) = cadmpeg_core::decode::DecodeContext::from_root_bytes(
+        &[],
+        &arena,
+        &cadmpeg_core::decode::DecodePolicy::service(),
+    )
+    .unwrap();
+    let native = |id: &str, source, parent: &str| Feature {
+        id: id.into(),
+        parent: parent.into(),
+        xml_tag: "Feature".into(),
+        tree_parent: None,
+        source_id: FeatureSource::from_value(source),
+        ordinal: source,
+        name: id.into(),
+        kind: "Feature".into(),
+        input_class: None,
+        suppressed: false,
+        parameters: BTreeMap::new(),
+        dimension_properties: BTreeMap::new(),
+        properties: BTreeMap::new(),
+        text: None,
+        content: Vec::new(),
+    };
+    let history = vec![
+        native("old", 75, "history"),
+        native("consumer", 92, "history"),
+        native("later", 114, "history"),
+    ];
+    let mut source = vec![0; 30];
+    source[..4].copy_from_slice(&4u32.to_le_bytes());
+    source[4..8].copy_from_slice(&[0, 2, 0, 0]);
+    source[12..28].copy_from_slice(&COMPACT_EDGE_VECTOR_MARKER);
+    let mut terminal_offset = 0;
+    for (index, local) in [17u32, 23, 29, 0].into_iter().enumerate() {
+        let start = source.len();
+        source.extend(0x8031u16.to_le_bytes());
+        source.extend(0u16.to_le_bytes());
+        source.extend([0x11, 0x80, 0x29, 0x02]);
+        source.extend(75u32.to_le_bytes());
+        source.extend([0x12, 0x34, 0x56, 0x78]);
+        source.extend(local.to_le_bytes());
+        if index == 3 {
+            terminal_offset = start + 8;
+        }
+    }
+    for (terminal, expected) in [
+        (75u32, Some("old")),
+        (92, None),
+        (114, None),
+        (999, Some("old")),
+    ] {
+        let mut payload = source.to_vec();
+        payload[terminal_offset..terminal_offset + 4].copy_from_slice(&terminal.to_le_bytes());
+        let components = compact_edge_component_path_at(&ctx, &payload, 12)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            compact_edge_owner_feature_at(
+                &ctx,
+                &payload,
+                12,
+                &components,
+                &OwnerFeatures::new(&FeatureSources::new(&history)),
+                "consumer"
+            )
+            .unwrap()
+            .as_deref(),
+            expected
+        );
+    }
+    let mut explicit = vec![0; 160];
+    explicit[..4].copy_from_slice(&4u32.to_le_bytes());
+    explicit[4..8].copy_from_slice(&[0, 2, 0, 0]);
+    explicit[12..28].copy_from_slice(&COMPACT_EDGE_VECTOR_MARKER);
+    let mut cursor = 30;
+    for (index, local) in [32u32, 34, 1].into_iter().enumerate() {
+        explicit[cursor..cursor + 4].copy_from_slice(&[0x3d, 0x80, 0, 0]);
+        explicit[cursor + 4..cursor + 16]
+            .copy_from_slice(&[0x34, 0x80, 0x37, 0, 75, 0, 0, 0, 0x9b, 0x95, 0x90, 0x5f]);
+        explicit[cursor + 16..cursor + 20].copy_from_slice(&local.to_le_bytes());
+        cursor += 20;
+        if index != 2 {
+            explicit[cursor..cursor + 8].copy_from_slice(&[0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0]);
+            cursor += 8;
+        }
+    }
+    explicit[cursor..cursor + 36].copy_from_slice(&[
+        1, 0, 0, 0, 0, 0, 0, 0, 0x4a, 0x80, 0, 0, 0x34, 0x80, 0x37, 0, 75, 0, 0, 0, 0x89, 0x6b,
+        0x90, 0x5f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+    let components = compact_edge_component_path_at(&ctx, &explicit, 12)
+        .unwrap()
+        .unwrap();
+    for (terminal, expected) in [(75u32, Some("old")), (92, None), (114, None), (999, None)] {
+        explicit[cursor + 16..cursor + 20].copy_from_slice(&terminal.to_le_bytes());
+        assert_eq!(
+            compact_edge_owner_feature_at(
+                &ctx,
+                &explicit,
+                12,
+                &components,
+                &OwnerFeatures::new(&FeatureSources::new(&history)),
+                "consumer"
+            )
+            .unwrap()
+            .as_deref(),
+            expected
+        );
+    }
+    for (terminal, refusal) in [
+        (92u32, OwnerRefusal::NonPreceding),
+        (114, OwnerRefusal::NonPreceding),
+        (999, OwnerRefusal::ExplicitOwnerMissing),
+    ] {
+        explicit[cursor + 16..cursor + 20].copy_from_slice(&terminal.to_le_bytes());
+        assert_eq!(
+            crate::resolved_features::selections::edge_owners::resolve(
+                &ctx,
+                &explicit,
+                12,
+                &components,
+                &OwnerFeatures::new(&FeatureSources::new(&history)),
+                "consumer"
+            )
+            .unwrap(),
+            OwnerResolution::Refused(refusal)
+        );
+    }
+    let mut duplicate = history.clone();
+    duplicate.push(native("ambiguous-old", 75, "history"));
+    explicit[cursor + 16..cursor + 20].copy_from_slice(&75u32.to_le_bytes());
+    assert_eq!(
+        compact_edge_owner_feature_at(
+            &ctx,
+            &explicit,
+            12,
+            &components,
+            &OwnerFeatures::new(&FeatureSources::new(&duplicate)),
+            "consumer"
+        )
+        .unwrap(),
+        None
+    );
+    let mut other_scope = history.clone();
+    other_scope[0].parent = "other-history".into();
+    assert_eq!(
+        compact_edge_owner_feature_at(
+            &ctx,
+            &explicit,
+            12,
+            &components,
+            &OwnerFeatures::new(&FeatureSources::new(&other_scope)),
+            "consumer"
+        )
+        .unwrap(),
+        None
+    );
+}

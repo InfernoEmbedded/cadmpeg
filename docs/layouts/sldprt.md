@@ -3149,6 +3149,56 @@ Parsed by:
 | 0 | 4 | `count` | `u32` | big | spec | element count is u32 BE at body +0 |
 | 4 | 2 | `node_index` | `u16` | big | spec | transmit index is u16 BE at body +4 |
 
+## `mfc_new_class_header`
+
+Spec §8 · layout: byte offsets · size: 6 B
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/metadata/part.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 2 | `tag` | `u16` | little | spec | `u16 LE 0xffff` |
+| 2 | 2 | `schema` | `u16` | little | spec | a `u16 LE` schema |
+| 4 | 2 | `name_length` | `u16` | little | spec | a `u16 LE` ASCII class-name byte count |
+
+## `part_root_short`
+
+Spec §8 · layout: byte offsets · size: 4 B
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/metadata/part.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `first_word` | `u32` | little | spec | Its short direct scalar prefix is one u32 LE word |
+
+## `part_root_long`
+
+Spec §8 · layout: byte offsets · size: 12 B
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/metadata/part.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `first_word` | `u32` | little | spec | Its long direct scalar prefix is three u32 LE words |
+| 4 | 4 | `reserved` | `u32` | little | spec | with the middle word zero |
+| 8 | 4 | `trailing_word` | `u32` | little | spec | The short prefix has no third word. |
+
+## `component_edge_type_signature`
+
+Spec §2 · layout: byte offsets · size: 12 B
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/resolved_features/selections/edge_owners.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `opaque_prefix` | `bytes[4]` | little | spec | type-signature bytes 4 through 7 contain the native feature object ID |
+| 4 | 4 | `native_feature_object_id` | `u32` | little | spec | type-signature bytes 4 through 7 contain the native feature object ID |
+| 8 | 4 | `opaque_suffix` | `bytes[4]` | little | spec | type-signature bytes 4 through 7 contain the native feature object ID |
+
 ## Not tabulated
 
 | Area | Spec | Reason |

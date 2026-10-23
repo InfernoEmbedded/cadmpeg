@@ -1096,3 +1096,69 @@ fn a_retained_configuration_is_refused_for_its_token_before_its_state_count() {
         "malformed container: retained SLDPRT metadata token does not match its provenance",
     );
 }
+
+#[test]
+fn retained_part_edits_require_root_ownership_and_preserve_scalar_form() {
+    use cadmpeg_ir::attributes::{AttributeTarget, AttributeValue, SourceAttribute};
+    for (payload, offset, values) in [
+        (
+            b"unqlite\xa5class\xa8moPart_c\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(),
+            14,
+            vec![AttributeValue::Integer(17), AttributeValue::Integer(19)],
+        ),
+        (
+            [
+                b"\xff\xff\x01\x00\x08\x00moPart_c".as_slice(),
+                &7u32.to_le_bytes(),
+                b"\xff\xff\x01\x00\x0a\x00moHeader_c",
+            ]
+            .concat(),
+            6,
+            vec![AttributeValue::Integer(17), AttributeValue::Integer(19)],
+        ),
+    ] {
+        let mut ir = cadmpeg_ir::CadIr::empty();
+        let id = "sldprt:metadata:part_record#0:6";
+        ir.model.attributes.push(SourceAttribute {
+            id: cadmpeg_ir::ids::AttributeId::mint(id).unwrap(),
+            target: AttributeTarget::Document,
+            name: "part_record".into(),
+            values,
+        });
+        let mut annotations = cadmpeg_ir::annotations::Annotations::default();
+        crate::annotations::note(
+            &mut annotations,
+            id,
+            &cadmpeg_ir::stream_name!("SWObjects"),
+            offset,
+            "moPart_c",
+            cadmpeg_ir::Exactness::ByteExact,
+        )
+        .unwrap();
+        let mut sections = vec![("SWObjects".to_owned(), payload.clone())];
+        let error =
+            crate::writer::patch_retained_swobjects_metadata(&ir, &annotations, &mut sections, 1.0)
+                .unwrap_err();
+        assert!(matches!(error, cadmpeg_core::CodecError::NotImplemented(_)));
+        assert_eq!(sections[0].1, payload);
+    }
+}
+
+#[test]
+fn generated_part_metadata_requires_retained_root_serializer() {
+    use cadmpeg_ir::attributes::{AttributeTarget, AttributeValue, SourceAttribute};
+    let mut ir = cadmpeg_ir::CadIr::empty();
+    ir.model.attributes.push(SourceAttribute {
+        id: cadmpeg_ir::ids::AttributeId::mint("sldprt:metadata:part_record#0:6").unwrap(),
+        target: AttributeTarget::Document,
+        name: "part_record".into(),
+        values: vec![AttributeValue::Integer(17)],
+    });
+    let error = crate::writer::metadata_payloads(&ir, 1.0, false).unwrap_err();
+    assert!(matches!(error, cadmpeg_core::CodecError::NotImplemented(_)));
+    assert!(error.to_string().contains("Part generation requires"));
+    assert!(crate::writer::metadata_payloads(&ir, 1.0, true)
+        .unwrap()
+        .0
+        .is_empty());
+}

@@ -2119,10 +2119,6 @@ The offset surface retains the support parameterization. Nested offset carriers 
 | | +49 | f64[3] | axis-aligned upper xyz, metres; present branch |
 | | +73 | f64[3] | axis-aligned lower xyz, metres; present branch |
 | | +97 | f64 | stored enclosing-sphere radius, metres; present branch |
-| `moPart_c`              | +0     | u32       | part identifier                     |
-|                         | +4     | u32       | `0`                                 |
-|                         | +8     | u32       | part version                        |
-|                         | +12    | u8        | `0`                                 |
 | `moConfigurationMgr_c`  | +66    | u32       | configuration-manager minor version |
 |                         | +107   | u8        | configuration state count           |
 |                         | +117   | u64       | FILETIME timestamp                  |
@@ -2130,6 +2126,8 @@ The offset surface retains the support parameterization. Nested offset carriers 
 | `moLengthUserUnits_c`   | +0     | bytes[3]  | `ff fe ff`                          |
 |                         | +3     | u8        | UTF-16 code-unit count `n`          |
 |                         | +4     | bytes[2n] | linear-unit name, UTF-16LE          |
+
+An MFC new-class declaration starts with `u16 LE 0xffff`, a `u16 LE` schema, a `u16 LE` ASCII class-name byte count, and that counted class name. The section-root `moPart_c` declaration uses schema 1. Its short direct scalar prefix is one u32 LE word and is followed by a schema-1 `moHeader_c` declaration. Its long direct scalar prefix is three u32 LE words, with the middle word zero, followed by a schema-1 `moNodeName_c` declaration. The short prefix has no third word. The next class declaration belongs to the continuation and is not a scalar terminator. A class-name string inside another serialized object does not establish this section-root object. These prefix rules do not define the complete class-specific object graph.
 
 The direct `moTransRefPlaneData_c` declaration has the six-byte prefix `ff ff 01 00 15 00` before its 21-byte ASCII token. The body has a 25-byte fixed prologue. Presence zero omits all ten enclosure doubles; presence one includes exactly 80 bytes at body +25. The 24 opaque bytes precede the presence byte without a fixed `ff` gap. Stored center and radius are independent fields; they are not derived from the two corners. The following class continuation is separate from this optional enclosure.
 

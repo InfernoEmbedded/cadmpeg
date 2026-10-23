@@ -2899,3 +2899,47 @@ pub(crate) mod integer_values_header {
     /// Offset of `node_index` (`u16`, big-endian). Spec §5.
     pub(crate) const NODE_INDEX: usize = 4;
 }
+
+/// Byte offsets for the `mfc_new_class_header` record.
+///
+/// Spec §8. Record length 6 B.
+pub(crate) mod mfc_new_class_header {
+    /// Record length in bytes. Spec §8.
+    pub(crate) const LEN: usize = 6;
+    /// Offset of `tag` (`u16`, little-endian). Spec §8.
+    pub(crate) const TAG: usize = 0;
+    /// Offset of `schema` (`u16`, little-endian). Spec §8.
+    pub(crate) const SCHEMA: usize = 2;
+    /// Offset of `name_length` (`u16`, little-endian). Spec §8.
+    pub(crate) const NAME_LENGTH: usize = 4;
+}
+
+/// Byte offsets for the `part_root_short` record.
+///
+/// Spec §8. Record length 4 B.
+pub(crate) mod part_root_short {
+    /// Record length in bytes. Spec §8.
+    pub(crate) const LEN: usize = 4;
+    /// Offset of `first_word` (`u32`, little-endian). Spec §8.
+    pub(crate) const FIRST_WORD: usize = 0;
+}
+
+/// Byte offsets for the `part_root_long` record.
+///
+/// Spec §8. Record length 12 B.
+pub(crate) mod part_root_long {
+    /// Record length in bytes. Spec §8.
+    pub(crate) const LEN: usize = 12;
+    /// Offset of `reserved` (`u32`, little-endian). Spec §8.
+    pub(crate) const RESERVED: usize = 4;
+    /// Offset of `trailing_word` (`u32`, little-endian). Spec §8.
+    pub(crate) const TRAILING_WORD: usize = 8;
+}
+
+/// Byte offsets for the `component_edge_type_signature` record.
+///
+/// Spec §2. Record length 12 B.
+pub(crate) mod component_edge_type_signature {
+    /// Offset of `native_feature_object_id` (`u32`, little-endian). Spec §2.
+    pub(crate) const NATIVE_FEATURE_OBJECT_ID: usize = 4;
+}

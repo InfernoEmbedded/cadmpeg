@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //! Typed SW Objects document metadata.
 
+pub(crate) mod part;
+
 use crate::container::{ContainerScan, Section};
 use cadmpeg_core::decode::{u64_from_index, DecodeContext, View};
 use cadmpeg_core::CodecError;
@@ -18,6 +20,7 @@ pub(crate) fn attributes(
     ctx: &DecodeContext<'_>,
     scan: &ContainerScan,
     annotations: &mut Annotations,
+    losses: &mut Vec<cadmpeg_ir::report::loss::LossNote>,
 ) -> Result<Vec<SourceAttribute>, CodecError> {
     let mut out = Vec::new();
     for section in scan.sections() {
@@ -45,7 +48,7 @@ pub(crate) fn attributes(
             &mut out,
             annotations,
         )?;
-        scan_part(section, &mut out, annotations)?;
+        scan_part(section, &mut out, annotations, losses)?;
         scan_configuration_manager(section, &mut out, annotations)?;
         scan_transformed_reference_plane(section, &mut out, annotations)?;
         scan_units_xml(ctx, section, &mut out, annotations)?;
@@ -276,32 +279,30 @@ fn scan_part(
     section: Section<'_>,
     out: &mut Vec<SourceAttribute>,
     annotations: &mut Annotations,
+    losses: &mut Vec<cadmpeg_ir::report::loss::LossNote>,
 ) -> Result<(), CodecError> {
-    const TOKEN: &[u8] = b"moPart_c";
-    let payload = section.payload();
-    for offset in payload
-        .windows(TOKEN.len())
-        .enumerate()
-        .filter_map(|(at, bytes)| (bytes == TOKEN).then_some(at))
-    {
-        let start = offset + TOKEN.len();
-        let (Some(id), Some(version)) = (
-            View::u32_le_at(payload, start),
-            View::u32_le_at(payload, start + 8),
-        ) else {
-            continue;
-        };
-        out.push(attribute(
-            section,
-            offset,
-            &cadmpeg_ir::identity_component!("part_record"),
-            TOKEN,
-            vec![
-                AttributeValue::Integer(i64::from(id)),
-                AttributeValue::Integer(i64::from(version)),
-            ],
-            annotations,
-        )?);
+    match part::parse(section.payload()) {
+        part::Root::Absent => {}
+        part::Root::Unsupported => losses.push(
+            crate::loss::SldprtLossCode::MetadataPartRootUnsupported.note(format!(
+                "Part root in {} has an unsupported scalar prefix or continuation",
+                section.source_stream().as_str()
+            )),
+        ),
+        part::Root::Supported(prefix) => {
+            let mut values = vec![AttributeValue::Integer(i64::from(prefix.first_word))];
+            if let Some(word) = prefix.trailing_word {
+                values.push(AttributeValue::Integer(i64::from(word)));
+            }
+            out.push(attribute(
+                section,
+                prefix.token_offset,
+                &cadmpeg_ir::identity_component!("part_record"),
+                part::TOKEN,
+                values,
+                annotations,
+            )?);
+        }
     }
     Ok(())
 }
