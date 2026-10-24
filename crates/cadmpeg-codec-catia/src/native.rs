@@ -68,9 +68,11 @@ use zero_entity_allocation::CatiaZeroEntityAllocationEdge;
 pub(crate) mod inline_field;
 use inline_field::CatiaInlineField;
 
+mod paired_records;
 pub(crate) mod project_range;
 pub(crate) mod schema_configuration_chain;
 pub(crate) mod schema_configuration_roles;
+pub(crate) mod sketch_bindings;
 use schema_configuration_chain::{
     derive_schema_configuration_row_chains, CatiaSchemaConfigurationRowChain,
 };
@@ -4311,6 +4313,10 @@ pub(crate) struct CatiaDesignObject {
     /// Complete row-aligned table formed by parallel all-reference list fields.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) parallel_reference_table: Option<CatiaDesignParallelReferenceTable>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) sketch_membership: Option<Box<sketch_bindings::CatiaSketchMembership>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) local_point_pairs: Vec<sketch_bindings::CatiaLocalPointPair>,
 }
 
 fn design_objects(
@@ -4463,10 +4469,13 @@ fn design_objects(
                 definition_chain_values,
                 relations,
                 parallel_reference_table,
+                sketch_membership: None,
+                local_point_pairs: Vec::new(),
             };
             objects.push(object);
         }
     }
+    sketch_bindings::bind(ctx, graphs, entity_records, &mut objects)?;
     Ok(objects)
 }
 

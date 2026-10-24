@@ -2,10 +2,10 @@
 //! Source-declared field roles for configuration-row intervals.
 
 use super::entity_record::CatiaEntityRecord;
+use super::paired_records::PairedRecords;
 use super::schema_configuration_chain::CatiaSchemaConfigurationRowChain;
 use super::{CatiaEntityReference, CatiaEntityValueSchemaSelection, CatiaObjectRecord};
 use crate::object_graph::PayloadField;
-use crate::unique_index::UniqueIndex;
 use cadmpeg_core::decode::{u64_from_index, DecodeContext};
 use cadmpeg_core::CodecError;
 use serde::{Deserialize, Serialize};
@@ -32,58 +32,6 @@ pub(crate) struct CatiaSchemaConfigurationFieldRole {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) name: Option<String>,
     pub(crate) incidences: Vec<CatiaSchemaFieldIncidence>,
-}
-
-struct Owners<'e, 'o> {
-    entities: UniqueIndex<(&'e str, u32), &'e CatiaEntityRecord>,
-    entity_ids: UniqueIndex<&'e str, &'e CatiaEntityRecord>,
-    objects: UniqueIndex<&'o str, &'o CatiaObjectRecord>,
-    object_entities: UniqueIndex<(&'o str, u32), &'o CatiaObjectRecord>,
-}
-
-impl<'e, 'o> Owners<'e, 'o> {
-    fn new(entities: &'e [CatiaEntityRecord], objects: &[&'o CatiaObjectRecord]) -> Self {
-        Self {
-            entities: UniqueIndex::collect(
-                entities
-                    .iter()
-                    .map(|e| ((e.object_graph.as_str(), e.entity_id), e)),
-            ),
-            entity_ids: UniqueIndex::collect(entities.iter().map(|e| (e.id.as_str(), e))),
-            objects: UniqueIndex::collect(objects.iter().map(|o| (o.id.as_str(), *o))),
-            object_entities: UniqueIndex::collect(objects.iter().filter_map(|o| {
-                o.entity_id()
-                    .map(|identity| ((o.parent.as_str(), identity), *o))
-            })),
-        }
-    }
-
-    fn pair(
-        &self,
-        graph: &str,
-        identity: u32,
-    ) -> Option<(&'e CatiaEntityRecord, &'o CatiaObjectRecord)> {
-        let entity = self.entities.get(&(graph, identity)).copied()?;
-        self.entity_ids.get(entity.id.as_str())?;
-        let object = self.objects.get(entity.object_record.as_str()).copied()?;
-        let selected = self.object_entities.get(&(graph, identity)).copied()?;
-        (object.id == selected.id
-            && object.parent == graph
-            && object.entity_id() == Some(identity)
-            && object.entity_record() == Some(entity.id.as_str()))
-        .then_some((entity, object))
-    }
-
-    fn target(
-        &self,
-        graph: &str,
-        reference: &CatiaEntityReference,
-    ) -> Option<(&'e CatiaEntityRecord, &'o CatiaObjectRecord)> {
-        let pair = self.pair(graph, reference.entity_id())?;
-        (reference.entity() == Some(pair.0.id.as_str())
-            && reference.class_name() == pair.1.class_name())
-        .then_some(pair)
-    }
 }
 
 struct Declaration<'a> {
@@ -189,7 +137,7 @@ pub(super) fn bind<'e, 'o>(
         return Ok(());
     }
     let objects = objects.into_iter().collect::<Vec<_>>();
-    let owners = Owners::new(entities, &objects);
+    let owners = PairedRecords::new(entities, &objects);
     let mut uses = HashMap::<(&str, u32), usize>::new();
     for chain in chains.iter() {
         for target in chain
