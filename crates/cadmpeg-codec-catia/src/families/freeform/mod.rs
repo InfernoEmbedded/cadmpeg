@@ -783,9 +783,9 @@ pub(super) fn try_decode_freeform_surfaces(
         if !wire_topology_transferred {
             if topology_transferred {
                 losses.push((CatiaLossCode::TopologyB5GaugeSubstituted).note(format!(
-                "The complete B5 reference graph uses inferred face orientation and body kind. \
-             Native face-to-carrier and outward-shell signs and source body dimension are not \
-             transferred. Gauged b5 03 5f face records, by object id ({}): {}.",
+                "The complete B5 reference graph retains native plane face-to-carrier orientation. \
+             Other face orientations and body kind use an inferred gauge. Outward-shell signs \
+             and source body dimension are not transferred. Gauged b5 03 5f face records, by object id ({}): {}.",
                 b5_face_object_ids.len(),
                 identity_statement(&b5_face_object_ids)
             )));

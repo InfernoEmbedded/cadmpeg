@@ -16,10 +16,41 @@ use cadmpeg_ir::topology::{
 };
 use cadmpeg_ir::{AnnotationBuilder, Exactness};
 
-use super::super::graph::B5Graph;
+use super::super::graph::{controls::B5FramingControl, B5Face, B5Graph, B5Surface};
+use super::super::vecmath::{components, cross};
 use super::pcurves::PcurveUses;
-use super::{annotate, OrientedLoop, OrientedLoopMember, OwnershipPlan, TransferPlan};
+use super::{annotate, dot, OrientedLoop, OrientedLoopMember, OwnershipPlan, TransferPlan};
 use crate::solve::union_find::UnionFind;
+
+pub(super) fn native_plane_face_sense(graph: &B5Graph, face: &B5Face) -> Option<Sense> {
+    let B5Surface::Plane {
+        frame, direction_v, ..
+    } = graph.surfaces.get(&face.surface)?
+    else {
+        return None;
+    };
+    (dot(
+        cross(components(frame.reference()), direction_v.get()),
+        components(frame.axis()),
+    ) > 0.0)
+        .then_some(())?;
+    let mut outer = None;
+    for loop_id in &face.loops {
+        let loop_ = graph.loops.get(loop_id)?;
+        if loop_.surface != face.surface {
+            return None;
+        }
+        if loop_.metadata.framing_controls[1] == B5FramingControl::Control05
+            && outer.replace(loop_).is_some()
+        {
+            return None;
+        }
+    }
+    Some(match outer?.metadata.framing_controls[0] {
+        B5FramingControl::Control03 => Sense::Reversed,
+        B5FramingControl::Control05 => Sense::Forward,
+    })
+}
 
 pub(super) fn ownership_plan(
     ctx: &DecodeContext<'_>,
@@ -408,7 +439,7 @@ pub(super) fn emit_faces(
             id: face_record_id,
             shell: face_shell_id,
             surface: face_surface_id,
-            sense: Sense::Forward,
+            sense: plan.face_senses[face_index],
             loops: face_loops,
             name: None,
             color: None,
@@ -605,5 +636,117 @@ mod tests {
                     .expect("service classification");
             assert!(matches!(result, FaceLoops::Unspecified { .. }));
         }
+    }
+    fn native_plane_face_with_inner_loop() -> B5Graph {
+        let mut graph = native_face_with_inner_loop();
+        let bytes =
+            crate::test_support::test_b5::b5_closed_triangle_stream_with_native_vertex_chain();
+        let mut carrier = crate::test_support::with_service_context(|ctx| {
+            super::super::super::graph::parse(ctx, &bytes, &mut crate::nurbs::LaneRefusals::new())
+        })
+        .expect("service decode")
+        .expect("native plane graph");
+        let id = graph.faces[0].surface;
+        graph.surfaces.insert(
+            id,
+            carrier.surfaces.remove(&id).expect("native plane carrier"),
+        );
+        graph
+    }
+
+    #[test]
+    fn native_plane_sense_uses_unique_outer_control_in_any_record_order() {
+        use cadmpeg_ir::topology::Sense;
+        let mut graph = native_plane_face_with_inner_loop();
+        assert_eq!(
+            super::native_plane_face_sense(&graph, &graph.faces[0]),
+            Some(Sense::Reversed)
+        );
+        graph.faces[0].loops.reverse();
+        assert_eq!(
+            super::native_plane_face_sense(&graph, &graph.faces[0]),
+            Some(Sense::Reversed)
+        );
+        let outer = graph.faces[0].loops[0];
+        graph
+            .loops
+            .get_mut(&outer)
+            .expect("native outer")
+            .metadata
+            .framing_controls[0] = B5FramingControl::Control05;
+        assert_eq!(
+            super::native_plane_face_sense(&graph, &graph.faces[0]),
+            Some(Sense::Forward)
+        );
+    }
+
+    #[test]
+    fn native_plane_sense_withholds_missing_ambiguous_or_mismatched_outer() {
+        for location in [B5FramingControl::Control03, B5FramingControl::Control05] {
+            let mut graph = native_plane_face_with_inner_loop();
+            for loop_ in graph.loops.values_mut() {
+                loop_.metadata.framing_controls[1] = location;
+            }
+            assert!(super::native_plane_face_sense(&graph, &graph.faces[0]).is_none());
+        }
+        let mut graph = native_plane_face_with_inner_loop();
+        graph.loops.remove(&graph.faces[0].loops[0]);
+        assert!(super::native_plane_face_sense(&graph, &graph.faces[0]).is_none());
+        let mut graph = native_plane_face_with_inner_loop();
+        let id = graph.faces[0].loops[0];
+        graph.loops.get_mut(&id).expect("owned loop").surface = 101;
+        assert!(super::native_plane_face_sense(&graph, &graph.faces[0]).is_none());
+    }
+
+    #[test]
+    fn native_plane_sense_withholds_inconsistent_carrier_chart() {
+        let mut graph = native_plane_face_with_inner_loop();
+        let surface = graph.faces[0].surface;
+        let super::B5Surface::Plane { direction_v, .. } =
+            graph.surfaces.get_mut(&surface).expect("plane")
+        else {
+            panic!("native plane carrier");
+        };
+        *direction_v =
+            crate::checked::ExactUnitVector3::new([0.0, -1.0, 0.0]).expect("unit opposite V");
+        assert!(super::native_plane_face_sense(&graph, &graph.faces[0]).is_none());
+    }
+
+    #[test]
+    fn native_plane_domain_with_inconsistent_loop_repairs_is_withheld() {
+        let bytes = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/float_packed_native_plane_negative.catpart"
+        ));
+        let mut graph = crate::test_support::with_service_context(|ctx| {
+            super::super::super::graph::parse(ctx, bytes, &mut crate::nurbs::LaneRefusals::new())
+        })
+        .expect("service decode")
+        .expect("negative native plane graph");
+        let mut second = graph.faces[0].clone();
+        second.object_id += 1;
+        let mut loop_ = graph.loops[&second.loops[0]].clone();
+        loop_.object_id += 1;
+        second.loops = vec![loop_.object_id];
+        let mut record = graph.face_records[&graph.faces[0].object_id].clone();
+        record.object_id = second.object_id;
+        record.references[1] = loop_.object_id;
+        graph.face_records.insert(record.object_id, record);
+        graph.loops.insert(loop_.object_id, loop_);
+        graph.faces.push(second);
+        let payload = cadmpeg_ir::ids::UnknownId::compose(
+            &cadmpeg_ir::identity_namespace!("catia", "payload", "unknown"),
+            cadmpeg_ir::identity_key!("plane-orientation-test"),
+        );
+        let plan = crate::test_support::with_service_context(|ctx| {
+            super::super::build_plan(
+                ctx,
+                &graph,
+                &payload,
+                &mut crate::nurbs::LaneRefusals::new(),
+            )
+        })
+        .expect("bounded native transfer planning");
+        assert!(plan.is_none());
     }
 }
