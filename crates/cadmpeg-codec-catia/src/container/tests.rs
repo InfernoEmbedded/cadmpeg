@@ -1503,3 +1503,31 @@ fn outer_stream_directory_parses_one_descriptor() {
     let parsed = super::parse_outer_stream_directory(&bytes).expect("valid directory");
     assert_eq!(parsed.descriptors.len(), 1);
 }
+
+#[test]
+fn e5_interstitial_owner_preceded_by_other_bytes_keeps_its_payload_private() {
+    for family in [0x13, 0x83] {
+        let mut fake = Vec::new();
+        crate::test_support::test_e5::append_e5_record(
+            &mut fake,
+            0xff,
+            7,
+            &[0x85, 0x8d, 0x8a, 0x90, 0x8e, 0x8f, 0x21],
+        );
+        let mut owner = Vec::new();
+        crate::test_support::test_e5::append_e5_record(&mut owner, 0xc0, 8, &fake);
+        owner[2] = family;
+        let mut bytes = vec![0x14, 0x27, 0x42];
+        bytes.extend(owner);
+        crate::test_support::test_e5::append_e5_record(
+            &mut bytes,
+            0xff,
+            9,
+            &[0x85, 0x8d, 0x8a, 0x90, 0x8e, 0x8f, 0x22],
+        );
+        assert_eq!(
+            super::all_e5_record_spans(&bytes).collect::<Vec<_>>(),
+            [36..56]
+        );
+    }
+}

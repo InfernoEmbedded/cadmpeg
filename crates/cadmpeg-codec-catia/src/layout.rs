@@ -276,6 +276,22 @@ pub(crate) mod zero_entity_pcurve_2171 {
     pub(crate) const POLES: usize = 93;
 }
 
+/// Byte offsets for the `e5_record_frame` record.
+///
+/// Spec §9. Record length 13 B.
+///
+/// ```text
+/// The 13-byte header precedes the counted payload; an initial payload reference-count byte is separate from the header.
+/// ```
+pub(crate) mod e5_record_frame {
+    /// Record length in bytes. Spec §9.
+    pub(crate) const LEN: usize = 13;
+    /// Offset of `class` (`u8`). Spec §9.
+    pub(crate) const CLASS: usize = 3;
+    /// Offset of `record_id` (`u32`, little-endian). Spec §9.
+    pub(crate) const RECORD_ID: usize = 9;
+}
+
 /// Byte offsets for the `value_block_7c0b` record.
 ///
 /// Spec §7.4. Record length 6 B.
