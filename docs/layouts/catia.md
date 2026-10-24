@@ -132,11 +132,8 @@ Record start is `marker_pos − 5`. Grammar: `tag:u24le <parameter_length:u16be>
 | 3 | 2 | `parameter_length` | `u16` | big | spec | \| plane \| `0x32` \| `0x0002` \| 49 \| start+48 \| |
 | 5 | 2 | `marker` | `bytes[2]` | little | spec | `tag:u24le <parameter_length:u16be> 00 33 <kind> <payload> <sign:i8>` |
 | 7 | 1 | `kind` | `u8` | little | spec | \| plane \| `0x32` \| `0x0002` \| 49 \| start+48 \| |
+| 8 | 40 | `bounds` | `f32[10]` | little | spec | \| plane \| 0 \| `+8` \| |
 | 48 | 1 | `sign` | `i8` | little | spec | The last byte stores a per-face orientation sign: `+1=0x01`, `−1=0xff`. |
-
-Unstated regions:
-
-- `8..48` (40 B): Parameter payload. §5.8 states the BE f32 slot order per kind but no per-slot offsets; the bounds lane begins at marker-relative +3.
 
 Cross-checked against code:
 
@@ -155,11 +152,9 @@ Cylinder and cone share the parameter-length word and record length; the kind by
 | 3 | 2 | `parameter_length` | `u16` | big | spec | \| cylinder \| `0x33` \| `0x001a` \| 73 \| start+72 \| |
 | 5 | 2 | `marker` | `bytes[2]` | little | spec | `tag:u24le <parameter_length:u16be> 00 33 <kind> <payload> <sign:i8>` |
 | 7 | 1 | `kind` | `u8` | little | spec | \| cylinder \| `0x33` \| `0x001a` \| 73 \| start+72 \| |
+| 8 | 24 | `carrier_parameters` | `f32[6]` | big | spec | Carrier parameters start at record-relative `+8`. Each scalar uses big-endian f32. |
+| 32 | 40 | `bounds` | `f32[10]` | little | spec | \| cylinder \| 6 \| `+32` \| |
 | 72 | 1 | `sign` | `i8` | little | spec | The last byte stores a per-face orientation sign: `+1=0x01`, `−1=0xff`. |
-
-Unstated regions:
-
-- `8..72` (64 B): Parameter payload `cylinder `00 1a 00 33 33 [px py pz ax ay radius]` as BE f32, plus the LE-f32 witness point. §5.8 gives the slot order and the marker-relative witness offset +27 but no per-slot record offsets, and §3.5 places the bounds lane at the same marker-relative +27.
 
 Cross-checked against code:
 
@@ -176,11 +171,9 @@ Spec §5.8 · layout: byte offsets · size: 73 B
 | 3 | 2 | `parameter_length` | `u16` | big | spec | \| cone \| `0x34` \| `0x001a` \| 73 \| start+72 \| |
 | 5 | 2 | `marker` | `bytes[2]` | little | spec | `tag:u24le <parameter_length:u16be> 00 33 <kind> <payload> <sign:i8>` |
 | 7 | 1 | `kind` | `u8` | little | spec | \| cone \| `0x34` \| `0x001a` \| 73 \| start+72 \| |
+| 8 | 24 | `carrier_parameters` | `f32[6]` | big | spec | Carrier parameters start at record-relative `+8`. Each scalar uses big-endian f32. |
+| 32 | 40 | `bounds` | `f32[10]` | little | spec | \| cone \| 6 \| `+32` \| |
 | 72 | 1 | `sign` | `i8` | little | spec | The last byte stores a per-face orientation sign: `+1=0x01`, `−1=0xff`. |
-
-Unstated regions:
-
-- `8..72` (64 B): Parameter payload `[apex_x apex_y apex_z ax ay semi_angle]` as BE f32; §5.8 states the slot order but no per-slot offsets.
 
 ## `analytic_surface_sphere`
 
@@ -192,11 +185,9 @@ Spec §5.8 · layout: byte offsets · size: 65 B
 | 3 | 2 | `parameter_length` | `u16` | big | spec | \| sphere \| `0x35` \| `0x0012` \| 65 \| start+64 \| |
 | 5 | 2 | `marker` | `bytes[2]` | little | spec | `tag:u24le <parameter_length:u16be> 00 33 <kind> <payload> <sign:i8>` |
 | 7 | 1 | `kind` | `u8` | little | spec | \| sphere \| `0x35` \| `0x0012` \| 65 \| start+64 \| |
+| 8 | 16 | `carrier_parameters` | `f32[4]` | big | spec | Carrier parameters start at record-relative `+8`. Each scalar uses big-endian f32. |
+| 24 | 40 | `bounds` | `f32[10]` | little | spec | \| sphere \| 4 \| `+24` \| |
 | 64 | 1 | `sign` | `i8` | little | spec | The last byte stores a per-face orientation sign: `+1=0x01`, `−1=0xff`. |
-
-Unstated regions:
-
-- `8..64` (56 B): Parameter payload `[cx cy cz radius]` as BE f32; §5.8 states the slot order but no per-slot offsets.
 
 ## `analytic_surface_torus`
 
@@ -208,11 +199,9 @@ Spec §5.8 · layout: byte offsets · size: 77 B
 | 3 | 2 | `parameter_length` | `u16` | big | spec | \| torus \| `0x38` \| `0x001e` \| 77 \| start+76 \| |
 | 5 | 2 | `marker` | `bytes[2]` | little | spec | `tag:u24le <parameter_length:u16be> 00 33 <kind> <payload> <sign:i8>` |
 | 7 | 1 | `kind` | `u8` | little | spec | \| torus \| `0x38` \| `0x001e` \| 77 \| start+76 \| |
+| 8 | 28 | `carrier_parameters` | `f32[7]` | big | spec | Carrier parameters start at record-relative `+8`. Each scalar uses big-endian f32. |
+| 36 | 40 | `bounds` | `f32[10]` | little | spec | \| torus \| 7 \| `+36` \| |
 | 76 | 1 | `sign` | `i8` | little | spec | The last byte stores a per-face orientation sign: `+1=0x01`, `−1=0xff`. |
-
-Unstated regions:
-
-- `8..76` (68 B): Parameter payload `[cx cy cz ax ay major minor]` as BE f32, plus the LE-f32 witness point at marker-relative +31; §5.8 states the slot order but no per-slot offsets.
 
 ## `standard_spline_support_row_u8`
 

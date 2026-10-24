@@ -472,6 +472,18 @@ Endpoint angles alone identify the full analytic carrier, not the serialized edg
 
 Cylinder and cone share the parameter-length word and record length; the kind byte distinguishes them. The last byte stores a per-face orientation sign: `+1=0x01`, `−1=0xff`. For curved surface kinds, the sign defines face sense relative to the canonical normal.
 
+Carrier parameters start at record-relative `+8`. Each scalar uses big-endian f32. The following table gives the scalar count and the record-relative start of the ten little-endian f32 bounds.
+
+| Surface | Carrier scalar count | Bounds start |
+| ------- | -------------------: | -----------: |
+| plane | 0 | `+8` |
+| cylinder | 6 | `+32` |
+| cone | 6 | `+32` |
+| sphere | 4 | `+24` |
+| torus | 7 | `+36` |
+
+A complete analytic record requires finite carrier scalars and valid trimmed-face bounds under §3.5. Zero-valued carrier scalars and zero spatial bounds remain valid raw fields. Solved carrier geometry has separate parameter constraints. The fixed-length carrier body contains no nested surface record.
+
 A sequential walker over the SURFACE section consumes exactly one fixed-length analytic record or 47-byte freeform core per face and terminates on the first `0x60` curve-support row. The unique contiguous chain fixes face-carrier order; raw `00 33` signature order does not, because identical signatures also occur inside parameter payloads.
 
 **Standard analytic parameter records** (BE f32 unless noted): sphere `00 12 00 33 35 [cx cy cz radius]`; torus `00 1e 00 33 38 [cx cy cz ax ay major minor]` (`az = sign(major)·sqrt(1−ax²−ay²)`, major radius `|major|`); cone `00 1a 00 33 34 [apex_x apex_y apex_z ax ay semi_angle]` (`apex` is where radius=0, `az = sign(semi_angle)·sqrt(1−ax²−ay²)`, half-angle `|semi_angle|`); cylinder `00 1a 00 33 33 [px py pz ax ay radius]` (`az` sign carried by the sign of `radius`, radius `|radius|`). Sphere, torus, and cone parameters are inline in the kind record. Plane parameters use a tag-bridged record. Cylinder and torus records use the trimmed-face AABB center at marker-relative cylinder `+27..+38` and torus `+31..+42` as the witness under the chart and midpoint invariants above.

@@ -130,6 +130,10 @@ pub(crate) mod analytic_surface_plane {
     pub(crate) const LEN: usize = 49;
     /// Offset of `marker` (`bytes[2]`). Spec §5.8.
     pub(crate) const MARKER: usize = 5;
+    /// Offset of `kind` (`u8`). Spec §5.8.
+    pub(crate) const KIND: usize = 7;
+    /// Offset of `bounds` (`f32[10]`, little-endian). Spec §5.8.
+    pub(crate) const BOUNDS: usize = 8;
     /// Offset of `sign` (`i8`). Spec §5.8.
     pub(crate) const SIGN: usize = 48;
 }
@@ -144,6 +148,10 @@ pub(crate) mod analytic_surface_plane {
 pub(crate) mod analytic_surface_cylinder {
     /// Record length in bytes. Spec §5.8.
     pub(crate) const LEN: usize = 73;
+    /// Offset of `marker` (`bytes[2]`). Spec §5.8.
+    pub(crate) const MARKER: usize = 5;
+    /// Offset of `bounds` (`f32[10]`, little-endian). Spec §5.8.
+    pub(crate) const BOUNDS: usize = 32;
     /// Offset of `sign` (`i8`). Spec §5.8.
     pub(crate) const SIGN: usize = 72;
 }
@@ -154,6 +162,10 @@ pub(crate) mod analytic_surface_cylinder {
 pub(crate) mod analytic_surface_cone {
     /// Record length in bytes. Spec §5.8.
     pub(crate) const LEN: usize = 73;
+    /// Offset of `marker` (`bytes[2]`). Spec §5.8.
+    pub(crate) const MARKER: usize = 5;
+    /// Offset of `bounds` (`f32[10]`, little-endian). Spec §5.8.
+    pub(crate) const BOUNDS: usize = 32;
     /// Offset of `sign` (`i8`). Spec §5.8.
     pub(crate) const SIGN: usize = 72;
 }
@@ -164,6 +176,10 @@ pub(crate) mod analytic_surface_cone {
 pub(crate) mod analytic_surface_sphere {
     /// Record length in bytes. Spec §5.8.
     pub(crate) const LEN: usize = 65;
+    /// Offset of `marker` (`bytes[2]`). Spec §5.8.
+    pub(crate) const MARKER: usize = 5;
+    /// Offset of `bounds` (`f32[10]`, little-endian). Spec §5.8.
+    pub(crate) const BOUNDS: usize = 24;
     /// Offset of `sign` (`i8`). Spec §5.8.
     pub(crate) const SIGN: usize = 64;
 }
@@ -174,6 +190,10 @@ pub(crate) mod analytic_surface_sphere {
 pub(crate) mod analytic_surface_torus {
     /// Record length in bytes. Spec §5.8.
     pub(crate) const LEN: usize = 77;
+    /// Offset of `marker` (`bytes[2]`). Spec §5.8.
+    pub(crate) const MARKER: usize = 5;
+    /// Offset of `bounds` (`f32[10]`, little-endian). Spec §5.8.
+    pub(crate) const BOUNDS: usize = 36;
     /// Offset of `sign` (`i8`). Spec §5.8.
     pub(crate) const SIGN: usize = 76;
 }

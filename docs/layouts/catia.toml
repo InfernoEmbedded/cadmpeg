@@ -297,16 +297,20 @@ source = "spec"
 anchor = "| plane    | `0x32` | `0x0002` |     49 | start+48  |"
 
 [[record.field]]
+name = "bounds"
+offset = 8
+type = "f32[10]"
+endianness = "little"
+source = "spec"
+anchor = "| plane | 0 | `+8` |"
+
+[[record.field]]
 name = "sign"
 offset = 48
 type = "i8"
 source = "spec"
 anchor = "The last byte stores a per-face orientation sign: `+1=0x01`, `−1=0xff`."
 
-[[record.gap]]
-offset = 8
-size = 40
-note = "Parameter payload. §5.8 states the BE f32 slot order per kind but no per-slot offsets; the bounds lane begins at marker-relative +3."
 
 [[record.code]]
 path = "crates/cadmpeg-codec-catia/src/families/standard/records.rs"
@@ -356,16 +360,28 @@ source = "spec"
 anchor = "| cylinder | `0x33` | `0x001a` |     73 | start+72  |"
 
 [[record.field]]
+name = "carrier_parameters"
+offset = 8
+type = "f32[6]"
+endianness = "big"
+source = "spec"
+anchor = "Carrier parameters start at record-relative `+8`. Each scalar uses big-endian f32."
+
+[[record.field]]
+name = "bounds"
+offset = 32
+type = "f32[10]"
+endianness = "little"
+source = "spec"
+anchor = "| cylinder | 6 | `+32` |"
+
+[[record.field]]
 name = "sign"
 offset = 72
 type = "i8"
 source = "spec"
 anchor = "The last byte stores a per-face orientation sign: `+1=0x01`, `−1=0xff`."
 
-[[record.gap]]
-offset = 8
-size = 64
-note = "Parameter payload `cylinder `00 1a 00 33 33 [px py pz ax ay radius]` as BE f32, plus the LE-f32 witness point. §5.8 gives the slot order and the marker-relative witness offset +27 but no per-slot record offsets, and §3.5 places the bounds lane at the same marker-relative +27."
 
 [[record.code]]
 path = "crates/cadmpeg-codec-catia/src/families/standard/records.rs"
@@ -414,16 +430,28 @@ source = "spec"
 anchor = "| cone     | `0x34` | `0x001a` |     73 | start+72  |"
 
 [[record.field]]
+name = "carrier_parameters"
+offset = 8
+type = "f32[6]"
+endianness = "big"
+source = "spec"
+anchor = "Carrier parameters start at record-relative `+8`. Each scalar uses big-endian f32."
+
+[[record.field]]
+name = "bounds"
+offset = 32
+type = "f32[10]"
+endianness = "little"
+source = "spec"
+anchor = "| cone | 6 | `+32` |"
+
+[[record.field]]
 name = "sign"
 offset = 72
 type = "i8"
 source = "spec"
 anchor = "The last byte stores a per-face orientation sign: `+1=0x01`, `−1=0xff`."
 
-[[record.gap]]
-offset = 8
-size = 64
-note = "Parameter payload `[apex_x apex_y apex_z ax ay semi_angle]` as BE f32; §5.8 states the slot order but no per-slot offsets."
 
 [[record]]
 name = "analytic_surface_sphere"
@@ -462,16 +490,28 @@ source = "spec"
 anchor = "| sphere   | `0x35` | `0x0012` |     65 | start+64  |"
 
 [[record.field]]
+name = "carrier_parameters"
+offset = 8
+type = "f32[4]"
+endianness = "big"
+source = "spec"
+anchor = "Carrier parameters start at record-relative `+8`. Each scalar uses big-endian f32."
+
+[[record.field]]
+name = "bounds"
+offset = 24
+type = "f32[10]"
+endianness = "little"
+source = "spec"
+anchor = "| sphere | 4 | `+24` |"
+
+[[record.field]]
 name = "sign"
 offset = 64
 type = "i8"
 source = "spec"
 anchor = "The last byte stores a per-face orientation sign: `+1=0x01`, `−1=0xff`."
 
-[[record.gap]]
-offset = 8
-size = 56
-note = "Parameter payload `[cx cy cz radius]` as BE f32; §5.8 states the slot order but no per-slot offsets."
 
 [[record]]
 name = "analytic_surface_torus"
@@ -510,16 +550,28 @@ source = "spec"
 anchor = "| torus    | `0x38` | `0x001e` |     77 | start+76  |"
 
 [[record.field]]
+name = "carrier_parameters"
+offset = 8
+type = "f32[7]"
+endianness = "big"
+source = "spec"
+anchor = "Carrier parameters start at record-relative `+8`. Each scalar uses big-endian f32."
+
+[[record.field]]
+name = "bounds"
+offset = 36
+type = "f32[10]"
+endianness = "little"
+source = "spec"
+anchor = "| torus | 7 | `+36` |"
+
+[[record.field]]
 name = "sign"
 offset = 76
 type = "i8"
 source = "spec"
 anchor = "The last byte stores a per-face orientation sign: `+1=0x01`, `−1=0xff`."
 
-[[record.gap]]
-offset = 8
-size = 68
-note = "Parameter payload `[cx cy cz ax ay major minor]` as BE f32, plus the LE-f32 witness point at marker-relative +31; §5.8 states the slot order but no per-slot offsets."
 
 # --- §5.5 Standard spline support row with one-byte face references --------
 
