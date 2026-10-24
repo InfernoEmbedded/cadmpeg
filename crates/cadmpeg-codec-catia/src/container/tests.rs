@@ -666,6 +666,7 @@ fn container_summary_exposes_extent_words_in_logical_order() {
         external_references: Vec::new(),
         finjpl_segments: Vec::new(),
         outer_container_declarations: Vec::new(),
+        has_outer_container_declarations: false,
         census: Census::default(),
         variant: Variant::Unknown,
     };
@@ -718,6 +719,7 @@ fn outer_data_declaration_assigns_class_to_its_uuid_stream() {
     let declarations = outer_container_declarations(&data, &outer);
 
     assert_eq!(declarations.len(), 1);
+    assert!(super::outer_container_inventory(&data, &outer).has_declarations);
     assert_eq!(declarations[0].data_offset, 0);
     assert_eq!(declarations[0].ordinal, 2);
     assert_eq!(declarations[0].class_name, "CATPrtCont");
@@ -759,6 +761,31 @@ fn outer_data_declaration_assigns_class_to_its_uuid_stream() {
         }],
     });
     assert!(outer_container_declarations(&data, &ambiguous_outer).is_empty());
+    assert!(super::outer_container_inventory(&data, &ambiguous_outer).has_declarations);
+
+    let mut unresolved_outer = outer.clone();
+    unresolved_outer.descriptors[1].name = "unresolved-stream".to_string();
+    let unresolved = super::outer_container_inventory(&data, &unresolved_outer);
+    assert!(unresolved.has_declarations);
+    assert!(unresolved.resolved.is_empty());
+    assert!(outer_container_for_extent(
+        &unresolved_outer,
+        &unresolved.resolved,
+        u64::from(data_len),
+        1
+    )
+    .is_none());
+
+    let incomplete = super::parse_outer_container_declarations(
+        &data[..usize::try_from(data_len).expect("bounded declaration") - 1],
+        &outer.descriptors,
+    );
+    assert!(!incomplete.has_declarations);
+    assert!(incomplete.resolved.is_empty());
+    let duplicated = data[..usize::try_from(data_len).expect("bounded declaration")].repeat(2);
+    let duplicated = super::parse_outer_container_declarations(&duplicated, &outer.descriptors);
+    assert!(duplicated.has_declarations);
+    assert!(duplicated.resolved.is_empty());
 
     let scan = ContainerScan {
         data: data.into(),
@@ -774,6 +801,7 @@ fn outer_data_declaration_assigns_class_to_its_uuid_stream() {
         external_references: Vec::new(),
         finjpl_segments: Vec::new(),
         outer_container_declarations: declarations,
+        has_outer_container_declarations: true,
         census: Census::default(),
         variant: Variant::Unknown,
     };
@@ -1530,4 +1558,16 @@ fn e5_interstitial_owner_preceded_by_other_bytes_keeps_its_payload_private() {
             [36..56]
         );
     }
+}
+
+#[test]
+fn absent_outer_declarations_do_not_create_modeling_scope() {
+    let inventory = super::parse_outer_container_declarations(&[0; 80], &[]);
+    assert!(!inventory.has_declarations);
+    assert!(inventory.resolved.is_empty());
+    let mut class_strings = vec![0; 80];
+    class_strings.extend_from_slice(b"CATPrtCont\0CATFeatCont\0");
+    let inventory = super::parse_outer_container_declarations(&class_strings, &[]);
+    assert!(!inventory.has_declarations);
+    assert!(inventory.resolved.is_empty());
 }

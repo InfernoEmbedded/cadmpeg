@@ -112,6 +112,12 @@ pub(crate) struct ExternalReference {
     pub(crate) target: String,
 }
 
+#[derive(Debug, Default)]
+struct OuterContainerInventory {
+    has_declarations: bool,
+    resolved: Vec<OuterContainerDeclaration>,
+}
+
 /// One model-container declaration from the outer `Data` logical stream.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct OuterContainerDeclaration {
@@ -875,8 +881,10 @@ pub(crate) struct ContainerScan<'a> {
     pub(crate) external_references: Vec<ExternalReference>,
     /// Every bounded outer FINJPL block in source order.
     pub(crate) finjpl_segments: Vec<FinjplSegment>,
-    /// Exact model-container declarations from the outer `Data` stream.
+    /// Declarations whose identifiers select a unique outer stream.
     pub(crate) outer_container_declarations: Vec<OuterContainerDeclaration>,
+    /// Complete declaration presence before stream-name resolution.
+    pub(crate) has_outer_container_declarations: bool,
     /// Record-family census.
     pub(crate) census: Census,
     /// Identified storage variant.
@@ -1459,15 +1467,19 @@ pub(crate) fn outer_container_declarations(
     data: &[u8],
     outer: &InnerDir,
 ) -> Vec<OuterContainerDeclaration> {
+    outer_container_inventory(data, outer).resolved
+}
+
+fn outer_container_inventory(data: &[u8], outer: &InnerDir) -> OuterContainerInventory {
     let mut data_descriptors = outer
         .descriptors
         .iter()
         .filter(|descriptor| descriptor.name == "Data");
     let Some(data_descriptor) = data_descriptors.next() else {
-        return Vec::new();
+        return OuterContainerInventory::default();
     };
     if data_descriptors.next().is_some() {
-        return Vec::new();
+        return OuterContainerInventory::default();
     }
     if let Some(range) = contiguous_descriptor_range(data_descriptor, outer.inner, data.len()) {
         return parse_outer_container_declarations(&data[range], &outer.descriptors);
@@ -1510,15 +1522,15 @@ pub(crate) fn outer_container_for_extent<'a>(
 fn parse_outer_container_declarations(
     data: &[u8],
     descriptors: &[Descriptor],
-) -> Vec<OuterContainerDeclaration> {
+) -> OuterContainerInventory {
     const HEADER: &[u8] = b"\x01\x00\x03\x00";
     const PREFIX: &[u8] = b"\x01\x00\x6c\x00\x02\x00\x00\x00";
     const CLASS_BLOCK: &[u8] = b"\x02\x00\x81\x20";
     const TERMINAL: &[u8] = b"\x03\x00\xf7\x00\x03\x00\x00\x00";
 
-    let mut declarations = Vec::new();
+    let mut inventory = OuterContainerInventory::default();
     if data.len() < 64 {
-        return declarations;
+        return inventory;
     }
 
     for start in 0..data.len() - 64 {
@@ -1548,6 +1560,7 @@ fn parse_outer_container_declarations(
         else {
             continue;
         };
+        inventory.has_declarations = true;
         let canonical_stream_name = format!("{first:x}_{middle:08x}_{last:x}");
         let prefixed_stream_name = format!("_{canonical_stream_name}");
         let stream_name = match (
@@ -1567,7 +1580,7 @@ fn parse_outer_container_declarations(
         };
         let class_name = class_name.to_owned();
         let base_class = base_class.to_owned();
-        declarations.push(OuterContainerDeclaration {
+        inventory.resolved.push(OuterContainerDeclaration {
             data_offset: start,
             ordinal,
             class_name,
@@ -1575,14 +1588,15 @@ fn parse_outer_container_declarations(
             stream_name,
         });
     }
-    let selected_streams = declarations
+    let selected_streams = inventory
+        .resolved
         .iter()
         .map(|declaration| declaration.stream_name.as_str())
         .collect::<std::collections::HashSet<_>>();
-    if selected_streams.len() != declarations.len() {
-        return Vec::new();
+    if selected_streams.len() != inventory.resolved.len() {
+        inventory.resolved.clear();
     }
-    declarations
+    inventory
 }
 
 fn declaration_class_pair(data: &[u8]) -> Option<(&str, &str)> {
@@ -1782,9 +1796,9 @@ pub(crate) fn scan_bytes<'a>(
     let previews = preview_images_in_segments(&data, &finjpl_segments);
     let last_save_version = last_save_version_in_segments(&data, &finjpl_segments);
     let external_references = external_references_in_segments(&data, &finjpl_segments);
-    let outer_container_declarations = match outer.as_ref() {
-        Some(directory) => outer_container_declarations(&data, directory),
-        None => Vec::new(),
+    let outer_container_inventory = match outer.as_ref() {
+        Some(directory) => outer_container_inventory(&data, directory),
+        None => OuterContainerInventory::default(),
     };
 
     let a9_records = match outer_preamble_range(&data) {
@@ -1839,7 +1853,8 @@ pub(crate) fn scan_bytes<'a>(
         last_save_version,
         external_references,
         finjpl_segments,
-        outer_container_declarations,
+        outer_container_declarations: outer_container_inventory.resolved,
+        has_outer_container_declarations: outer_container_inventory.has_declarations,
         census,
         variant,
         e5_record_range,
