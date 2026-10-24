@@ -947,9 +947,8 @@ The byte after the tail, or after an inline grid when no tail is present, is the
 ### 6.7 Object-stream topology (`b5 03`)
 
 Object records occur in length-closed runs containing both common-form A8 and
-B5 frames. The flag byte is `03`, `13`, or `83`; topology-bearing frames use
-`03`, while alternate-flag records can bridge adjacent topology frames in the
-same run. Starting at a frame boundary, advance by the declared frame length;
+B5 frames. The flag byte is `03`, `13`, or `83`; alternate-flag records can
+bridge adjacent topology frames in the same run. Starting at a frame boundary, advance by the declared frame length;
 the next byte begins another A8/B5 frame, a complete `05 08 01` coordinate
 allocation, or the run terminator.
 A complete coordinate allocation does not end the surrounding object-id
