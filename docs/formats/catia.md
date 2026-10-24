@@ -317,6 +317,8 @@ ff secondary_count:u32le
 00 00 00 mode:u8
 ```
 
+The fixed header is 19 bytes. The marker occupies bytes zero through five. The entry count starts at byte `+6`, the secondary sentinel at `+10`, the secondary count at `+11`, the three reserved zero bytes at `+15`, and the mode at `+18`. A raw XYZ row is 12 bytes, with X, Y, and Z at `+0`, `+4`, and `+8`. The mode-zero scalar prefix is five bytes: its delimiter is at `+0` and its scalar count starts at `+1`.
+
 For mode `1`, `coordinate:f32le[entry_count][3]` follows the header directly. Table entry `h` is the world-space XYZ coordinate of trim handle `h`. `secondary_count` is no greater than `entry_count` and differs from it by at most one.
 
 Mode `0` compresses repeated coordinate prefixes:

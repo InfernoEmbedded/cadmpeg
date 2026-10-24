@@ -657,3 +657,43 @@ pub(crate) mod b5_torus_payload {
     /// Offset of `reserved` (`bytes[8]`). Spec §6.7.
     pub(crate) const RESERVED: usize = 193;
 }
+
+/// Byte offsets for the `indexed_visualization_point_header` record.
+///
+/// Spec §5.4.2. Record length 19 B.
+pub(crate) mod indexed_visualization_point_header {
+    /// Record length in bytes. Spec §5.4.2.
+    pub(crate) const LEN: usize = 19;
+    /// Offset of `entry_count` (`u32`, little-endian). Spec §5.4.2.
+    pub(crate) const ENTRY_COUNT: usize = 6;
+    /// Offset of `secondary_sentinel` (`u8`). Spec §5.4.2.
+    pub(crate) const SECONDARY_SENTINEL: usize = 10;
+    /// Offset of `secondary_count` (`u32`, little-endian). Spec §5.4.2.
+    pub(crate) const SECONDARY_COUNT: usize = 11;
+    /// Offset of `reserved` (`bytes[3]`). Spec §5.4.2.
+    pub(crate) const RESERVED: usize = 15;
+    /// Offset of `mode` (`u8`). Spec §5.4.2.
+    pub(crate) const MODE: usize = 18;
+}
+
+/// Byte offsets for the `indexed_visualization_point_row` record.
+///
+/// Spec §5.4.2. Record length 12 B.
+pub(crate) mod indexed_visualization_point_row {
+    /// Record length in bytes. Spec §5.4.2.
+    pub(crate) const LEN: usize = 12;
+    /// Offset of `y` (`f32`, little-endian). Spec §5.4.2.
+    pub(crate) const Y: usize = 4;
+    /// Offset of `z` (`f32`, little-endian). Spec §5.4.2.
+    pub(crate) const Z: usize = 8;
+}
+
+/// Byte offsets for the `indexed_visualization_scalar_prefix` record.
+///
+/// Spec §5.4.2. Record length 5 B.
+pub(crate) mod indexed_visualization_scalar_prefix {
+    /// Record length in bytes. Spec §5.4.2.
+    pub(crate) const LEN: usize = 5;
+    /// Offset of `scalar_count` (`u32`, little-endian). Spec §5.4.2.
+    pub(crate) const SCALAR_COUNT: usize = 1;
+}

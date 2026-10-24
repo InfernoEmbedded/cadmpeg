@@ -1206,6 +1206,47 @@ Parsed by:
 | 185 | 8 | `minor_scale` | `f64` | little | spec | For `b5 03 2b`, the 201-byte payload |
 | 193 | 8 | `reserved` | `bytes[8]` | little | spec | For `b5 03 2b`, the 201-byte payload |
 
+## `indexed_visualization_point_header`
+
+Spec §5.4.2 · layout: byte offsets · size: 19 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/solve/missing_edge.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 6 | `marker` | `bytes[6]` | little | spec | ff ff 02 00 01 ff |
+| 6 | 4 | `entry_count` | `u32` | little | spec | entry_count:u32le |
+| 10 | 1 | `secondary_sentinel` | `u8` | little | spec | ff secondary_count:u32le · value `255` |
+| 11 | 4 | `secondary_count` | `u32` | little | spec | ff secondary_count:u32le |
+| 15 | 3 | `reserved` | `bytes[3]` | little | spec | 00 00 00 mode:u8 |
+| 18 | 1 | `mode` | `u8` | little | spec | 00 00 00 mode:u8 |
+
+## `indexed_visualization_point_row`
+
+Spec §5.4.2 · layout: byte offsets · size: 12 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/solve/missing_edge.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `x` | `f32` | little | spec | world-space XYZ coordinate of trim handle |
+| 4 | 4 | `y` | `f32` | little | spec | world-space XYZ coordinate of trim handle |
+| 8 | 4 | `z` | `f32` | little | spec | world-space XYZ coordinate of trim handle |
+
+## `indexed_visualization_scalar_prefix`
+
+Spec §5.4.2 · layout: byte offsets · size: 5 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/solve/missing_edge.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `delimiter` | `u8` | little | spec | scalar_count:u32le · value `255` |
+| 1 | 4 | `scalar_count` | `u32` | little | spec | scalar_count:u32le |
+
 ## Not tabulated
 
 | Area | Spec | Reason |
