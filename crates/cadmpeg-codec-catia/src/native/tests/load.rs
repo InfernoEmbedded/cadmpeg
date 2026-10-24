@@ -1231,6 +1231,7 @@ fn derived_configuration_row_chains_match_decoded_chains() {
             ctx,
             &native.entity_records,
             &references,
+            native.object_graphs.iter().flat_map(|graph| &graph.records),
         )
     })
     .expect("derive the configuration row chains");
@@ -1265,6 +1266,7 @@ fn derived_configuration_row_chains_match_decoded_chains() {
                 ctx,
                 &native.entity_records,
                 &references,
+                native.object_graphs.iter().flat_map(|graph| &graph.records),
             )
         })
     };
@@ -1303,6 +1305,7 @@ fn configuration_row_links_past_the_intervening_allowance_keep_no_order() {
                 ctx,
                 &native.entity_records,
                 &references,
+                native.object_graphs.iter().flat_map(|graph| &graph.records),
                 allowance,
             )
         })

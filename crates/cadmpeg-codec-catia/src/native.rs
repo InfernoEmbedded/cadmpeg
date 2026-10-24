@@ -70,6 +70,7 @@ use inline_field::CatiaInlineField;
 
 pub(crate) mod project_range;
 pub(crate) mod schema_configuration_chain;
+pub(crate) mod schema_configuration_roles;
 use schema_configuration_chain::{
     derive_schema_configuration_row_chains, CatiaSchemaConfigurationRowChain,
 };
@@ -8622,8 +8623,12 @@ impl CatiaNative {
         let inline_fields = inline_field::derive(&object_graphs, &entity_records, &catalogs);
         let reference_signature_cohorts = derive_reference_signature_cohorts(&entity_records);
         refusal.push_relation_dependencies_bounded(relation_dependencies.bounded_relations);
-        let row_chains =
-            derive_schema_configuration_row_chains(ctx, &entity_records, &entity_references)?;
+        let row_chains = derive_schema_configuration_row_chains(
+            ctx,
+            &entity_records,
+            &entity_references,
+            object_graphs.iter().flat_map(|graph| &graph.records),
+        )?;
         refusal.push_configuration_row_order_bounded(row_chains.bounded_links);
         let schema_configuration_row_chains = row_chains.chains;
         alias_rows.retain(|row| {

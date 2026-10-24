@@ -200,8 +200,13 @@ impl CatiaNative {
         };
         let expected_schema_configuration_row_chains =
             crate::test_support::with_service_context(|ctx| {
-                derive_schema_configuration_row_chains(ctx, &entity_records, &entity_references)
-                    .map(|derived| derived.chains)
+                derive_schema_configuration_row_chains(
+                    ctx,
+                    &entity_records,
+                    &entity_references,
+                    records.iter(),
+                )
+                .map(|derived| derived.chains)
             })
             .map_err(|error| cadmpeg_ir::NativeConvertError::InvalidOwner(error.to_string()))?;
         if schema_configuration_row_chains != expected_schema_configuration_row_chains {
