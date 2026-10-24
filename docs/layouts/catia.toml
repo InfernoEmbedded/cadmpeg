@@ -1665,7 +1665,7 @@ anchor = "the arc-number bits occupy bytes `8..12`"
 
 [[record]]
 name = "e5_nurbs_pcurve_limits"
-parsed_by = "crates/cadmpeg-codec-catia/src/families/e5/graph.rs"
+parsed_by = "crates/cadmpeg-codec-catia/src/families/e5/limit_program.rs"
 kind = "byte"
 section = "9"
 anchor = "The E5 `0xaa` current-limit program"
@@ -1723,7 +1723,7 @@ anchor = "| `+36` | `u8` | extrapolation control |"
 
 [[record]]
 name = "e5_nurbs_surface_limits"
-parsed_by = "crates/cadmpeg-codec-catia/src/families/e5/records.rs"
+parsed_by = "crates/cadmpeg-codec-catia/src/families/e5/limit_program.rs"
 kind = "byte"
 section = "9"
 anchor = "The E5 `0xe7` current-limit program"

@@ -424,6 +424,22 @@ pub(crate) mod inline_schema_words {
     pub(crate) const CLOSE_COUNT: usize = 11;
 }
 
+/// Byte offsets for the `e5_nurbs_pcurve_limits` record.
+///
+/// Spec §9. Record length 37 B.
+pub(crate) mod e5_nurbs_pcurve_limits {
+    /// Record length in bytes. Spec §9.
+    pub(crate) const LEN: usize = 37;
+}
+
+/// Byte offsets for the `e5_nurbs_surface_limits` record.
+///
+/// Spec §9. Record length 148 B.
+pub(crate) mod e5_nurbs_surface_limits {
+    /// Record length in bytes. Spec §9.
+    pub(crate) const LEN: usize = 148;
+}
+
 /// Byte offsets for the `b5_loop_numeric_terminal` record.
 ///
 /// Spec §6.7. Record length 62 B.

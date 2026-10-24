@@ -610,7 +610,7 @@ Parsed by:
 Spec §9 · layout: byte offsets · size: 37 B
 
 Parsed by:
-- `crates/cadmpeg-codec-catia/src/families/e5/graph.rs`
+- `crates/cadmpeg-codec-catia/src/families/e5/limit_program.rs`
 
 | Offset | Size | Field | Type | Endian | Src | Meaning |
 | -----: | ---: | ----- | ---- | ------ | --- | ------- |
@@ -627,7 +627,7 @@ Parsed by:
 Spec §9 · layout: byte offsets · size: 148 B
 
 Parsed by:
-- `crates/cadmpeg-codec-catia/src/families/e5/records.rs`
+- `crates/cadmpeg-codec-catia/src/families/e5/limit_program.rs`
 
 | Offset | Size | Field | Type | Endian | Src | Meaning |
 | -----: | ---: | ----- | ---- | ------ | --- | ------- |

@@ -53,8 +53,10 @@ use edge_node::{
 
 mod e5_curve_support;
 mod e5_edge;
+mod e5_nurbs_limits;
 use e5_curve_support::CatiaE5CurveSupportRecord;
 use e5_edge::CatiaE5EdgeRecord;
+use e5_nurbs_limits::CatiaE5NurbsLimitRecord;
 
 pub(crate) mod entity_record;
 use entity_record::{
@@ -7487,6 +7489,10 @@ define_catia_arenas! {
         /// Complete E5 reference/co-facet correspondence programs.
         pub(crate) stored;
     },
+    e5_nurbs_limit_programs: CatiaE5NurbsLimitRecord {
+        /// Complete source limit programs retained before geometry admission.
+        pub(crate) stored;
+    },
     entity_records: CatiaEntityRecord {
         /// Exact `7C05` entity-table records paired with object records.
         pub(crate) stored;
@@ -8801,6 +8807,7 @@ impl CatiaNative {
             consolidated_vertex_identities(&consolidated_edge_nodes);
         let e5_curve_supports = e5_curve_support::derive(ctx, bytes)?;
         let e5_edges = e5_edge::derive(ctx, bytes)?;
+        let e5_nurbs_limit_programs = e5_nurbs_limits::derive(ctx, bytes)?;
         Ok(Self {
             sampled_parameter_maps: Vec::new(),
             alias_rows,
@@ -8831,6 +8838,7 @@ impl CatiaNative {
             design_objects,
             e5_curve_supports,
             e5_edges,
+            e5_nurbs_limit_programs,
             entity_records,
             external_references,
             finjpl_segments,

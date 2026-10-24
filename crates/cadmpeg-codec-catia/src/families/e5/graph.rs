@@ -835,7 +835,7 @@ fn parse_pcurve(record: &Record<'_>) -> Option<E5Pcurve> {
     }
 }
 
-const E5_NURBS_PCURVE_TAIL_BYTES: usize = 37;
+const E5_NURBS_PCURVE_TAIL_BYTES: usize = super::limit_program::CurveLimits::LEN;
 
 fn finite_f64_le(view: &mut View<'_>) -> Option<FiniteReal> {
     FiniteReal::new(view.f64_le()?)
@@ -887,21 +887,12 @@ fn parse_nurbs_pcurve(payload: &[u8], position: usize, surface: u32) -> Option<E
         let point = (|| Some([finite_f64_le(&mut view)?, finite_f64_le(&mut view)?]))()?;
         control_points.push(point);
     }
-    if view.remaining() != E5_NURBS_PCURVE_TAIL_BYTES {
+    let program = super::limit_program::CurveLimits::read(&mut view)?;
+    if !program.is_disabled_identity() {
         return None;
     }
-    let (arcs, locals, coefficient, shift, extrapolation) = (|| {
-        Some((
-            [view.u16_le()?, view.u16_le()?],
-            [view.f64_le()?, view.f64_le()?],
-            view.f64_le()?,
-            view.f64_le()?,
-            view.u8()?,
-        ))
-    })()?;
-    if coefficient != 1.0 || shift != 0.0 || extrapolation != 0 {
-        return None;
-    }
+    let arcs = program.arcs();
+    let locals = program.locals();
     let range = super::parameters::current_limits(arcs, locals, |arc| {
         Some([knots.get(arc)?.get(), knots.get(arc.checked_add(1)?)?.get()])
     })?;

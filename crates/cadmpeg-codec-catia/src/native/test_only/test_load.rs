@@ -675,6 +675,7 @@ impl CatiaNative {
         validate_owner_chart_support_aliases(&consolidated_owner_packets, &alias_rows)?;
         let e5_curve_supports = namespace.arena_as("e5_curve_supports")?;
         let e5_edges = namespace.arena_as("e5_edges")?;
+        let e5_nurbs_limit_programs = namespace.arena_as("e5_nurbs_limit_programs")?;
         let mut consolidated_domain_relations: Vec<
             crate::native::domain_relation::CatiaConsolidatedDomainRelation,
         > = namespace.arena_as("consolidated_domain_relations")?;
@@ -728,6 +729,7 @@ impl CatiaNative {
             design_objects,
             e5_curve_supports,
             e5_edges,
+            e5_nurbs_limit_programs,
             entity_records,
             external_references,
             finjpl_segments,
