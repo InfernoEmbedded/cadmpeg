@@ -27,6 +27,8 @@ use projection::{
 
 pub(crate) mod class5b5c;
 mod class60;
+mod rolling_ball_continuation;
+use rolling_ball_continuation::CatiaRollingBallContinuation;
 mod four_reference_edge;
 use four_reference_edge::CatiaConsolidatedFourReferenceEdge;
 pub(crate) mod class61;
@@ -7471,6 +7473,10 @@ define_catia_arenas! {
         /// Consolidated revolution carriers retained before profile resolution.
         pub(crate) stored;
     },
+    consolidated_rolling_ball_continuations: CatiaRollingBallContinuation {
+        /// Exact numeric continuation limits and optional scalar jets.
+        pub(crate) stored;
+    },
     consolidated_spheres: CatiaConsolidatedSphere {
         /// Exact consolidated sphere charts.
         pub(crate) stored;
@@ -8816,6 +8822,8 @@ impl CatiaNative {
         let e5_nurbs_limit_programs = e5_nurbs_limits::derive(ctx, bytes)?;
         let consolidated_four_reference_edges =
             four_reference_edge::derive(ctx, bytes, consolidated_records)?;
+        let consolidated_rolling_ball_continuations =
+            rolling_ball_continuation::derive(ctx, bytes, consolidated_records)?;
         Ok(Self {
             sampled_parameter_maps: Vec::new(),
             alias_rows,
@@ -8841,6 +8849,7 @@ impl CatiaNative {
             consolidated_pcurves,
             consolidated_reference_lists,
             consolidated_revolutions,
+            consolidated_rolling_ball_continuations,
             consolidated_spheres,
             consolidated_tori,
             consolidated_vertex_identities,

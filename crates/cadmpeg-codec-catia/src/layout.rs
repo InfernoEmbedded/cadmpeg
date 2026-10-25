@@ -733,3 +733,11 @@ pub(crate) mod b_four_reference_edge_payload {
     /// Offset of `terminal` (`u8`). Spec §6.3.
     pub(crate) const TERMINAL: usize = 4;
 }
+
+/// Byte offsets for the `rolling_ball_tail_scalar_branch` record.
+///
+/// Spec §6.2. Record length 2 B.
+pub(crate) mod rolling_ball_tail_scalar_branch {
+    /// Stated value of `branch` (`bytes[2]`). Spec §6.2.
+    pub(crate) const BRANCH_VALUE: [u8; 2] = [0x01, 0x01];
+}

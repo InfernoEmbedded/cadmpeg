@@ -3621,3 +3621,18 @@ offset = 4
 type = "u8"
 source = "spec"
 anchor = "one-byte allocation references followed by one terminal"
+
+[[record]]
+name = "rolling_ball_tail_scalar_branch"
+kind = "byte"
+section = "6.2"
+anchor = "`01 01`, then three finite `f64le[K]` lanes in value, first-derivative, and"
+size = 2
+
+[[record.field]]
+name = "branch"
+offset = 0
+type = "bytes[2]"
+source = "spec"
+anchor = "`01 01`, then three finite `f64le[K]` lanes in value, first-derivative, and"
+value = [1, 1]

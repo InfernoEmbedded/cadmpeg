@@ -596,6 +596,14 @@ impl CatiaNative {
             namespace.arena_as("consolidated_revolutions")?;
         consolidated_revolutions.sort_by_key(|revolution| revolution.byte_offset);
         validate_consolidated_revolutions(&consolidated_revolutions, &consolidated_circles)?;
+        let mut consolidated_rolling_ball_continuations: Vec<
+            crate::native::rolling_ball_continuation::CatiaRollingBallContinuation,
+        > = namespace.arena_as("consolidated_rolling_ball_continuations")?;
+        consolidated_rolling_ball_continuations
+            .sort_by_key(|record| (record.source_index, record.source_offset));
+        crate::native::rolling_ball_continuation::validate(
+            &consolidated_rolling_ball_continuations,
+        )?;
         let mut consolidated_spheres: Vec<CatiaConsolidatedSphere> =
             namespace.arena_as("consolidated_spheres")?;
         consolidated_spheres.sort_by_key(|sphere| sphere.byte_offset);
@@ -730,6 +738,7 @@ impl CatiaNative {
             consolidated_pcurves,
             consolidated_reference_lists,
             consolidated_revolutions,
+            consolidated_rolling_ball_continuations,
             consolidated_spheres,
             consolidated_tori,
             consolidated_vertex_identities,

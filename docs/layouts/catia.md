@@ -1247,6 +1247,14 @@ Payload only; the surrounding B-family frame carries the independent width, flag
 | 0 | 4 | `operands` | `u8[4]` | little | spec | one-byte allocation references followed by one terminal |
 | 4 | 1 | `terminal` | `u8` | little | spec | one-byte allocation references followed by one terminal |
 
+## `rolling_ball_tail_scalar_branch`
+
+Spec §6.2 · layout: byte offsets · size: 2 B
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 2 | `branch` | `bytes[2]` | little | spec | `01 01`, then three finite `f64le[K]` lanes in value, first-derivative, and · value `[1, 1]` |
+
 ## Not tabulated
 
 | Area | Spec | Reason |
