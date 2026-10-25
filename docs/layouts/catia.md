@@ -1255,6 +1255,20 @@ Spec §6.2 · layout: byte offsets · size: 2 B
 | -----: | ---: | ----- | ---- | ------ | --- | ------- |
 | 0 | 2 | `branch` | `bytes[2]` | little | spec | `01 01`, then three finite `f64le[K]` lanes in value, first-derivative, and · value `[1, 1]` |
 
+## `e5_rolling_ball_tail`
+
+Spec §9 · layout: byte offsets · size: 63 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/families/e5/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 40 | `parameters` | `f64[5]` | little | spec | parameter_min:f64le parameter_max:f64le 0:f64le radius:f64le radius:f64le |
+| 40 | 4 | `sense` | `i32` | little | spec | sense:i32le |
+| 44 | 16 | `maximal_v` | `f64[2]` | little | spec | sense:i32le 0:f64le radius:f64le |
+| 60 | 3 | `terminal` | `bytes[3]` | little | spec | sense:i32le 0:f64le radius:f64le 01 00 00 · value `[1, 0, 0]` |
+
 ## Not tabulated
 
 | Area | Spec | Reason |

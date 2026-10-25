@@ -906,16 +906,47 @@ limit containment, both reference-scalar copies, controls, and map terminals
 before it retains site data. Arbitrary frame-bounded continuation bytes no
 longer qualify as a complete rolling-ball carrier.
 
-The byte check resolves 183 source tails: 170 absent scalar jets and 13 explicit
+The earlier typed scope resolves 183 source tails: 170 absent scalar jets and 13 explicit
 scalar jets. All 5,265 quintic samples stay inside their endpoint value range
 and retain the stored decreasing direction. Source parameter domains and six
 records with exact source knots support the parameter interpretation. All four
 NIST maps fit all four candidate source-curve domains, so no target is assigned
 from that relation. Raw tail controls retain their source polarity.
 
+The complete 79-input source review contains 185 numeric continuations. Native
+retention covers 184 single-extent frames: 171 absent scalar jets and 13 explicit
+scalar jets. One additional 207-byte explicit continuation crosses physical
+extents and remains source-only. The earlier 183-record scope excludes one
+record from its timed-out input; its original counts remain a separate result.
+All retained continuations preserve the exact scalar words, control, branch,
+terminal, current and maximal bounds, and complete source frame. Compact prefix
+length follows the encoded integers, including the seven-byte `K=64` prefix.
+
+The spray-bottle source has nine explicit scalar jets with 58 station values.
+Every value lies in the independent class-`15` curve domain, and the union of
+the nine value intervals covers its eleven knots within `1e-12`. The four NIST
+jets have 36 values inside their respective preceding class-`15` curve domains
+and eight bit-exact knot matches. Intervening records are retained; preceding
+order and domain containment do not establish a curve identity or part binding.
+The direct-limit comparison is a raw-coordinate diagnostic; it does not prove
+a common frame or a millimeter unit.
+
+The E5 source review closes five class-`d8` carriers in `part1.CATPart`, including
+their complete 63-byte tails and signed senses. That input has no compact
+class-`32` carrier. This verifies the parallel field order but supplies no
+same-carrier mapping from compact control `03` or `05` to a signed E5 sense.
+
+Fresh checked STEP siblings match the native face/edge/vertex counts:
+`clothes-basket` has 700/2,242/1,470 and `spray-bottle` has 198/424/228. Independent
+bijections preserve every typed face-edge and edge-vertex incidence with its
+multiplicity, and every ordered loop-corner cycle modulo rotation and reversal.
+Both encodings classify outer loops on 686 basket faces and all 198 spray faces;
+the remaining fourteen basket faces gain no outer/inner classification. These
+topological results do not establish metric or parameterization equivalence.
+
 The frozen `standard_a5_rolling_ball` input lacks a tail and remains a rejection
 witness. `standard_a5_rolling_ball_complete_tail` adds the complete 79-byte
-production. CATIA has 23 frozen inputs and 69 golden files. The golden-file floor is 69.
+production. CATIA has 26 frozen inputs and 78 golden files. The golden-file floor is 78.
 
 ## Consolidated edge header integers
 

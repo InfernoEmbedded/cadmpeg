@@ -3636,3 +3636,41 @@ type = "bytes[2]"
 source = "spec"
 anchor = "`01 01`, then three finite `f64le[K]` lanes in value, first-derivative, and"
 value = [1, 1]
+
+[[record]]
+name = "e5_rolling_ball_tail"
+parsed_by = "crates/cadmpeg-codec-catia/src/families/e5/records.rs"
+kind = "byte"
+section = "9"
+anchor = "The tail is `parameter_min:f64le parameter_max:f64le"
+size = 63
+endianness = "little"
+
+[[record.field]]
+name = "parameters"
+offset = 0
+type = "f64[5]"
+source = "spec"
+anchor = "parameter_min:f64le parameter_max:f64le 0:f64le radius:f64le radius:f64le"
+
+[[record.field]]
+name = "sense"
+offset = 40
+type = "i32"
+source = "spec"
+anchor = "sense:i32le"
+
+[[record.field]]
+name = "maximal_v"
+offset = 44
+type = "f64[2]"
+source = "spec"
+anchor = "sense:i32le 0:f64le radius:f64le"
+
+[[record.field]]
+name = "terminal"
+offset = 60
+type = "bytes[3]"
+source = "spec"
+anchor = "sense:i32le 0:f64le radius:f64le 01 00 00"
+value = [1, 0, 0]
