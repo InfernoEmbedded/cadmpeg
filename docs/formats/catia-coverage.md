@@ -963,6 +963,13 @@ forms and the complete terminal match the typed native data. The first
 decreasing values in physical-offset order in 29 sources. The eyebolt and
 spring four-edge cycles both use `[2,1,1,1]`, with degree two at every endpoint.
 
+The complete current native population contains 42,728 five-reference frames.
+Every raw value, reference form, frame flag, header width and token, and terminal
+joins exactly to its independently closed source frame. The apartman input
+contributes 10,016 records; excluding that earlier timed-out input yields the
+32,712-record population above. These are native source records, not counts of
+transferred neutral edges.
+
 ## Gap-search temporary storage
 
 Saved placement copies belong to one recursive gap-search step. The solver
@@ -987,7 +994,19 @@ descriptor owner and closes inside its reconstructed logical source. Exactly
 Terminals `01/02/21/25` occur `32/3/93/3` times. All four reference lanes use
 the one-byte backward-distance or owned-child forms. These are source-byte
 grammar checks; the four operand roles remain unassigned, and the existing
-five-reference parser abstains on this production.
+five-reference parser abstains on this production. A separate native arena
+retains all 131 four-reference records with their complete frames, source
+coordinates, header tokens, flags, reference values and forms, and terminal
+bytes. It adds no fifth operand or neutral edge.
+
+Fresh checked eyebolt and spring STEP siblings match the native topology at
+134/268/136 and 84/166/84 faces/edges/vertices. Independent bijections preserve
+all typed face-edge and edge-vertex incidences, their multiplicities, and every
+ordered loop-corner cycle modulo rotation and reversal. The quoted native
+four-edge subgraphs close through four explicit endpoint records of degree
+two, and all eight terminals are `21`. This rejects an alternating cycle-position
+selector without assigning the terminal's writer meaning. The topology checks
+do not establish metric or parameterization equivalence.
 
 ## Object-stream edge terminals
 
