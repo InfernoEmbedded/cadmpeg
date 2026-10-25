@@ -5192,7 +5192,9 @@ second. `erg` and `joule` are energy units; `kW` and `MW` are power units;
 `degree`, `rad`, and `radian`
 convert to relation degrees. Temperature symbols `K`, `C`, `F`, and `R`
 convert Kelvin, Celsius, Fahrenheit, and Rankine to canonical kelvin values.
-Unit symbols are ASCII case-insensitive. Unit multiplication, division,
+The power symbols `mW` and `MW` are case-sensitive: `mW` is 0.001 watt and
+`MW` is 1,000,000 watts. Other defined unit symbols match ASCII
+case-insensitively. Unit multiplication, division,
 parentheses, and signed integer powers form compound dimensions. Affine
 Celsius and Fahrenheit units cannot form compound units; Kelvin and Rankine
 can. Addition,

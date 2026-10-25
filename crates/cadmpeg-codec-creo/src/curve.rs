@@ -2571,7 +2571,13 @@ fn multiplicative_relation_unit_symbol(symbol: &str) -> Option<(f64, RelationDim
                 .combine(RelationDimension::LENGTH, false)?
                 .combine(RelationDimension::TIME, true)?,
         ),
-        _ if symbol.eq_ignore_ascii_case("mw") => (
+        "mW" => (
+            1_000.0,
+            RelationDimension::FORCE
+                .combine(RelationDimension::LENGTH, false)?
+                .combine(RelationDimension::TIME, true)?,
+        ),
+        "MW" => (
             1_000_000_000_000.0,
             RelationDimension::FORCE
                 .combine(RelationDimension::LENGTH, false)?
