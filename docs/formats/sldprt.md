@@ -101,6 +101,12 @@ The encoded name follows the fixed header, then `extra_len` extra bytes, then
 and has CRC-32 `crc32`. Swapping the high and low nibble of each name byte
 produces names such as `Contents/Config-0-Partition` and `PreviewPNG`.
 
+The declared compressed interval contains one complete raw-DEFLATE stream.
+End-of-stream coincides with the interval end; trailing compressed-interval
+bytes are invalid. Empty members obey the same size, CRC, and stream-end
+rules. Marker-shaped bytes inside a validated compressed interval are payload
+bytes, not cache cells or directory records.
+
 The zero-extra local-field projection has a 26-byte fixed prefix. It starts at
 the field marker and preserves the existing packed field names:
 
