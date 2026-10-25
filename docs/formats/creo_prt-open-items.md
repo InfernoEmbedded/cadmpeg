@@ -203,29 +203,22 @@ length unit.
 
 **Need.** We must know each grammar to construct its curve family.
 
-### GS-14. Parabola carrier equation
+### GS-16. Model-reference entity types and conic framing
 
-**Question.** How do a parabola's `type`, `t0`, `t1`, `c1`, `c2`, and `local_sys` fields define its carrier?
+**Question.** Which complete entity grammars own the unresolved positional
+records after a conic declaration, and how do their types select carriers?
 
-**Known.** `creo_prt.md` §8.5 "The named entity in `ent_list(conic)` declares compact `id`, `type`, and" defines the named and positional conic fields, frame grammar, and field invariants. `creo_prt.md` §8.5 "A type-30 conic record defines a complete ellipse carrier without interpreting" defines type 30 as an ellipse.
+**Known.** Type 30 identifies a model-reference ellipse. A preceding conic-list
+declaration does not identify a later row's type or grammar. The solid-entity
+and sketch-entity type namespaces are distinct. An integer type alone does not
+establish a parabola or hyperbola. Ellipse construction requires the complete
+frame, coefficients, and endpoint invariants in `creo_prt.md` §8.5.
 
-**Need.** We must know the equation to construct a parabola in model space.
-
-### GS-15. Hyperbola carrier equation
-
-**Question.** How do a hyperbola's `type`, `t0`, `t1`, `c1`, `c2`, and `local_sys` fields define its carrier?
-
-**Known.** `creo_prt.md` §8.5 "The named entity in `ent_list(conic)` declares compact `id`, `type`, and" defines the named and positional conic fields, frame grammar, and field invariants. `creo_prt.md` §8.5 "A type-30 conic record defines a complete ellipse carrier without interpreting" defines type 30 as an ellipse.
-
-**Need.** We must know the equation to construct a hyperbola in model space.
-
-### GS-16. Other conic types
-
-**Question.** What carrier does each `MdlRefInfo` conic type other than the defined ellipse, parabola, and hyperbola types represent?
-
-**Known.** `creo_prt.md` §8.5 "The named entity in `ent_list(conic)` declares compact `id`, `type`, and" defines the common conic record grammar and retains all type and coefficient fields.
-
-**Need.** We must know the type mapping to construct the correct carrier.
+**Need.** Define each complete owned record production before assigning its
+fields or carrier. Resolve positional schema references before the flip field
+and the complete twelve-slot local system. Agreement of the center and radii
+alone does not establish the frame or endpoints. Preserve unresolved rows
+without inheriting a grammar from a preceding list declaration.
 
 ### GS-17. Other positional cylinders
 

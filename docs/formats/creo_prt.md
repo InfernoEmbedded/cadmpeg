@@ -5386,6 +5386,13 @@ explicit or compressed scalar run may satisfy the corresponding circle
 invariant. The row body ends at the next validated row header or the
 `ent_list(arc_z)` block end.
 
+A model-reference entity uses its own stored type. Type 30 selects an ellipse;
+its carrier still requires the complete frame, radius, and endpoint invariants
+below. An `ent_list(conic)` declaration does not assign that type or field
+grammar to every later positional entity. A row with another type requires its
+own complete entity grammar and carrier proof. A sketch conic discriminator
+does not assign model-reference conic semantics.
+
 The named entity in `ent_list(conic)` declares compact `id`, `type`, and
 `flip` fields; model-coordinate arrays `end1 f8 03` and `end2 f8 03`; scalar
 fields `t0`, `t1`, `c1`, and `c2`; and a twelve-slot
