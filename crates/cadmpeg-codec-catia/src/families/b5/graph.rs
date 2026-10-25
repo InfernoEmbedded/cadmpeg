@@ -40,8 +40,9 @@ use crate::analytic::{periodic_angular_range_is_valid, sphere_angular_ranges_are
 use crate::checked::ExactUnitVector3;
 use crate::families::chamfer::{ChamferParameters, ChamferResultKind};
 use crate::layout::{
-    b5_cone_payload, b5_cylinder_payload, b5_loop_numeric_terminal, b5_plane_payload,
-    b5_sphere_payload, b5_torus_payload,
+    b5_arc_profile, b5_cone_payload, b5_cylinder_payload, b5_line_profile,
+    b5_loop_numeric_terminal, b5_plane_payload, b5_revolution_carrier_tail, b5_sphere_payload,
+    b5_torus_payload,
 };
 use crate::wire;
 use crate::wire::bytes::{f64_le, f64_point, read_f64_array};
@@ -2855,32 +2856,48 @@ fn parse_profile(record: &B5Record) -> Option<B5Profile> {
     (record.family == 0xb5).then_some(())?;
     match record.class {
         0x0e => {
-            (record.payload.len() == 73 && record.payload.first() == Some(&0x80)).then_some(())?;
+            (record.payload.len() == b5_line_profile::LEN && record.payload.first() == Some(&0x80))
+                .then_some(())?;
             let direction = ExactUnitVector3::new(
-                read_f64_array::<3>(&record.payload, 25)?.map(FiniteReal::get),
+                read_f64_array::<3>(&record.payload, b5_line_profile::DIRECTION)?
+                    .map(FiniteReal::get),
             )?;
             let parameter_range = IncreasingParameterInterval::new([
-                f64_le(&record.payload, 57)?.get(),
-                f64_le(&record.payload, 65)?.get(),
+                f64_le(&record.payload, b5_line_profile::PARAMETER_RANGE)?.get(),
+                f64_le(
+                    &record.payload,
+                    b5_line_profile::PARAMETER_RANGE + std::mem::size_of::<f64>(),
+                )?
+                .get(),
             ])?;
-            (f64_le(&record.payload, 49)?.get() == 1.0).then_some(B5Profile::Line {
-                point: f64_point(&record.payload, 1)?,
-                direction,
-                parameter_range,
-            })
+            (f64_le(&record.payload, b5_line_profile::ONE)?.get() == 1.0).then_some(
+                B5Profile::Line {
+                    point: f64_point(&record.payload, b5_line_profile::POINT)?,
+                    direction,
+                    parameter_range,
+                },
+            )
         }
         0x0f => {
-            (record.payload.len() == 113 && record.payload.first() == Some(&0x80)).then_some(())?;
+            (record.payload.len() == b5_arc_profile::LEN && record.payload.first() == Some(&0x80))
+                .then_some(())?;
             let [direction_x, direction_y] = unit_and_orthogonal_directions(
-                read_f64_array::<3>(&record.payload, 25)?.map(FiniteReal::get),
-                read_f64_array::<3>(&record.payload, 49)?.map(FiniteReal::get),
+                read_f64_array::<3>(&record.payload, b5_arc_profile::DIRECTION_X)?
+                    .map(FiniteReal::get),
+                read_f64_array::<3>(&record.payload, b5_arc_profile::DIRECTION_Y)?
+                    .map(FiniteReal::get),
             )?;
-            let radius = PositiveLength::new(f64_le(&record.payload, 73)?.get())?;
+            let radius =
+                PositiveLength::new(f64_le(&record.payload, b5_arc_profile::RADIUS)?.get())?;
             let parameter_range = [
-                f64_le(&record.payload, 81)?.get(),
-                f64_le(&record.payload, 89)?.get(),
+                f64_le(&record.payload, b5_arc_profile::PARAMETER_RANGE)?.get(),
+                f64_le(
+                    &record.payload,
+                    b5_arc_profile::PARAMETER_RANGE + std::mem::size_of::<f64>(),
+                )?
+                .get(),
             ];
-            let chart_origin = f64_le(&record.payload, 105)?.get();
+            let chart_origin = f64_le(&record.payload, b5_arc_profile::CHART_ORIGIN)?.get();
             let scaled = |value: f64| value / radius.get();
             (periodic_angular_range_is_valid(
                 parameter_range.map(scaled),
@@ -2888,10 +2905,10 @@ fn parse_profile(record: &B5Record) -> Option<B5Profile> {
                     scaled(chart_origin),
                     scaled(chart_origin) + std::f64::consts::TAU,
                 ],
-            ) && f64_le(&record.payload, 97)?.get() == 1.0)
+            ) && f64_le(&record.payload, b5_arc_profile::ONE)?.get() == 1.0)
                 .then_some(())?;
             Some(B5Profile::Arc {
-                center: f64_point(&record.payload, 1)?,
+                center: f64_point(&record.payload, b5_arc_profile::CENTER)?,
                 direction_x,
                 direction_y,
                 radius,
@@ -3410,37 +3427,84 @@ fn parse_surface(record: &B5Record) -> Option<B5Surface> {
         0x2d => {
             let mut position = 1;
             let profile_curve = wire::tokens::object_ref(&record.payload, &mut position, true)?;
-            (record.payload.len() == position.checked_add(171)?
+            (record.payload.len() == position.checked_add(b5_revolution_carrier_tail::LEN)?
                 && record.payload.first() == Some(&0x81))
             .then_some(())?;
             let angular_range = [
-                f64_le(&record.payload, position.checked_add(96)?)?.get(),
-                f64_le(&record.payload, position.checked_add(104)?)?.get(),
+                f64_le(
+                    &record.payload,
+                    position.checked_add(b5_revolution_carrier_tail::ANGULAR_RANGE)?,
+                )?
+                .get(),
+                f64_le(
+                    &record.payload,
+                    position.checked_add(
+                        b5_revolution_carrier_tail::ANGULAR_RANGE + std::mem::size_of::<f64>(),
+                    )?,
+                )?
+                .get(),
             ];
             let profile_range = [
-                f64_le(&record.payload, position.checked_add(112)?)?.get(),
-                f64_le(&record.payload, position.checked_add(120)?)?.get(),
+                f64_le(
+                    &record.payload,
+                    position.checked_add(b5_revolution_carrier_tail::PROFILE_RANGE)?,
+                )?
+                .get(),
+                f64_le(
+                    &record.payload,
+                    position.checked_add(
+                        b5_revolution_carrier_tail::PROFILE_RANGE + std::mem::size_of::<f64>(),
+                    )?,
+                )?
+                .get(),
             ];
-            let angular_scale =
-                PositiveReal::new(f64_le(&record.payload, position.checked_add(130)?)?.get())?;
-            let angular_half_turn = f64_le(&record.payload, position.checked_add(163)?)?.get();
-            let reference_x = read_f64_array::<3>(&record.payload, position.checked_add(24)?)?
-                .map(FiniteReal::get);
-            let reference_y = read_f64_array::<3>(&record.payload, position.checked_add(48)?)?
-                .map(FiniteReal::get);
-            let axis_direction = read_f64_array::<3>(&record.payload, position.checked_add(72)?)?
-                .map(FiniteReal::get);
-            (record.payload.get(position + 128..position + 130) == Some(&[0x05, 0x05]))
-                .then_some(())?;
+            let angular_scale = PositiveReal::new(
+                f64_le(
+                    &record.payload,
+                    position.checked_add(b5_revolution_carrier_tail::ANGULAR_SCALE)?,
+                )?
+                .get(),
+            )?;
+            let angular_half_turn = f64_le(
+                &record.payload,
+                position.checked_add(b5_revolution_carrier_tail::HALF_TURN)?,
+            )?
+            .get();
+            let reference_x = read_f64_array::<3>(
+                &record.payload,
+                position.checked_add(b5_revolution_carrier_tail::REFERENCE_X)?,
+            )?
+            .map(FiniteReal::get);
+            let reference_y = read_f64_array::<3>(
+                &record.payload,
+                position.checked_add(b5_revolution_carrier_tail::REFERENCE_Y)?,
+            )?
+            .map(FiniteReal::get);
+            let axis_direction = read_f64_array::<3>(
+                &record.payload,
+                position.checked_add(b5_revolution_carrier_tail::AXIS)?,
+            )?
+            .map(FiniteReal::get);
+            (record.payload.get(
+                position + b5_revolution_carrier_tail::CONTROLS
+                    ..position + b5_revolution_carrier_tail::ANGULAR_SCALE,
+            ) == Some(&[0x05, 0x05]))
+            .then_some(())?;
             let (frame, _) = right_handed_frame(axis_direction, reference_x, reference_y)?;
             let angular_range = IncreasingParameterInterval::new(angular_range)?;
             let profile_range = IncreasingParameterInterval::new(profile_range)?;
             (angular_range.lower() >= 0.0
                 && angular_range.upper() <= 2.0 * angular_half_turn
-                && f64_le(&record.payload, position + 138)?.get() == 1.0
-                && f64_le(&record.payload, position + 146)?.get() == 1.0
-                && f64_le(&record.payload, position + 154)?.get() == 0.0
-                && record.payload.get(position + 162) == Some(&0x01)
+                && f64_le(&record.payload, position + b5_revolution_carrier_tail::ONE0)?.get()
+                    == 1.0
+                && f64_le(&record.payload, position + b5_revolution_carrier_tail::ONE1)?.get()
+                    == 1.0
+                && f64_le(&record.payload, position + b5_revolution_carrier_tail::ZERO)?.get()
+                    == 0.0
+                && record
+                    .payload
+                    .get(position + b5_revolution_carrier_tail::TERMINAL)
+                    == Some(&0x01)
                 && angular_half_turn.to_bits()
                     == (std::f64::consts::PI * angular_scale.get()).to_bits())
             .then_some(B5Surface::Revolution {

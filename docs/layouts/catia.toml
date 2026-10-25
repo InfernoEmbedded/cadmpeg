@@ -3674,3 +3674,209 @@ type = "bytes[3]"
 source = "spec"
 anchor = "sense:i32le 0:f64le radius:f64le 01 00 00"
 value = [1, 0, 0]
+
+[[record]]
+name = "b5_line_profile"
+parsed_by = "crates/cadmpeg-codec-catia/src/families/b5/graph.rs"
+kind = "byte"
+section = "6.7"
+anchor = "For `b5 03 0e`, the 73-byte payload is"
+size = 73
+
+[[record.field]]
+name = "lead"
+offset = 0
+type = "u8"
+source = "spec"
+anchor = "For `b5 03 0e`, the 73-byte payload is"
+
+[[record.field]]
+name = "point"
+offset = 1
+type = "f64[3]"
+source = "spec"
+anchor = "For `b5 03 0e`, the 73-byte payload is"
+
+[[record.field]]
+name = "direction"
+offset = 25
+type = "f64[3]"
+source = "spec"
+anchor = "For `b5 03 0e`, the 73-byte payload is"
+
+[[record.field]]
+name = "one"
+offset = 49
+type = "f64"
+source = "spec"
+anchor = "For `b5 03 0e`, the 73-byte payload is"
+
+[[record.field]]
+name = "parameter_range"
+offset = 57
+type = "f64[2]"
+source = "spec"
+anchor = "For `b5 03 0e`, the 73-byte payload is"
+
+[[record]]
+name = "b5_arc_profile"
+parsed_by = "crates/cadmpeg-codec-catia/src/families/b5/graph.rs"
+kind = "byte"
+section = "6.7"
+anchor = "For `b5 03 0f`, the 113-byte payload is"
+size = 113
+
+[[record.field]]
+name = "lead"
+offset = 0
+type = "u8"
+source = "spec"
+anchor = "For `b5 03 0f`, the 113-byte payload is"
+
+[[record.field]]
+name = "center"
+offset = 1
+type = "f64[3]"
+source = "spec"
+anchor = "For `b5 03 0f`, the 113-byte payload is"
+
+[[record.field]]
+name = "direction_x"
+offset = 25
+type = "f64[3]"
+source = "spec"
+anchor = "For `b5 03 0f`, the 113-byte payload is"
+
+[[record.field]]
+name = "direction_y"
+offset = 49
+type = "f64[3]"
+source = "spec"
+anchor = "For `b5 03 0f`, the 113-byte payload is"
+
+[[record.field]]
+name = "radius"
+offset = 73
+type = "f64"
+source = "spec"
+anchor = "For `b5 03 0f`, the 113-byte payload is"
+
+[[record.field]]
+name = "parameter_range"
+offset = 81
+type = "f64[2]"
+source = "spec"
+anchor = "For `b5 03 0f`, the 113-byte payload is"
+
+[[record.field]]
+name = "one"
+offset = 97
+type = "f64"
+source = "spec"
+anchor = "For `b5 03 0f`, the 113-byte payload is"
+
+[[record.field]]
+name = "chart_origin"
+offset = 105
+type = "f64"
+source = "spec"
+anchor = "For `b5 03 0f`, the 113-byte payload is"
+
+[[record]]
+name = "b5_revolution_carrier_tail"
+parsed_by = "crates/cadmpeg-codec-catia/src/families/b5/graph.rs"
+kind = "byte"
+section = "6.7"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+size = 171
+
+[[record.field]]
+name = "origin"
+offset = 0
+type = "f64[3]"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "reference_x"
+offset = 24
+type = "f64[3]"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "reference_y"
+offset = 48
+type = "f64[3]"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "axis"
+offset = 72
+type = "f64[3]"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "angular_range"
+offset = 96
+type = "f64[2]"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "profile_range"
+offset = 112
+type = "f64[2]"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "controls"
+offset = 128
+type = "bytes[2]"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "angular_scale"
+offset = 130
+type = "f64"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "one0"
+offset = 138
+type = "f64"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "one1"
+offset = 146
+type = "f64"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "zero"
+offset = 154
+type = "f64"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "terminal"
+offset = 162
+type = "u8"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record.field]]
+name = "half_turn"
+offset = 163
+type = "f64"
+source = "spec"
+anchor = "the payload has exactly 171 bytes after that variable-width reference"

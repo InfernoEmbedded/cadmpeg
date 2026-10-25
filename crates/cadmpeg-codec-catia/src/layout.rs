@@ -741,3 +741,73 @@ pub(crate) mod rolling_ball_tail_scalar_branch {
     /// Stated value of `branch` (`bytes[2]`). Spec §6.2.
     pub(crate) const BRANCH_VALUE: [u8; 2] = [0x01, 0x01];
 }
+
+/// Byte offsets for the `b5_line_profile` record.
+///
+/// Spec §6.7. Record length 73 B.
+pub(crate) mod b5_line_profile {
+    /// Record length in bytes. Spec §6.7.
+    pub(crate) const LEN: usize = 73;
+    /// Offset of `point` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const POINT: usize = 1;
+    /// Offset of `direction` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const DIRECTION: usize = 25;
+    /// Offset of `one` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const ONE: usize = 49;
+    /// Offset of `parameter_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const PARAMETER_RANGE: usize = 57;
+}
+
+/// Byte offsets for the `b5_arc_profile` record.
+///
+/// Spec §6.7. Record length 113 B.
+pub(crate) mod b5_arc_profile {
+    /// Record length in bytes. Spec §6.7.
+    pub(crate) const LEN: usize = 113;
+    /// Offset of `center` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const CENTER: usize = 1;
+    /// Offset of `direction_x` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const DIRECTION_X: usize = 25;
+    /// Offset of `direction_y` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const DIRECTION_Y: usize = 49;
+    /// Offset of `radius` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const RADIUS: usize = 73;
+    /// Offset of `parameter_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const PARAMETER_RANGE: usize = 81;
+    /// Offset of `one` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const ONE: usize = 97;
+    /// Offset of `chart_origin` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const CHART_ORIGIN: usize = 105;
+}
+
+/// Byte offsets for the `b5_revolution_carrier_tail` record.
+///
+/// Spec §6.7. Record length 171 B.
+pub(crate) mod b5_revolution_carrier_tail {
+    /// Record length in bytes. Spec §6.7.
+    pub(crate) const LEN: usize = 171;
+    /// Offset of `reference_x` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const REFERENCE_X: usize = 24;
+    /// Offset of `reference_y` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const REFERENCE_Y: usize = 48;
+    /// Offset of `axis` (`f64[3]`, little-endian). Spec §6.7.
+    pub(crate) const AXIS: usize = 72;
+    /// Offset of `angular_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const ANGULAR_RANGE: usize = 96;
+    /// Offset of `profile_range` (`f64[2]`, little-endian). Spec §6.7.
+    pub(crate) const PROFILE_RANGE: usize = 112;
+    /// Offset of `controls` (`bytes[2]`). Spec §6.7.
+    pub(crate) const CONTROLS: usize = 128;
+    /// Offset of `angular_scale` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const ANGULAR_SCALE: usize = 130;
+    /// Offset of `one0` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const ONE0: usize = 138;
+    /// Offset of `one1` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const ONE1: usize = 146;
+    /// Offset of `zero` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const ZERO: usize = 154;
+    /// Offset of `terminal` (`u8`). Spec §6.7.
+    pub(crate) const TERMINAL: usize = 162;
+    /// Offset of `half_turn` (`f64`, little-endian). Spec §6.7.
+    pub(crate) const HALF_TURN: usize = 163;
+}

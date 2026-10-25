@@ -1269,6 +1269,62 @@ Parsed by:
 | 44 | 16 | `maximal_v` | `f64[2]` | little | spec | sense:i32le 0:f64le radius:f64le |
 | 60 | 3 | `terminal` | `bytes[3]` | little | spec | sense:i32le 0:f64le radius:f64le 01 00 00 · value `[1, 0, 0]` |
 
+## `b5_line_profile`
+
+Spec §6.7 · layout: byte offsets · size: 73 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/families/b5/graph.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `lead` | `u8` | little | spec | For `b5 03 0e`, the 73-byte payload is |
+| 1 | 24 | `point` | `f64[3]` | little | spec | For `b5 03 0e`, the 73-byte payload is |
+| 25 | 24 | `direction` | `f64[3]` | little | spec | For `b5 03 0e`, the 73-byte payload is |
+| 49 | 8 | `one` | `f64` | little | spec | For `b5 03 0e`, the 73-byte payload is |
+| 57 | 16 | `parameter_range` | `f64[2]` | little | spec | For `b5 03 0e`, the 73-byte payload is |
+
+## `b5_arc_profile`
+
+Spec §6.7 · layout: byte offsets · size: 113 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/families/b5/graph.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `lead` | `u8` | little | spec | For `b5 03 0f`, the 113-byte payload is |
+| 1 | 24 | `center` | `f64[3]` | little | spec | For `b5 03 0f`, the 113-byte payload is |
+| 25 | 24 | `direction_x` | `f64[3]` | little | spec | For `b5 03 0f`, the 113-byte payload is |
+| 49 | 24 | `direction_y` | `f64[3]` | little | spec | For `b5 03 0f`, the 113-byte payload is |
+| 73 | 8 | `radius` | `f64` | little | spec | For `b5 03 0f`, the 113-byte payload is |
+| 81 | 16 | `parameter_range` | `f64[2]` | little | spec | For `b5 03 0f`, the 113-byte payload is |
+| 97 | 8 | `one` | `f64` | little | spec | For `b5 03 0f`, the 113-byte payload is |
+| 105 | 8 | `chart_origin` | `f64` | little | spec | For `b5 03 0f`, the 113-byte payload is |
+
+## `b5_revolution_carrier_tail`
+
+Spec §6.7 · layout: byte offsets · size: 171 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/families/b5/graph.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 24 | `origin` | `f64[3]` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 24 | 24 | `reference_x` | `f64[3]` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 48 | 24 | `reference_y` | `f64[3]` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 72 | 24 | `axis` | `f64[3]` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 96 | 16 | `angular_range` | `f64[2]` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 112 | 16 | `profile_range` | `f64[2]` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 128 | 2 | `controls` | `bytes[2]` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 130 | 8 | `angular_scale` | `f64` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 138 | 8 | `one0` | `f64` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 146 | 8 | `one1` | `f64` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 154 | 8 | `zero` | `f64` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 162 | 1 | `terminal` | `u8` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+| 163 | 8 | `half_turn` | `f64` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
+
 ## Not tabulated
 
 | Area | Spec | Reason |
