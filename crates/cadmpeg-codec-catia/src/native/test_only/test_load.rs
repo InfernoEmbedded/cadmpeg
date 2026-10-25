@@ -531,6 +531,12 @@ impl CatiaNative {
             namespace.arena_as("consolidated_circles")?;
         consolidated_circles.sort_by_key(|circle| circle.byte_offset);
         validate_consolidated_circles(&consolidated_circles)?;
+        let mut consolidated_four_reference_edges: Vec<
+            crate::native::four_reference_edge::CatiaConsolidatedFourReferenceEdge,
+        > = namespace.arena_as("consolidated_four_reference_edges")?;
+        consolidated_four_reference_edges
+            .sort_by_key(|record| (record.source_index, record.source_offset));
+        crate::native::four_reference_edge::validate(&consolidated_four_reference_edges)?;
         let mut consolidated_class61_records: Vec<CatiaConsolidatedClass61Record> =
             namespace.arena_as("consolidated_class61_records")?;
         consolidated_class61_records
@@ -713,6 +719,7 @@ impl CatiaNative {
             consolidated_cones,
             consolidated_cylinders,
             consolidated_domain_relations,
+            consolidated_four_reference_edges,
             consolidated_edge_nodes,
             consolidated_edge_runs,
             consolidated_class60_records,

@@ -938,7 +938,8 @@ fn native_store_paths_cover_every_declared_arena() {
         .iter()
         .map(|row| row.arena)
         .collect::<std::collections::BTreeSet<_>>();
-    assert_eq!(crate::native::CATIA_FAMILIES.len(), 49);
+    assert_eq!(crate::native::CATIA_FAMILIES.len(), 50);
+    assert!(catalogue_names.contains("consolidated_four_reference_edges"));
     assert!(catalogue_names.contains("e5_nurbs_limit_programs"));
     assert!(catalogue_names.contains("e5_edges"));
     assert!(catalogue_names.contains("consolidated_chamfers"));

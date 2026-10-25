@@ -717,3 +717,19 @@ pub(crate) mod indexed_visualization_scalar_prefix {
     /// Offset of `scalar_count` (`u32`, little-endian). Spec §5.4.2.
     pub(crate) const SCALAR_COUNT: usize = 1;
 }
+
+/// Byte offsets for the `b_four_reference_edge_payload` record.
+///
+/// Spec §6.3. Record length 5 B.
+///
+/// ```text
+/// Payload only; the surrounding B-family frame carries the independent width, flag and header token.
+/// ```
+pub(crate) mod b_four_reference_edge_payload {
+    /// Record length in bytes. Spec §6.3.
+    pub(crate) const LEN: usize = 5;
+    /// Offset of `operands` (`u8[4]`). Spec §6.3.
+    pub(crate) const OPERANDS: usize = 0;
+    /// Offset of `terminal` (`u8`). Spec §6.3.
+    pub(crate) const TERMINAL: usize = 4;
+}

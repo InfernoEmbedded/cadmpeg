@@ -27,6 +27,8 @@ use projection::{
 
 pub(crate) mod class5b5c;
 mod class60;
+mod four_reference_edge;
+use four_reference_edge::CatiaConsolidatedFourReferenceEdge;
 pub(crate) mod class61;
 mod owner_frames;
 use class5b5c::CatiaConsolidatedClass5b5cRecord;
@@ -7429,6 +7431,10 @@ define_catia_arenas! {
         /// Structurally complete consolidated edge nodes.
         pub(crate) stored;
     },
+    consolidated_four_reference_edges: CatiaConsolidatedFourReferenceEdge {
+        /// Complete compact class-0x5e records with four unassigned operands.
+        pub(crate) stored;
+    },
     consolidated_edge_runs: CatiaConsolidatedEdgeRun {
         /// Complete consolidated historical edge runs.
         pub(crate) stored;
@@ -8808,6 +8814,8 @@ impl CatiaNative {
         let e5_curve_supports = e5_curve_support::derive(ctx, bytes)?;
         let e5_edges = e5_edge::derive(ctx, bytes)?;
         let e5_nurbs_limit_programs = e5_nurbs_limits::derive(ctx, bytes)?;
+        let consolidated_four_reference_edges =
+            four_reference_edge::derive(ctx, bytes, consolidated_records)?;
         Ok(Self {
             sampled_parameter_maps: Vec::new(),
             alias_rows,
@@ -8822,6 +8830,7 @@ impl CatiaNative {
             consolidated_cones,
             consolidated_cylinders,
             consolidated_domain_relations,
+            consolidated_four_reference_edges,
             consolidated_edge_nodes,
             consolidated_edge_runs,
             consolidated_class60_records,

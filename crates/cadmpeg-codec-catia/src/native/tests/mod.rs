@@ -11,6 +11,7 @@ mod entity;
 mod entity_suffix;
 mod entity_suffix_framing;
 mod formula_relation;
+mod four_reference_edges;
 mod inventory;
 mod legacy_value_names;
 mod load;

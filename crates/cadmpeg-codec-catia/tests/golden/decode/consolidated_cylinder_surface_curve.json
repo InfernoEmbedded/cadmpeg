@@ -490,6 +490,7 @@
             "tolerance": 1e-6
           }
         ],
+        "consolidated_four_reference_edges": [],
         "consolidated_line_profiles": [],
         "consolidated_owner_packets": [],
         "consolidated_parameter_points": [],

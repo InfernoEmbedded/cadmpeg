@@ -1236,6 +1236,17 @@ Parsed by:
 | 0 | 1 | `delimiter` | `u8` | little | spec | scalar_count:u32le · value `255` |
 | 1 | 4 | `scalar_count` | `u32` | little | spec | scalar_count:u32le |
 
+## `b_four_reference_edge_payload`
+
+Spec §6.3 · layout: byte offsets · size: 5 B
+
+Payload only; the surrounding B-family frame carries the independent width, flag and header token.
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `operands` | `u8[4]` | little | spec | one-byte allocation references followed by one terminal |
+| 4 | 1 | `terminal` | `u8` | little | spec | one-byte allocation references followed by one terminal |
+
 ## Not tabulated
 
 | Area | Spec | Reason |
