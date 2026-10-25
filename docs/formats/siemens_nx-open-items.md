@@ -496,11 +496,11 @@ assigns control geometry, continuity, or terminal semantics.
 
 ### OM-38. `SWP104` logical construction roles
 
-**Question.** Which logical fields assign authored construction roles to the four scalars, counted column sequence, and independent state lane?
+**Question.** Which logical fields assign authored construction roles and policy controls to the four scalars, counted column sequence, and independent state lane?
 
 **Known.** `siemens_nx.md` §7.1 "A bounded `SWP104` payload begins with one construction branch" defines one-based parameter and profile class indices. §7.1 "Member and successor references are non-null canonical payload object indices." defines the consecutive physical column sequence. Its block boundaries do not delimit logical fields. The witness count is independent of the member count.
 
-**Need.** Decode the logical rows across column boundaries and join their native endpoints to the profile, path, result mode, orientation, transition, transformation, twist, and scale fields required for a neutral feature.
+**Need.** Decode the logical rows across column boundaries and join their native endpoints to the profile, path, result mode, orientation, transition, transformation, tangent propagation, simplification, twist, and scale fields required for a neutral feature.
 
 **Conflict.** Parameter-class identity, physical adjacency, and equal scalar values do not identify the authored operands or distinguish dormant construction policies.
 
