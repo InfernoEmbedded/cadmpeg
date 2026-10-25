@@ -613,6 +613,7 @@ fn build_plan(
                 Some(
                     B5Surface::Plane { .. }
                         | B5Surface::Cylinder { .. }
+                        | B5Surface::Cone { .. }
                         | B5Surface::Torus { .. }
                         | B5Surface::Nurbs(_)
                         | B5Surface::Revolution { .. }

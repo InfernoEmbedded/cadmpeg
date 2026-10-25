@@ -23,6 +23,7 @@ use super::{annotate, dot, OrientedLoop, OrientedLoopMember, OwnershipPlan, Tran
 use crate::solve::union_find::UnionFind;
 
 pub(super) fn native_carrier_face_sense(graph: &B5Graph, face: &B5Face) -> Option<Sense> {
+    let mut reverse_chart = false;
     match graph.surfaces.get(&face.surface)? {
         B5Surface::Plane {
             frame, direction_v, ..
@@ -35,6 +36,21 @@ pub(super) fn native_carrier_face_sense(graph: &B5Graph, face: &B5Face) -> Optio
         }
         B5Surface::Cylinder { angular_scale, .. } => {
             (angular_scale.get() > 0.0).then_some(())?;
+        }
+        B5Surface::Cone {
+            frame,
+            direction_y,
+            surface: Some(_),
+            ..
+        } => {
+            let orientation = dot(
+                cross(components(frame.reference()), components(direction_y)),
+                components(frame.axis()),
+            );
+            if orientation == 0.0 {
+                return None;
+            }
+            reverse_chart = orientation < 0.0;
         }
         B5Surface::Torus { .. } => {}
         B5Surface::Nurbs(surface) => {
@@ -69,9 +85,13 @@ pub(super) fn native_carrier_face_sense(graph: &B5Graph, face: &B5Face) -> Optio
             return None;
         }
     }
-    Some(match outer?.metadata.framing_controls[0] {
-        B5FramingControl::Control03 => Sense::Reversed,
-        B5FramingControl::Control05 => Sense::Forward,
+    Some(match (outer?.metadata.framing_controls[0], reverse_chart) {
+        (B5FramingControl::Control03, false) | (B5FramingControl::Control05, true) => {
+            Sense::Reversed
+        }
+        (B5FramingControl::Control05, false) | (B5FramingControl::Control03, true) => {
+            Sense::Forward
+        }
     })
 }
 
@@ -1010,6 +1030,86 @@ mod tests {
         let mut graph = native_torus_face_with_inner_loop();
         let outer = graph.faces[0].loops[0];
         graph.loops.get_mut(&outer).expect("outer").surface = graph.faces[0].surface + 1;
+        assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
+    }
+
+    fn native_cone_face_with_inner_loop(handedness: f64) -> B5Graph {
+        use crate::test_support::test_b5::{
+            finite, nonnegative_length, positive, positive_angle, unit,
+        };
+        use cadmpeg_ir::geometry::analytic::ConeSurface;
+        use cadmpeg_ir::scalar::Angle;
+        let mut graph = native_plane_face_with_inner_loop();
+        let id = graph.faces[0].surface;
+        let super::B5Surface::Plane {
+            origin,
+            frame,
+            u_range,
+            v_range,
+            ..
+        } = graph.surfaces.remove(&id).expect("plane carrier")
+        else {
+            panic!("plane carrier");
+        };
+        let surface = ConeSurface::new(
+            origin,
+            frame,
+            nonnegative_length(4.0),
+            positive(1.0),
+            Angle::new(std::f64::consts::FRAC_PI_3).expect("cone half angle"),
+        );
+        graph.surfaces.insert(
+            id,
+            super::B5Surface::Cone {
+                origin,
+                frame,
+                direction_y: unit([0.0, handedness, 0.0]),
+                radial_angle: positive_angle(std::f64::consts::FRAC_PI_6),
+                reference_radius: finite(4.0),
+                angular_range: u_range,
+                slant_range: v_range,
+                slant_shift: finite(0.0),
+                angular_scale: positive(2.0),
+                angular_domain: u_range,
+                surface: Some(surface),
+            },
+        );
+        graph
+    }
+
+    #[test]
+    fn native_cone_sense_handles_signed_chart_outer_order() {
+        use cadmpeg_ir::topology::Sense;
+        for (h, expected) in [(1.0, Sense::Reversed), (-1.0, Sense::Forward)] {
+            let mut graph = native_cone_face_with_inner_loop(h);
+            assert_eq!(
+                super::native_carrier_face_sense(&graph, &graph.faces[0]),
+                Some(expected)
+            );
+            graph.faces[0].loops.reverse();
+            assert_eq!(
+                super::native_carrier_face_sense(&graph, &graph.faces[0]),
+                Some(expected)
+            );
+        }
+    }
+
+    #[test]
+    fn native_cone_sense_withholds_unknown_frame_or_missing_neutral_carrier() {
+        let mut graph = native_cone_face_with_inner_loop(1.0);
+        let id = graph.faces[0].surface;
+        let super::B5Surface::Cone { surface, .. } = graph.surfaces.get_mut(&id).expect("cone")
+        else {
+            panic!("cone");
+        };
+        *surface = None;
+        assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
+        let mut graph = native_cone_face_with_inner_loop(1.0);
+        let super::B5Surface::Cone { direction_y, .. } = graph.surfaces.get_mut(&id).expect("cone")
+        else {
+            panic!("cone");
+        };
+        *direction_y = crate::test_support::test_b5::unit([1.0, 0.0, 0.0]);
         assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
     }
 }

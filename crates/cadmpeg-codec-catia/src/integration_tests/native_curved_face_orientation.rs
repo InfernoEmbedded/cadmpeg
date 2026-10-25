@@ -188,3 +188,59 @@ fn native_negative_torus_face_keeps_carrier_and_reverses_sense() {
         negative.ir().model.faces[0].surface
     );
 }
+
+#[test]
+fn native_cone_source_controls_preserve_positive_chart_sense() {
+    let positive = decode(
+        include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/float_packed_native_cone_hplus_positive.catpart"
+        ))
+        .to_vec(),
+    );
+    let negative = decode(
+        include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/float_packed_native_cone_hplus_negative.catpart"
+        ))
+        .to_vec(),
+    );
+    for (result, sense) in [(&positive, Sense::Forward), (&negative, Sense::Reversed)] {
+        assert_valid(result);
+        assert_eq!(result.ir().model.faces.len(), 1);
+        assert_eq!(result.ir().model.faces[0].sense, sense);
+        assert!(matches!(
+            result.ir().model.surfaces[0].geometry,
+            SurfaceGeometry::Solved(SolvedSurfaceGeometry::Cone(_))
+        ));
+    }
+    assert_eq!(positive.ir().model.surfaces, negative.ir().model.surfaces);
+}
+
+#[test]
+fn native_cone_source_controls_reverse_negative_chart_sense() {
+    let positive = decode(
+        include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/float_packed_native_cone_hminus_positive.catpart"
+        ))
+        .to_vec(),
+    );
+    let negative = decode(
+        include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/float_packed_native_cone_hminus_negative.catpart"
+        ))
+        .to_vec(),
+    );
+    for (result, sense) in [(&positive, Sense::Reversed), (&negative, Sense::Forward)] {
+        assert_valid(result);
+        assert_eq!(result.ir().model.faces.len(), 1);
+        assert_eq!(result.ir().model.faces[0].sense, sense);
+        assert!(matches!(
+            result.ir().model.surfaces[0].geometry,
+            SurfaceGeometry::Solved(SolvedSurfaceGeometry::Cone(_))
+        ));
+    }
+    assert_eq!(positive.ir().model.surfaces, negative.ir().model.surfaces);
+}
