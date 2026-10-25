@@ -610,7 +610,12 @@ fn build_plan(
         for (index, face) in graph.faces.iter().enumerate() {
             if matches!(
                 graph.surfaces.get(&face.surface),
-                Some(B5Surface::Plane { .. } | B5Surface::Cylinder { .. } | B5Surface::Nurbs(_))
+                Some(
+                    B5Surface::Plane { .. }
+                        | B5Surface::Cylinder { .. }
+                        | B5Surface::Nurbs(_)
+                        | B5Surface::Revolution { .. }
+                )
             ) {
                 face_senses[index] = faces::native_carrier_face_sense(graph, face)?;
                 if face

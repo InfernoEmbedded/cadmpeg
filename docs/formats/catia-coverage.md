@@ -851,17 +851,25 @@ The first loop control retains face-to-carrier orientation independently;
 shell orientation and neutral chart conversion remain separate relations.
 
 Face sense uses the primary control of the unique outer loop for native planes,
-positive-scale cylinders and direct NURBS carriers whose normal is not reversed.
-Primary `03` emits reversed sense; primary `05` emits forward sense. All owned
-loops must repeat the face carrier, and transfer must preserve their native
-traversal order. The carrier geometry is unchanged. Procedural revolutions and
-other carrier kinds do not use this transfer rule.
+positive-scale cylinders, direct NURBS carriers whose normal is not reversed,
+and revolutions with a retained profile whose complete parameter interval
+matches the carrier interval bit for bit. Primary `03` emits reversed sense;
+primary `05` emits forward sense. All owned loops must repeat the face carrier,
+and transfer must preserve their native traversal order. The carrier geometry
+is unchanged. Other carrier kinds do not use this transfer rule.
 
 Four source fixtures exercise positive and negative cylinder and direct NURBS
 faces. Each has one three-edge outer loop. The negative fixtures reverse UV
 winding and select primary `03`; the positive fixtures select primary `05`.
 Their carrier surfaces are equal across each pair. The NURBS fixture does not
 establish complete boundary-length geometry.
+
+Four further source fixtures retain line and arc revolution profiles with
+positive and negative loop controls. The line pair transfers one four-edge face
+and preserves equal carrier and construction payloads across the pair. The arc
+pair preserves its existing topology refusal. Revolution measurements retain
+procedural-carrier unavailability; the face-sense rule does not establish a
+numerical orientation verdict.
 
 The frozen plane-with-hole graph has 34 frames and two three-edge loops.
 Its face lists the inner loop first, and its boundaries are degree-one NURBS

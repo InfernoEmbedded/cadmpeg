@@ -39,6 +39,21 @@ pub(super) fn native_carrier_face_sense(graph: &B5Graph, face: &B5Face) -> Optio
         B5Surface::Nurbs(surface) => {
             (!surface.normal_reversed()).then_some(())?;
         }
+        B5Surface::Revolution {
+            profile_curve,
+            profile_range,
+            ..
+        } => {
+            graph
+                .profiles
+                .get(profile_curve)?
+                .parameter_range()
+                .endpoints()
+                .into_iter()
+                .zip(profile_range.endpoints())
+                .all(|(profile, surface)| profile.to_bits() == surface.to_bits())
+                .then_some(())?;
+        }
         _ => return None,
     }
     let mut outer = None;
@@ -845,5 +860,81 @@ mod tests {
         .expect("oriented reversed carrier");
         graph.surfaces.insert(id, super::B5Surface::Nurbs(surface));
         assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
+    }
+
+    #[test]
+    fn native_revolution_face_sense_requires_matching_profile_interval() {
+        use crate::families::b5::graph::B5Profile;
+        use crate::test_support::test_b5::{exact_unit, increasing, point, positive, unit};
+        use cadmpeg_ir::topology::Sense;
+        let mut graph = native_plane_face_with_inner_loop();
+        let id = graph.faces[0].surface;
+        graph.surfaces.insert(
+            id,
+            super::B5Surface::Revolution {
+                profile_curve: 101,
+                axis_origin: point([0.0; 3]),
+                axis_direction: unit([0.0, 0.0, 1.0]),
+                profile_range: increasing([0.0, 1.0]),
+                angular_range: increasing([0.0, 1.0]),
+                angular_scale: positive(1.0),
+            },
+        );
+        assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
+        for (interval, expected) in [([0.0, 2.0], None), ([0.0, 1.0], Some(Sense::Reversed))] {
+            graph.profiles.insert(
+                101,
+                B5Profile::Line {
+                    point: point([1.0, 0.0, 0.0]),
+                    direction: exact_unit([0.0, 0.0, 1.0]),
+                    parameter_range: increasing(interval),
+                },
+            );
+            assert_eq!(
+                super::native_carrier_face_sense(&graph, &graph.faces[0]),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn native_revolution_face_sense_keeps_profile_and_angle_axis_order() {
+        use crate::families::b5::graph::B5Profile;
+        use crate::test_support::test_b5::{
+            exact_unit, increasing, point, positive, positive_length, unit,
+        };
+        use cadmpeg_ir::topology::Sense;
+        let mut graph = native_plane_face_with_inner_loop();
+        let id = graph.faces[0].surface;
+        graph.surfaces.insert(
+            id,
+            super::B5Surface::Revolution {
+                profile_curve: 101,
+                axis_origin: point([0.0; 3]),
+                axis_direction: unit([0.0, 0.0, 1.0]),
+                profile_range: increasing([0.0, 1.0]),
+                angular_range: increasing([0.0, 1.0]),
+                angular_scale: positive(1.0),
+            },
+        );
+        graph.profiles.insert(
+            101,
+            B5Profile::Arc {
+                center: point([3.0, 0.0, 0.0]),
+                direction_x: exact_unit([1.0, 0.0, 0.0]),
+                direction_y: exact_unit([0.0, 0.0, 1.0]),
+                radius: positive_length(1.0),
+                parameter_range: increasing([0.0, 1.0]),
+            },
+        );
+        assert_eq!(
+            super::native_carrier_face_sense(&graph, &graph.faces[0]),
+            Some(Sense::Reversed)
+        );
+        graph.faces[0].loops.reverse();
+        assert_eq!(
+            super::native_carrier_face_sense(&graph, &graph.faces[0]),
+            Some(Sense::Reversed)
+        );
     }
 }
