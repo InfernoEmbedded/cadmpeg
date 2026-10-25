@@ -236,7 +236,7 @@ scanning is the fallback when no TOC entry validates.
 A section payload beginning `1f 9d <flags>` uses Unix `compress` LZW framing.
 The low five flag bits give the maximum code width from 9 through 16; bit 7
 enables block mode. In block mode, code 256 clears the dictionary. Without
-block mode (for example `1f 9d 10`), code 256 is a literal dictionary entry.
+block mode (for example `1f 9d 10`), code 256 is the first dynamic dictionary slot.
 The initial dictionary contains the 256 one-byte values in slots `0` through
 `255`. The initial code width is nine bits. The next free slot is `256` in a
 non-block stream and `257` in a block-mode stream because block mode reserves
@@ -245,8 +245,11 @@ first code in a block; the reader increases the width from `w` to `w + 1`
 before the first code that requires a value above `(2^w)-1`. Codes are packed
 least significant bit first in code-width-sized byte blocks. Block alignment
 resets when the code width increases or, in block mode, a clear code resets it
-to nine. Expansion is valid only when the output length equals the TOC
-expanded-length field. For model-data sections, the expanded payload begins
+to nine. The first code must be a literal in `0..255`. An undefined code
+invalidates the expansion, including any partial output. Expansion is valid
+only when the complete code stream is valid and the output length equals the
+TOC expanded-length field. A magic prefix alone does not validate an expansion.
+For model-data sections, the expanded payload begins
 directly with its PSB named record. `THMB_IMG_MAIN` is an auxiliary exception:
 its expanded payload contains the JPEG payload and is identified by the
 `FF D8 FF` marker.
@@ -5309,7 +5312,8 @@ type-2 `value(d_val)`, type `51` selects type-10 `value(s_val)`, and type `52`
 selects type-1 `value(i_val)`. A missing, duplicate, mismatched, or incomplete
 field withholds the table join and retains the source object graph.
 
-Unix-compress streams with header `1f 9d 10` grow code width from 9 to 16 bits. Code 256 is a literal dictionary entry rather than a clear code.
+Unix-compress streams with header `1f 9d 10` grow code width from 9 to 16 bits.
+Code 256 is the first dynamic dictionary slot rather than a clear code.
 
 ### 8.4 Expanded primitive scalar arrays
 

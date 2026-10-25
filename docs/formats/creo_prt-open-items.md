@@ -830,13 +830,22 @@ neutral loop ownership or face admission.
 
 **Need.** We must know the other grammars to transfer their design data.
 
-### PP-06. Compressed `DispDataTable` dictionary
+### PP-06. Compressed `DispDataTable` substrate
 
-**Question.** What initial dictionary and code-width state does the compressed `DispDataTable` variant use?
+**Question.** Which encoding and initial state expand the `DispDataTable`
+bodies whose `1f 9d 10` prefix is followed by invalid ordinary LZW codes?
 
-**Known.** `creo_prt.md` §7 "`Sld_Xsections.xsec_geom.crv_array` rows store one-sided section contours with six-reference `[0, P, 0, N, S, 0]` tails. They" defines `1f 9d 10` Unix-compress streams. `creo_prt.md` §8.3 "Unix-compress streams with header `1f 9d 10` grow code width" states that code 256 is a literal dictionary entry and not a clear code.
+**Known.** A non-block `1f 9d 10` stream starts with a nine-bit literal code
+and dictionary slots `0..255`. A first code of 480 violates that state; a later
+code beyond the next free dictionary slot also violates it. These failures can
+occur in complete TOC-bounded bodies whose two stored checksum lanes agree.
+Successful ordinary streams in the same container do not select a different
+dictionary for such a body. The stored bytes remain opaque.
 
-**Need.** We must define the initial dictionary, first available code, initial code width, and width-transition rule for this stream variant.
+**Need.** Define the method selector and complete decoding state, then verify
+the declared output length and a fully consumed record grammar with an
+independent decoder. A partial output, valid magic prefix, or printable run
+does not establish the substrate.
 
 ### PP-07. Compressed `DispDataTable` geometry binding
 
