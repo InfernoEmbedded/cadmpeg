@@ -136,13 +136,13 @@ The decoder treats a later `PS\0\0` as a boundary only when the bytes from that 
 
 **Need.** We must know the authoritative boundary to distinguish a real following stream from payload bytes that happen to contain a complete header-shaped sequence.
 
-### CM-14. Configuration body membership
+### CM-14. Configuration identity carriers and update state
 
-**Question.** Which field binds an inactive configuration without `SourceIndex` to its bodies?
+**Question.** Which carrier controls membership when Keywords `id` differs from manifest `swID`, or a `NeedsUpdate="YES"` row has a decoded partition?
 
-**Known.** Decimal `SourceIndex=N` binds a Keywords configuration to `Config-N-Partition`. The Keywords decimal `id` selects `Config-N-ResolvedFeatures` and is independent of the partition identity. Element order and regeneration ordinal do not bind a partition. A uniquely named active configuration can use the active geometry partition. `crates/cadmpeg-ir/src/features.rs:57` defines `ConfigurationBodies::Unresolved` for every remaining configuration whose body membership is not established.
+**Known.** `sldprt.md` §2 defines the complete Keywords-name, manifest-row, referenced-model, and decimal `swID` join for current inactive and active snapshots. Missing partitions leave membership unresolved; decoded empty partitions establish empty membership. Keywords `id` and `swID` coincide in the available witnesses, so their covariance does not establish interchangeable authority. For configurations without a valid explicit index, the reader requires the complete manifest join and `NeedsUpdate="NO"`; it abstains on a conflicting explicit `SourceIndex` or an update-required row with a present partition. These abstentions do not establish producer precedence in the unobserved cases.
 
-**Need.** We must know whether another stored field binds an inactive source-less configuration. The decoder keeps this body membership `Unresolved` and reports the loss.
+**Need.** A producer save or export must distinguish unequal Keywords `id` and manifest `swID`, and separately distinguish a `YES` row with a present current partition. A native dual-carrier witness must test explicit `SourceIndex` disagreement with the full manifest join.
 
 ## 4. Auxiliary lanes
 

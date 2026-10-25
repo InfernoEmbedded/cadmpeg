@@ -869,8 +869,10 @@ fn configuration_partitions(
     configurations
         .into_iter()
         .filter_map(|configuration| {
-            let bodies = configuration.bodies.as_deref()?;
-            (!bodies.is_empty()).then_some((configuration, bodies))
+            configuration
+                .bodies
+                .as_deref()
+                .map(|bodies| (configuration, bodies))
         })
         .map(|(configuration, bodies)| {
             let index = configuration.source_index.ok_or_else(|| {
@@ -879,6 +881,15 @@ fn configuration_partitions(
                     configuration.id.as_str()
                 ))
             })?;
+            if bodies.is_empty() {
+                let mut payload = parasolid_stream(&[], "SCH_SW_33103_11000")?;
+                payload.extend(parasolid_stream_named(
+                    &[],
+                    "SCH_SW_33103_11000",
+                    "deltas body",
+                )?);
+                return Ok((format!("Contents/Config-{index}-Partition"), payload));
+            }
             let subset = body_subset(ir, bodies)?;
             let schema_32001 = subset
                 .model
@@ -1542,10 +1553,23 @@ fn patch_active_configuration_xml(
     if document.root_element().tag_name().name() != "swSolidWorks" {
         return Ok(None);
     }
-    let attribute = document
+    let mut models = document
         .descendants()
-        .find(|node| node.has_tag_name("swModel"))
-        .ok_or_else(|| CodecError::Malformed("SolidWorks XML has no model record".into()))?
+        .filter(|node| node.has_tag_name("swModel"));
+    let model = models
+        .next()
+        .ok_or_else(|| CodecError::Malformed("SolidWorks XML has no model record".into()))?;
+    if models.next().is_some()
+        || document
+            .descendants()
+            .any(|node| node.has_tag_name("swConfiguration"))
+    {
+        return Err(CodecError::NotImplemented(
+            "SLDPRT active configuration edits require a complete configuration manifest rewrite"
+                .into(),
+        ));
+    }
+    let attribute = model
         .attributes()
         .find(|attribute| attribute.name() == "swConfigurationName")
         .ok_or_else(|| {

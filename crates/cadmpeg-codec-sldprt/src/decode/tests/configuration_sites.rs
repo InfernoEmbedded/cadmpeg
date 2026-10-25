@@ -316,7 +316,7 @@ fn decode_uses_the_namespaced_manifest_site_without_source_indices() {
     source.extend(make_block(
         0x43,
         "Contents/Features",
-        br#"<?xml version="1.0"?><swSolidWorks xmlns="http://www.solidworks.com/sw2003/schema"><swModel id="model-0" swConfigurationName="First" swConfigurationId="0"/><swModel id="model-1" swConfigurationName="Second" swConfigurationId="1"/><swConfigurationList><swConfiguration swID="0" swModelRef="model-0" swMostRecentConfiguration="NO"/><swConfiguration swID="1" swModelRef="model-1" swMostRecentConfiguration="YES"/></swConfigurationList></swSolidWorks>"#,
+        br#"<?xml version="1.0"?><swSolidWorks xmlns="http://www.solidworks.com/sw2003/schema"><swModel id="model-0" swConfigurationName="First" swConfigurationId="0"/><swModel id="model-1" swConfigurationName="Second" swConfigurationId="1"/><swConfigurationList><swConfiguration swName="First" swID="0" swModelRef="model-0" swMostRecentConfiguration="NO" swConfigurationNeedsUpdate="NO"/><swConfiguration swName="Second" swID="1" swModelRef="model-1" swMostRecentConfiguration="YES" swConfigurationNeedsUpdate="NO"/></swConfigurationList></swSolidWorks>"#,
     ));
 
     let result = SldprtCodec
@@ -354,4 +354,26 @@ fn decode_uses_the_namespaced_manifest_site_without_source_indices() {
     assert!(!result.report().losses.iter().any(|loss| loss
         .message
         .contains("active configuration identity is unresolved")));
+}
+
+#[test]
+fn multiple_model_names_without_manifest_rows_do_not_mark_the_first_active() {
+    let mut source = sldprt_with_colliding_sites();
+    source.extend(make_block(
+        0x42,
+        "Contents/Keywords",
+        br#"<Keywords><Configuration Name="First"/><Configuration Name="Second"/></Keywords>"#,
+    ));
+    source.extend(make_block(0x43, "Contents/Features", br#"<swSolidWorks><swModel swConfigurationName="First"/><swModel swConfigurationName="Second"/></swSolidWorks>"#));
+    let decoded = SldprtCodec
+        .decode(&mut Cursor::new(source), &DecodeOptions::default())
+        .unwrap();
+    assert!(!decoded
+        .ir()
+        .source
+        .as_ref()
+        .unwrap()
+        .attributes
+        .contains_key("sw_configuration_name"));
+    assert!(decoded.ir().model.configurations.iter().all(|c| !c.active));
 }

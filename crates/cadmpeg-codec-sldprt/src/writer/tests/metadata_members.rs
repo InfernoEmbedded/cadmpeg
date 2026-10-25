@@ -777,7 +777,7 @@ fn changed_display_semantics_do_not_replay_an_unchanged_source_member() {
 fn metadata_edits_preserve_configuration_xml_and_explicit_renames_update_it() {
     let history: &[u8] = br#"<Keywords Name="Authored"><Configuration Name="Saved"/><Feature Name="NativeTree" Type="Origin" id="11"/></Keywords>"#;
     let ordinary: &[u8] = br#"<?xml version="1.0"?><swSolidWorks swVersion="34000"><swModel swConfigurationName = 'Saved'/></swSolidWorks>"#;
-    let stale: &[u8] = br#"<?xml version="1.0"?><swSolidWorks swVersion="34000"><swModel swConfigurationName="Stale"/><swConfiguration swID="0" swName="Saved" swMostRecentConfiguration="YES"/></swSolidWorks>"#;
+    let stale: &[u8] = br#"<?xml version="1.0"?><swSolidWorks swVersion="34000"><swModel id="stale" swConfigurationName="Stale" swConfigurationId="1"/><swModel id="saved" swConfigurationName="Saved" swConfigurationId="0"/><swConfiguration swID="0" swName="Saved" swModelRef="saved" swMostRecentConfiguration="YES" swConfigurationNeedsUpdate="NO"/></swSolidWorks>"#;
     for (xml, indexed, rename) in [
         (ordinary, false, false),
         (stale, true, false),

@@ -988,19 +988,38 @@ A compact parting-line Draft uses direct duplicated component-vector records wit
 
 A planar sketch history name ending in `<N>`, where `N` is one or more decimal digits, aliases the uniquely named unsuffixed sketch when both records have the same XML element tag, resolved feature-input class, ordered content, and complete parameter map. The unsuffixed history feature remains the sole owner of the solved sketch geometry, and the geometry-less alias feature depends on that owner. Feature operands naming the alias bind to the owner's sketch and depend on the unsuffixed owner. A missing base, multiple matching bases, or any record-content difference leaves the alias operand native.
 
-Keywords `Configuration` elements carry a non-empty, document-unique `Name`; `Material` carries the configuration material override. Decimal `SourceIndex=N` binds the configuration to `Config-N-Partition`. All other attributes are configuration-local named values. Source indices are document-unique and independent of element order and the resolved-features slot identity. A matching partition supplies the configuration body set. When no `Config-N-Partition` section exists, the body set is empty. A configuration without `SourceIndex` has no ordinary partition binding; the uniquely manifest-selected configuration receives the selected `swID` when its name binds uniquely.
+Keywords `Configuration` elements carry a non-empty, document-unique `Name`;
+`Material` carries the configuration material override. Decimal `SourceIndex=N`
+binds the configuration to `Config-N-Partition`. All other attributes are
+configuration-local named values. Source indices are document-unique and
+independent of element order and the resolved-features slot identity. A
+successfully decoded partition supplies the configuration body set. A missing
+partition leaves membership unresolved; a decoded empty partition supplies an
+empty body set.
 
-The unique `swMostRecentConfiguration="YES"` manifest row is the active
-configuration identity, including when the manifest contains several
-`swModel` rows. A single `swModel/@swConfigurationName` is the name fallback
-when the manifest does not provide a name. A missing or unmatched active name
-leaves the Keywords configuration identity unresolved.
+For a manifest row with `swConfigurationNeedsUpdate="NO"`, the complete
+identity join also binds a Keywords configuration without `SourceIndex`:
+its unique `Name` equals the unique `swConfiguration/@swName`; that row's
+`swModelRef` references exactly one `swModel` in the same XML document;
+the model's `swConfigurationName` equals that name and its
+`swConfigurationId` equals the row's decimal `swID=N`. The numeric `swID`
+is unique across the document's manifest rows and selects `Config-N-Partition`.
+Both explicit and manifest indices, when present, agree. A missing target or
+an incomplete, duplicate, or conflicting identity leaves membership unresolved.
+The row's generic `id`, model object reference, and row position do not select
+partitions. Inactive `swMostRecentConfiguration="NO"` rows use the same join.
 
-`swConfigurationNeedsUpdate="YES"` states that the document carries no
-current evaluated snapshot for that configuration; its feature and parameter
-state requires regeneration. `swConfigurationNeedsUpdate="NO"` states that
-its cached state is current. `swConfigurationFlags` and
-`swConfigurationAlternateName` are configuration-manifest metadata.
+Exactly one `swMostRecentConfiguration="YES"` row identifies the active
+configuration through its decimal `swID`. That index matches a unique valid
+explicit Keywords `SourceIndex`, or the complete identity join above. Present
+row names and referenced model identities agree with the bound Keywords name
+and index. Missing alternate-carrier fields do not erase an independently
+valid explicit binding. A valid conflicting manifest binding, duplicate
+identity, or contradictory active identity remains unresolved. An unresolved
+manifest does not select the first model name or a synthetic partition
+configuration.
+`swConfigurationNeedsUpdate`, `swConfigurationFlags`, and
+`swConfigurationAlternateName` retain their stored configuration metadata.
 
 Keywords `Feature` elements use the `Type` attribute as their operation-family token. All feature instances with the same exact `Type` token use the same feature-input class. A directly object-ID-bound class instance therefore supplies the class of the other instances carrying that token. `Helix/Spiral`, `Surface-Sweep`, and `Thicken` denote helix, surface-sweep, and face-thickening operations independently of the localized display name in `Name`.
 
@@ -1451,24 +1470,22 @@ An untyped surface or curve belongs to the retained outer block or compound stre
 The Features manifest is the namespaced `swSolidWorks` XML document in
 `swXmlContents/Features` or the compound-document `Features` stream. Element
 names use their local names with the SolidWorks namespace URI
-`http://www.solidworks.com/sw2003/schema`. Its
-`swConfigurationList/swConfiguration` rows identify configurations by decimal
-`swID`. Exactly one row with `swMostRecentConfiguration="YES"` identifies the
-active configuration; its `swID` selects `Config-<swID>-Partition`. The row's
-`swModelRef` points to the corresponding `swModel` `id`, and the linked
-`swModel` supplies the configuration name. `swConfigurationId` on that model
-has the same value as `swID`.
+`http://www.solidworks.com/sw2003/schema`. A `Features__ZLB` member has the
+same semantic identity after its container compression is validated. In a
+compound document the `__ZLB` alias requires a valid ZLB wrapper; bare XML
+under that physical name is not a decoded manifest. The physical stream name
+and bytes remain distinct retained source facts.
 
-Selection precedence is a valid `SourceIndex=N` on the active Keywords
-configuration, then the unique manifest row's `swID`, then a sole non-ghost
-partition. A `Deltas`, `GhostPartition`, or `ResolvedFeatures` section is not
-a partition substitute. A manifest with zero or several `YES` rows supplies no
-index. Partition indices need not be dense. When the manifest selects a
-source-less Keywords configuration by name, the selected `swID` establishes
-its partition binding. With one `swModel`, `swConfigurationName` supplies the
-same active name used by the first rule; with several model rows, the linked
-manifest row is authoritative. If no index is established, multiple partition
-sites do not establish active geometry identity.
+The complete Keywords, manifest-row, and referenced-model identity join in
+§2 binds both active and inactive current snapshots by decimal `swID`.
+`swModelRef` is local to its XML document. A valid explicit `SourceIndex`
+agrees with a present manifest binding. Multiple or incomplete matching rows,
+models, names, indices, or active declarations leave the identity unresolved.
+A conflicting manifest does not fall back to a sole remaining partition.
+Without manifest rows, a valid explicit source index or a sole non-ghost
+partition can select a geometry site. A `Deltas`, `GhostPartition`, or
+`ResolvedFeatures` section is not a partition substitute. Partition indices
+need not be dense.
 
 Compact analytic records, `00 11` coedges, `00 12` vertex-uses, and `00 1d` points use `(site_id, attr)` identity because their attributes can repeat across sites. Bridges (`00 0e`), loop heads (`00 0f`), and edge-uses (`00 10`) carry globally unique attributes, but their references to site-scoped families remain in the referring record's site. Partition and deltas records in one site share an attribute namespace.
 

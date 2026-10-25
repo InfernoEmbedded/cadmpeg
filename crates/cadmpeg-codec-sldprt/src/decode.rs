@@ -2827,7 +2827,7 @@ fn build_geometry_ir(
         &all_lanes,
     )?;
     crate::history::bind::order_features_for_regeneration(ctx, &mut ir.model.features)?;
-    assign_configuration_bodies(&mut ir, configuration_bodies)?;
+    assign_configuration_bodies(&mut ir, configuration_bodies, Some(scan))?;
     let configuration_losses = crate::history::configuration::project_configuration_sketch_states(
         ctx,
         &mut ir,
@@ -3526,11 +3526,6 @@ fn add_solidworks_xml_metadata(
             attributes.insert(
                 cadmpeg_core::nonblank_literal!("sw_configuration_name"),
                 value.to_owned(),
-            );
-        } else if let Some(value) = &envelope.configuration_name {
-            attributes.insert(
-                cadmpeg_core::nonblank_literal!("sw_configuration_name"),
-                value.clone(),
             );
         }
         for (key, value) in &envelope.configuration_attributes {
@@ -4605,6 +4600,7 @@ fn stamp_feature_baseline(ctx: &DecodeContext<'_>, ir: &mut CadIr) -> Result<(),
 fn assign_configuration_bodies(
     ir: &mut CadIr,
     configuration_bodies: Vec<(usize, Vec<cadmpeg_ir::ids::BodyId>)>,
+    scan: Option<&ContainerScan<'_>>,
 ) -> Result<(), CodecError> {
     let mut partition_map = BTreeMap::<u32, Vec<cadmpeg_ir::ids::BodyId>>::new();
     for (index, bodies) in configuration_bodies {
@@ -4619,6 +4615,19 @@ fn assign_configuration_bodies(
         }
     }
 
+    if let Some(scan) = scan.filter(|scan| container::has_manifest_configuration_rows(scan)) {
+        for configuration in &mut ir.model.configurations {
+            let index = configuration
+                .name
+                .as_deref()
+                .and_then(|name| container::manifest_configuration_index(scan, name))
+                .flatten()
+                .and_then(|index| u32::try_from(index).ok())
+                .filter(|index| partition_map.contains_key(index));
+            configuration.source_index = index;
+            configuration.bodies = None;
+        }
+    }
     let mut source_counts = BTreeMap::<u32, usize>::new();
     for source_index in ir
         .model
@@ -4637,15 +4646,18 @@ fn assign_configuration_bodies(
             continue;
         };
         if source_counts.get(&source_index) == Some(&1) {
-            configuration.bodies = Some(cadmpeg_ir::features::DistinctMembers::try_from(
-                partition_map.remove(&source_index).unwrap_or_default(),
-            )?);
+            if let Some(bodies) = partition_map.remove(&source_index) {
+                configuration.bodies =
+                    Some(cadmpeg_ir::features::DistinctMembers::try_from(bodies)?);
+            }
         }
     }
-    if let Some((active_index, position)) = bind_active_configuration_partition(ir) {
-        if let Some(bodies) = partition_map.remove(&active_index) {
-            ir.model.configurations[position].bodies =
-                Some(cadmpeg_ir::features::DistinctMembers::try_from(bodies)?);
+    if !scan.is_some_and(container::has_manifest_configuration_rows) {
+        if let Some((active_index, position)) = bind_active_configuration_partition(ir) {
+            if let Some(bodies) = partition_map.remove(&active_index) {
+                ir.model.configurations[position].bodies =
+                    Some(cadmpeg_ir::features::DistinctMembers::try_from(bodies)?);
+            }
         }
     }
     for (source_index, bodies) in partition_map {
