@@ -36,6 +36,7 @@ pub(super) fn native_carrier_face_sense(graph: &B5Graph, face: &B5Face) -> Optio
         B5Surface::Cylinder { angular_scale, .. } => {
             (angular_scale.get() > 0.0).then_some(())?;
         }
+        B5Surface::Torus { .. } => {}
         B5Surface::Nurbs(surface) => {
             (!surface.normal_reversed()).then_some(())?;
         }
@@ -936,5 +937,79 @@ mod tests {
             super::native_carrier_face_sense(&graph, &graph.faces[0]),
             Some(Sense::Reversed)
         );
+    }
+
+    fn native_torus_face_with_inner_loop() -> B5Graph {
+        use crate::test_support::test_b5::{exact_unit, positive, positive_length};
+        let mut graph = native_plane_face_with_inner_loop();
+        let id = graph.faces[0].surface;
+        let super::B5Surface::Plane {
+            origin,
+            frame,
+            u_range,
+            v_range,
+            ..
+        } = graph.surfaces.remove(&id).expect("plane carrier")
+        else {
+            panic!("plane carrier");
+        };
+        graph.surfaces.insert(
+            id,
+            super::B5Surface::Torus {
+                center: origin,
+                frame,
+                direction_y: exact_unit([0.0, 1.0, 0.0]),
+                major_radius: positive_length(4.0),
+                minor_radius: positive_length(1.0),
+                major_angular_range: u_range,
+                major_angular_domain: u_range,
+                minor_angular_range: v_range,
+                minor_angular_domain: v_range,
+                major_scale: positive(2.0),
+                minor_scale: positive(3.0),
+            },
+        );
+        graph
+    }
+
+    #[test]
+    fn native_torus_sense_uses_unique_outer_without_record_order_inference() {
+        use cadmpeg_ir::topology::Sense;
+        let mut graph = native_torus_face_with_inner_loop();
+        assert_eq!(
+            super::native_carrier_face_sense(&graph, &graph.faces[0]),
+            Some(Sense::Reversed)
+        );
+        graph.faces[0].loops.reverse();
+        assert_eq!(
+            super::native_carrier_face_sense(&graph, &graph.faces[0]),
+            Some(Sense::Reversed)
+        );
+        let outer = graph.faces[0].loops[0];
+        graph
+            .loops
+            .get_mut(&outer)
+            .expect("outer")
+            .metadata
+            .framing_controls[0] = B5FramingControl::Control05;
+        assert_eq!(
+            super::native_carrier_face_sense(&graph, &graph.faces[0]),
+            Some(Sense::Forward)
+        );
+    }
+
+    #[test]
+    fn native_torus_sense_withholds_ambiguous_outer_and_mismatched_carrier() {
+        for location in [B5FramingControl::Control03, B5FramingControl::Control05] {
+            let mut graph = native_torus_face_with_inner_loop();
+            for loop_ in graph.loops.values_mut() {
+                loop_.metadata.framing_controls[1] = location;
+            }
+            assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
+        }
+        let mut graph = native_torus_face_with_inner_loop();
+        let outer = graph.faces[0].loops[0];
+        graph.loops.get_mut(&outer).expect("outer").surface = graph.faces[0].surface + 1;
+        assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
     }
 }

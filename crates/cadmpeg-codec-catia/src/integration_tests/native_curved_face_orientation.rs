@@ -138,3 +138,53 @@ fn native_revolution_arc_source_abstentions_remain_native() {
             .any(|record| record.data().is_some()));
     }
 }
+
+#[test]
+fn native_positive_torus_face_keeps_major_minor_chart_order() {
+    let result = decode(
+        include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/float_packed_native_torus_positive.catpart"
+        ))
+        .to_vec(),
+    );
+    assert_valid(&result);
+    let model = &result.ir().model;
+    assert_eq!(model.faces.len(), 1);
+    assert_eq!(model.faces[0].sense, Sense::Forward);
+    assert_eq!(model.edges.len(), 4);
+    assert_eq!(model.coedges.len(), 4);
+    assert_eq!(model.loops.len(), 1);
+    assert_eq!(model.vertices.len(), 4);
+    assert!(matches!(
+        model.surfaces[0].geometry,
+        SurfaceGeometry::Solved(SolvedSurfaceGeometry::Torus(_))
+    ));
+}
+
+#[test]
+fn native_negative_torus_face_keeps_carrier_and_reverses_sense() {
+    let positive = decode(
+        include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/float_packed_native_torus_positive.catpart"
+        ))
+        .to_vec(),
+    );
+    let negative = decode(
+        include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/float_packed_native_torus_negative.catpart"
+        ))
+        .to_vec(),
+    );
+    assert_valid(&positive);
+    assert_valid(&negative);
+    assert_eq!(negative.ir().model.faces.len(), 1);
+    assert_eq!(negative.ir().model.faces[0].sense, Sense::Reversed);
+    assert_eq!(positive.ir().model.surfaces, negative.ir().model.surfaces);
+    assert_eq!(
+        positive.ir().model.faces[0].surface,
+        negative.ir().model.faces[0].surface
+    );
+}

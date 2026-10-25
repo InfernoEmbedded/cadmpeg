@@ -783,7 +783,7 @@ pub(super) fn try_decode_freeform_surfaces(
         if !wire_topology_transferred {
             if topology_transferred {
                 losses.push((CatiaLossCode::TopologyB5GaugeSubstituted).note(format!(
-                "The complete B5 reference graph retains carrier-relative face orientation for admitted plane, cylinder, direct NURBS and revolution carriers. \
+                "The complete B5 reference graph retains carrier-relative face orientation for admitted plane, cylinder, torus, direct NURBS and revolution carriers. \
              Other face orientations and body kind use an inferred gauge. Outward-shell signs \
              and source body dimension are not transferred. Gauged b5 03 5f face records, by object id ({}): {}.",
                 b5_face_object_ids.len(),
