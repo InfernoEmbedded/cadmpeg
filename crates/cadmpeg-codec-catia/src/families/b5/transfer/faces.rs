@@ -22,18 +22,25 @@ use super::pcurves::PcurveUses;
 use super::{annotate, dot, OrientedLoop, OrientedLoopMember, OwnershipPlan, TransferPlan};
 use crate::solve::union_find::UnionFind;
 
-pub(super) fn native_plane_face_sense(graph: &B5Graph, face: &B5Face) -> Option<Sense> {
-    let B5Surface::Plane {
-        frame, direction_v, ..
-    } = graph.surfaces.get(&face.surface)?
-    else {
-        return None;
-    };
-    (dot(
-        cross(components(frame.reference()), direction_v.get()),
-        components(frame.axis()),
-    ) > 0.0)
-        .then_some(())?;
+pub(super) fn native_carrier_face_sense(graph: &B5Graph, face: &B5Face) -> Option<Sense> {
+    match graph.surfaces.get(&face.surface)? {
+        B5Surface::Plane {
+            frame, direction_v, ..
+        } => {
+            (dot(
+                cross(components(frame.reference()), direction_v.get()),
+                components(frame.axis()),
+            ) > 0.0)
+                .then_some(())?;
+        }
+        B5Surface::Cylinder { angular_scale, .. } => {
+            (angular_scale.get() > 0.0).then_some(())?;
+        }
+        B5Surface::Nurbs(surface) => {
+            (!surface.normal_reversed()).then_some(())?;
+        }
+        _ => return None,
+    }
     let mut outer = None;
     for loop_id in &face.loops {
         let loop_ = graph.loops.get(loop_id)?;
@@ -659,12 +666,12 @@ mod tests {
         use cadmpeg_ir::topology::Sense;
         let mut graph = native_plane_face_with_inner_loop();
         assert_eq!(
-            super::native_plane_face_sense(&graph, &graph.faces[0]),
+            super::native_carrier_face_sense(&graph, &graph.faces[0]),
             Some(Sense::Reversed)
         );
         graph.faces[0].loops.reverse();
         assert_eq!(
-            super::native_plane_face_sense(&graph, &graph.faces[0]),
+            super::native_carrier_face_sense(&graph, &graph.faces[0]),
             Some(Sense::Reversed)
         );
         let outer = graph.faces[0].loops[0];
@@ -675,7 +682,7 @@ mod tests {
             .metadata
             .framing_controls[0] = B5FramingControl::Control05;
         assert_eq!(
-            super::native_plane_face_sense(&graph, &graph.faces[0]),
+            super::native_carrier_face_sense(&graph, &graph.faces[0]),
             Some(Sense::Forward)
         );
     }
@@ -687,15 +694,15 @@ mod tests {
             for loop_ in graph.loops.values_mut() {
                 loop_.metadata.framing_controls[1] = location;
             }
-            assert!(super::native_plane_face_sense(&graph, &graph.faces[0]).is_none());
+            assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
         }
         let mut graph = native_plane_face_with_inner_loop();
         graph.loops.remove(&graph.faces[0].loops[0]);
-        assert!(super::native_plane_face_sense(&graph, &graph.faces[0]).is_none());
+        assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
         let mut graph = native_plane_face_with_inner_loop();
         let id = graph.faces[0].loops[0];
         graph.loops.get_mut(&id).expect("owned loop").surface = 101;
-        assert!(super::native_plane_face_sense(&graph, &graph.faces[0]).is_none());
+        assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
     }
 
     #[test]
@@ -709,7 +716,7 @@ mod tests {
         };
         *direction_v =
             crate::checked::ExactUnitVector3::new([0.0, -1.0, 0.0]).expect("unit opposite V");
-        assert!(super::native_plane_face_sense(&graph, &graph.faces[0]).is_none());
+        assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
     }
 
     #[test]
@@ -748,5 +755,95 @@ mod tests {
         })
         .expect("bounded native transfer planning");
         assert!(plan.is_none());
+    }
+    #[test]
+    fn native_carrier_sense_rejects_nonpositive_cylinder_chart_scale() {
+        use crate::test_support::test_b5::{finite, positive_length};
+        use cadmpeg_ir::topology::Sense;
+        let mut graph = native_plane_face_with_inner_loop();
+        let id = graph.faces[0].surface;
+        let super::B5Surface::Plane {
+            origin,
+            frame,
+            u_range,
+            v_range,
+            ..
+        } = graph.surfaces.remove(&id).expect("plane source carrier")
+        else {
+            panic!("plane source carrier");
+        };
+        for (scale, expected) in [(1.0, Some(Sense::Reversed)), (0.0, None), (-1.0, None)] {
+            graph.surfaces.insert(
+                id,
+                super::B5Surface::Cylinder {
+                    origin,
+                    frame,
+                    radius: positive_length(1.0),
+                    u_range,
+                    v_range,
+                    angular_scale: finite(scale),
+                    chart_origin: finite(0.0),
+                },
+            );
+            assert_eq!(
+                super::native_carrier_face_sense(&graph, &graph.faces[0]),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn native_carrier_sense_keeps_unproved_carrier_abstentions() {
+        use crate::test_support::test_b5::positive;
+        use cadmpeg_ir::geometry::nurbs::{NurbsSurface, NurbsSurfaceAxis, NurbsSurfaceLanes};
+        use cadmpeg_ir::math::Point3;
+        let mut graph = native_plane_face_with_inner_loop();
+        let id = graph.faces[0].surface;
+        let super::B5Surface::Plane {
+            origin,
+            frame,
+            u_range,
+            v_range,
+            ..
+        } = graph.surfaces.remove(&id).expect("plane source carrier")
+        else {
+            panic!("plane source carrier");
+        };
+        graph.surfaces.insert(
+            id,
+            super::B5Surface::Unknown {
+                family: 181,
+                class: 52,
+                payload: Vec::new(),
+            },
+        );
+        assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
+        graph.surfaces.insert(
+            id,
+            super::B5Surface::Revolution {
+                profile_curve: 101,
+                axis_origin: origin,
+                axis_direction: *frame.axis(),
+                profile_range: u_range,
+                angular_range: v_range,
+                angular_scale: positive(1.0),
+            },
+        );
+        assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
+        let surface = NurbsSurface::from_lanes(
+            NurbsSurfaceAxis::new(1, vec![0.0, 0.0, 1.0, 1.0], false),
+            NurbsSurfaceAxis::new(1, vec![0.0, 0.0, 1.0, 1.0], false),
+            NurbsSurfaceLanes::new(
+                vec![
+                    vec![Point3::new(0.0, 0.0, 0.0), Point3::new(0.0, 1.0, 0.0)],
+                    vec![Point3::new(1.0, 0.0, 0.0), Point3::new(1.0, 1.0, 0.0)],
+                ],
+                None,
+            ),
+            true,
+        )
+        .expect("oriented reversed carrier");
+        graph.surfaces.insert(id, super::B5Surface::Nurbs(surface));
+        assert!(super::native_carrier_face_sense(&graph, &graph.faces[0]).is_none());
     }
 }
