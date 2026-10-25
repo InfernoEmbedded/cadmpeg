@@ -126,15 +126,17 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 **Note.** Retained prologue bytes can be preserved without assigning a generation rule.
 
-### CM-10. Parasolid stream boundary
+### CM-10. Complete effective-schema stream cursor
 
-**Question.** What fixes the end of a Parasolid stream inside one block payload?
+**Question.** Which base schemas and first-use field sequences establish every XT node boundary in unframed carriers?
 
-**Known.** `sldprt.md` §3.1 gives the stream header: the `PS 00 00` signature, `desc_len u16 BE`, the description, the padding, `schema_len u8`, and the schema. The header has no total-length field. `sldprt.md` §3.2 states that a block can hold a partition stream and a deltas stream, and gives no delimiter between them.
+**Known.** `sldprt.md` §3.1.1 defines the terminal node and the direct `ThirdPty/WELDMENT_STORAGE` length prefix. The chained wrapper section length bounds its concatenated frame outputs. Header-shaped signatures and terminal-shaped field bytes do not define an intrinsic boundary. The complete base-schema node cursor is separate from outer-extent and endpoint-wire checks.
 
-The decoder treats a later `PS\0\0` as a boundary only when the bytes from that position contain a complete stream header with a bounded description and schema token. An unframed signature in coordinate or string data remains part of the current stream.
+**Need.** Complete selected base-schema field tables and Source-backed traversal of each effective field edit, fixed field, and variable count must establish the node cursor before intrinsic endpoints can be admitted without a carrier extent.
 
-**Need.** We must know the authoritative boundary to distinguish a real following stream from payload bytes that happen to contain a complete header-shaped sequence.
+**Conflict.** None.
+
+**Note.** Outer framing does not establish physical occurrence policy or permit salvage of an invalid CFB extent.
 
 ### CM-14. Configuration identity carriers and update state
 

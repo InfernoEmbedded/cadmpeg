@@ -3031,3 +3031,41 @@ pub(crate) mod oleps_dictionary_entry_prefix {
     /// Offset of `name_length` (`u32`, little-endian). Spec §8.1.
     pub(crate) const NAME_LENGTH: usize = 4;
 }
+
+/// Byte offsets for the `parasolid_terminal` record.
+///
+/// Spec §3.1.1. Record length 4 B.
+///
+/// ```text
+/// Valid only at the effective-schema node cursor boundary.
+/// ```
+pub(crate) mod parasolid_terminal {
+    /// Record length in bytes. Spec §3.1.1.
+    pub(crate) const LEN: usize = 4;
+    /// Offset of `node_type` (`u16`, big-endian). Spec §3.1.1.
+    pub(crate) const NODE_TYPE: usize = 0;
+    /// Stated value of `node_type` (`u16`). Spec §3.1.1.
+    pub(crate) const NODE_TYPE_VALUE: u16 = 0x0001;
+    /// Offset of `null_index_wire` (`u16`, big-endian). Spec §3.1.1.
+    pub(crate) const NULL_INDEX_WIRE: usize = 2;
+    /// Stated value of `null_index_wire` (`u16`). Spec §3.1.1.
+    pub(crate) const NULL_INDEX_WIRE_VALUE: u16 = 0x0001;
+}
+
+/// Byte offsets for the `weldment_xt_entry_prefix` record.
+///
+/// Spec §3.1.1. Record length 8 B.
+///
+/// ```text
+/// Direct ThirdPty/WELDMENT_STORAGE carrier prefix; XT begins at +8.
+/// ```
+pub(crate) mod weldment_xt_entry_prefix {
+    /// Record length in bytes. Spec §3.1.1.
+    pub(crate) const LEN: usize = 8;
+    /// Offset of `leading_word` (`u32`, little-endian). Spec §3.1.1.
+    pub(crate) const LEADING_WORD: usize = 0;
+    /// Stated value of `leading_word` (`u32`). Spec §3.1.1.
+    pub(crate) const LEADING_WORD_VALUE: u32 = 0x0000_0001;
+    /// Offset of `stream_len` (`u32`, little-endian). Spec §3.1.1.
+    pub(crate) const STREAM_LEN: usize = 4;
+}

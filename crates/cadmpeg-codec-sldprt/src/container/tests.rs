@@ -739,3 +739,5 @@ fn present_unknown_native_version_preserves_declared_value() {
     assert_eq!(scan.version, 0x1234_5678);
     assert!(scan.blocks.is_empty());
 }
+
+mod weldment;

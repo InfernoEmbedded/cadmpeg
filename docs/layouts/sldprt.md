@@ -3264,6 +3264,34 @@ Spec §8.1 · layout: byte offsets · size: 8 B
 | 0 | 4 | `pid` | `u32` | little | spec | PID u32 |
 | 4 | 4 | `name_length` | `u32` | little | spec | name length u32 |
 
+## `parasolid_terminal`
+
+Spec §3.1.1 · layout: byte offsets · size: 4 B
+
+Valid only at the effective-schema node cursor boundary.
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/parasolid/weldment.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 2 | `node_type` | `u16` | big | spec | node type u16 BE at +0 is 1 · value `1` |
+| 2 | 2 | `null_index_wire` | `u16` | big | spec | null-index wire u16 BE at +2 is 1 · value `1` |
+
+## `weldment_xt_entry_prefix`
+
+Spec §3.1.1 · layout: byte offsets · size: 8 B
+
+Direct ThirdPty/WELDMENT_STORAGE carrier prefix; XT begins at +8.
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/parasolid/weldment.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `leading_word` | `u32` | little | spec | leading_word u32 LE at +0 is 1 · value `1` |
+| 4 | 4 | `stream_len` | `u32` | little | spec | stream_len u32 LE at +4 is the positive XT byte length |
+
 ## Not tabulated
 
 | Area | Spec | Reason |

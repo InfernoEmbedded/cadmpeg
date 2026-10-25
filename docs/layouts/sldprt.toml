@@ -12327,3 +12327,54 @@ offset = 4
 type = "u32"
 source = "spec"
 anchor = "name length u32"
+
+[[record]]
+name = "parasolid_terminal"
+parsed_by = "crates/cadmpeg-codec-sldprt/src/parasolid/weldment.rs"
+kind = "byte"
+section = "3.1.1"
+anchor = "the `parasolid_terminal` record is four bytes"
+size = 4
+endianness = "big"
+note = "Valid only at the effective-schema node cursor boundary."
+
+[[record.field]]
+name = "node_type"
+offset = 0
+type = "u16"
+source = "spec"
+anchor = "node type u16 BE at +0 is 1"
+value = 1
+
+[[record.field]]
+name = "null_index_wire"
+offset = 2
+type = "u16"
+source = "spec"
+anchor = "null-index wire u16 BE at +2 is 1"
+value = 1
+
+[[record]]
+name = "weldment_xt_entry_prefix"
+parsed_by = "crates/cadmpeg-codec-sldprt/src/parasolid/weldment.rs"
+kind = "byte"
+section = "3.1.1"
+anchor = "the `weldment_xt_entry_prefix` immediately before"
+size = 8
+endianness = "little"
+note = "Direct ThirdPty/WELDMENT_STORAGE carrier prefix; XT begins at +8."
+
+[[record.field]]
+name = "leading_word"
+offset = 0
+type = "u32"
+source = "spec"
+anchor = "leading_word u32 LE at +0 is 1"
+value = 1
+
+[[record.field]]
+name = "stream_len"
+offset = 4
+type = "u32"
+source = "spec"
+anchor = "stream_len u32 LE at +4 is the positive XT byte length"

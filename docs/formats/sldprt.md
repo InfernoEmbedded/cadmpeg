@@ -1459,7 +1459,34 @@ schema_len  u8
 schema      ASCII[schema_len]      ; SCH_<modeller>_<schema>_<format>
 ```
 
-The schema identifier has the form `SCH_<modeller>_<schema>_<format>`. Partition and deltas streams contain body geometry records. Class-definition payloads use `C` for class, `I` for instance, `A` for attribute, `D` for data, and `Z` for a Z-block container.
+The schema identifier names the modeller and schema; an embedded-schema token
+also names its base schema. First use of a node type carries its effective
+fields: `ff` leaves the base fields unchanged; an edit sequence uses `C` for
+Copy, `D` for Delete, `I` for Insert, `A` for Append, and `Z` for the end of
+edits. These instructions describe schema fields. Partition and deltas
+stream descriptions identify their roles.
+
+### 3.1.1 Stream endpoint and direct carrier extent
+
+The unordered XT node sequence ends with node type 1 and public index zero.
+In neutral binary, the `parasolid_terminal` record is four bytes: node type u16 BE at +0 is 1, and null-index wire u16 BE at +2 is 1. A small public
+index is stored as index+1, so the terminal wire is `00 01 00 01`. The record
+is a terminal only when the effective-schema node cursor reaches it.
+Terminal-shaped bytes inside a counted field remain field data.
+
+A direct entry in `ThirdPty/WELDMENT_STORAGE` has the `weldment_xt_entry_prefix` immediately before `PS 00 00`: leading_word u32 LE at +0 is 1, and stream_len u32 LE at +4 is the positive XT byte length.
+The XT start is prefix+8, and the outer extent ends at start+stream_len.
+The complete header and terminal wire are inside that extent. Bytes after
+that end belong to the carrier, including records before a later XT entry.
+This prefix applies to this carrier; other direct carriers have separate
+framing rules.
+
+A declared outer extent bounds the stream independently of its node cursor.
+A terminal-shaped suffix at that bound does not establish that a complete
+schema-driven node walk reaches it. A full node walk applies the selected
+base schema and first-use field edits, then advances by every node's fields
+and variable counts. An interior header-shaped signature does not end the
+current stream.
 
 ### 3.2 Sites and attribute scope
 

@@ -477,7 +477,8 @@ fn compound_stream(
     decoded_bytes: Option<Vec<u8>>,
 ) -> Result<CompoundStream, CodecError> {
     let semantic_payload = decoded_bytes.as_deref().unwrap_or(&bytes);
-    let extracted = crate::parasolid::extract_streams_with_offsets(semantic_payload, ctx)?;
+    let extracted =
+        crate::parasolid::extract_streams_in_section(semantic_payload, Some(path.as_str()), ctx)?;
     let path = match cadmpeg_ir::StreamName::try_from(path) {
         Ok(path) => path,
         Err(_) => cadmpeg_ir::stream_name!("compound@").with_suffix(directory_id),
@@ -712,7 +713,8 @@ fn block_from_inflated(
     // A Parasolid block is one from which a `PS\0\0` stream can be extracted (in
     // plain, wrapped, or nested form); otherwise fall back to a byte-signature
     // family label.
-    let extracted = crate::parasolid::extract_streams_with_offsets(&inflated, ctx)?;
+    let extracted =
+        crate::parasolid::extract_streams_in_section(&inflated, section.as_deref(), ctx)?;
     let family = if extracted.streams.is_empty() {
         payload_family(&inflated)
     } else {
