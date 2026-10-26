@@ -32,7 +32,7 @@ fn decode_types_class_911_as_unresolved_hole() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("MdlStatus", b"Hole id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Hole id 4\0".to_vec()),
         ],
     );
 
@@ -151,7 +151,7 @@ fn decode_types_class_914_as_unresolved_chamfer() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("MdlStatus", b"Chamfer id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Chamfer id 4\0".to_vec()),
         ],
     );
 
@@ -221,7 +221,7 @@ fn decode_uses_stored_family_when_row_schema_is_not_registered() {
         "c",
         &[
             ("AllFeatur", allfeatur),
-            ("MdlStatus", b"Round id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
         ],
     );
 
@@ -259,7 +259,7 @@ fn decode_uses_reference_name_family_when_operation_name_is_generic() {
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
             ("MdlRefInfo", reference_name),
-            ("MdlStatus", b"Surface id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Surface id 4\0".to_vec()),
         ],
     );
 
@@ -520,7 +520,7 @@ fn decode_types_row_only_class_927_as_unresolved_draft() {
 fn decode_types_named_draft_with_unresolved_operands() {
     for name in ["Draft", "Schräge"] {
         let stored_name = format!("{name} id 40\0");
-        let data = build_prt("c", &[("MdlStatus", stored_name.into_bytes())]);
+        let data = build_prt("c", &[("DEPDB_DATA", stored_name.into_bytes())]);
         let result = CreoCodec
             .decode(&mut Cursor::new(data), &DecodeOptions::default())
             .expect("decode");
@@ -551,7 +551,7 @@ fn decode_types_named_draft_with_unresolved_operands() {
 
 #[test]
 fn decode_types_named_mirror_with_unresolved_operands() {
-    let data = build_prt("c", &[("MdlStatus", b"oMirror id 4\0".to_vec())]);
+    let data = build_prt("c", &[("DEPDB_DATA", b"oMirror id 4\0".to_vec())]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -611,7 +611,7 @@ fn decode_types_named_mirror_with_unresolved_operands() {
 
 #[test]
 fn decode_types_z_prefixed_round_with_unresolved_operands() {
-    let data = build_prt("c", &[("MdlStatus", b"zRound id 4\0".to_vec())]);
+    let data = build_prt("c", &[("DEPDB_DATA", b"zRound id 4\0".to_vec())]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -804,7 +804,7 @@ fn decode_types_row_only_class_916_as_subtractive_extrusion() {
 
 #[test]
 fn decode_types_named_base_protrusion_as_new_body() {
-    let data = build_prt("c", &[("MdlStatus", b"Protrusion id 4\0".to_vec())]);
+    let data = build_prt("c", &[("DEPDB_DATA", b"Protrusion id 4\0".to_vec())]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -842,7 +842,7 @@ fn decode_types_named_sweeps_without_recipe_or_operands() {
     let data = build_prt(
         "c",
         &[(
-            "MdlStatus",
+            "DEPDB_DATA",
             b"Extrude id 4\0Revolve id 5\0Cut id 6\0".to_vec(),
         )],
     );
@@ -999,7 +999,7 @@ fn decode_types_class_913_without_an_edge_array() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("MdlStatus", b"Round id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
         ],
     );
     let result = CreoCodec
@@ -1081,7 +1081,7 @@ fn decode_types_class_913_without_an_edge_array() {
 
 #[test]
 fn decode_types_named_german_round_without_a_schema_row() {
-    let data = build_prt("c", &[("MdlStatus", b"Rundung id 4\0".to_vec())]);
+    let data = build_prt("c", &[("DEPDB_DATA", b"Rundung id 4\0".to_vec())]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -1110,7 +1110,10 @@ fn decode_types_named_german_round_without_a_schema_row() {
 
 #[test]
 fn decode_types_named_annotation_feature_as_a_tree_node() {
-    let data = build_prt("c", &[("MdlStatus", b"Annotation Feature id 4\0".to_vec())]);
+    let data = build_prt(
+        "c",
+        &[("DEPDB_DATA", b"Annotation Feature id 4\0".to_vec())],
+    );
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -1131,7 +1134,7 @@ fn decode_types_localized_cross_section_nodes() {
     let data = build_prt(
         "c",
         &[(
-            "MdlStatus",
+            "DEPDB_DATA",
             b"Cross Section id 4\0Querschnitt id 5\0".to_vec(),
         )],
     );
@@ -1156,7 +1159,7 @@ fn decode_types_body_and_surface_tree_nodes() {
     let data = build_prt(
         "c",
         &[(
-            "MdlStatus",
+            "DEPDB_DATA",
             b"Body id 4\0K\xc3\xb6rper ID 5\0Surface id 6\0".to_vec(),
         )],
     );
@@ -1206,7 +1209,7 @@ fn decode_types_round_with_labeled_edge_selection() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("MdlStatus", b"Round id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
         ],
     );
     let result = CreoCodec
@@ -1264,7 +1267,7 @@ fn decode_types_full_turn_revolution_from_positional_angle_choice() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("MdlStatus", mdlstatus),
+            ("DEPDB_DATA", mdlstatus),
         ],
     );
     let scan = container::scan_bytes_ok(data.clone());
@@ -1312,7 +1315,7 @@ fn decode_types_schema_less_datum_plane_names() {
             "c",
             &[
                 ("VisibGeom", payload),
-                ("MdlStatus", stored_name.as_bytes().to_vec()),
+                ("DEPDB_DATA", stored_name.as_bytes().to_vec()),
             ],
         );
 

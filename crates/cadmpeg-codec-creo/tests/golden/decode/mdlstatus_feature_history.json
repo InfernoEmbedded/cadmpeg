@@ -14,89 +14,7 @@
       "drawings": [],
       "edges": [],
       "faces": [],
-      "features": [
-        {
-          "definition": {
-            "definition": "native",
-            "kind": "Native Feature"
-          },
-          "id": "creo:model:feature#40",
-          "ordinal": 0,
-          "suppressed": false
-        },
-        {
-          "definition": {
-            "definition": "fillet",
-            "groups": [
-              {
-                "edges": {
-                  "kind": "unresolved"
-                },
-                "radius": {
-                  "kind": "unresolved"
-                }
-              }
-            ]
-          },
-          "id": "creo:model:feature#41",
-          "name": "Round id 41",
-          "ordinal": 1,
-          "suppressed": false
-        },
-        {
-          "definition": {
-            "definition": "native",
-            "kind": "Future Feature"
-          },
-          "id": "creo:model:feature#42",
-          "name": "Future Feature id 42",
-          "ordinal": 2,
-          "suppressed": false
-        },
-        {
-          "definition": {
-            "definition": "unresolved",
-            "family": "datum_plane"
-          },
-          "id": "creo:model:feature#43",
-          "name": "Datum Plane id 43",
-          "ordinal": 3,
-          "suppressed": false
-        },
-        {
-          "definition": {
-            "anchor": {
-              "kind": "neutral_plane",
-              "plane": {
-                "kind": "unresolved"
-              }
-            },
-            "angle": null,
-            "definition": "draft",
-            "faces": {
-              "kind": "unresolved"
-            },
-            "outward": null
-          },
-          "id": "creo:model:feature#44",
-          "name": "Draft id 44",
-          "ordinal": 4,
-          "suppressed": false
-        },
-        {
-          "definition": {
-            "definition": "tree_node",
-            "role": "surface_bodies"
-          },
-          "id": "creo:model:feature#45",
-          "name": "Surface id 45",
-          "ordinal": 5,
-          "source_properties": {
-            "mdl_stored_name_prefix": "y"
-          },
-          "suppressed": false
-        }
-      ],
+      "features": [],
       "loops": [],
       "occurrences": [],
       "parameters": [],
@@ -125,127 +43,9 @@
     },
     "native": {
       "creo": {
-        "feature_operation_states": [
+        "unknowns": [
           {
-            "current": false,
-            "display_name_stored": true,
-            "display_state_conflict": true,
-            "family": "Protrusion",
-            "feature_id": 40,
-            "id": "creo:mdlstatus:feature_state#40:0",
-            "identifier_keyword": "id",
-            "offset": 94,
-            "parent_feature_id": null,
-            "recipe": null,
-            "root_schema_class": null,
-            "state_offset": 93,
-            "state_ordinal": 0,
-            "stored_name": "xProtrusion id 40",
-            "stored_name_bytes": "7850726f74727573696f6e206964203430",
-            "stored_name_prefix": "x"
-          },
-          {
-            "current": false,
-            "display_name_stored": true,
-            "display_state_conflict": true,
-            "family": "Hole",
-            "feature_id": 40,
-            "id": "creo:mdlstatus:feature_state#40:1",
-            "identifier_keyword": "id",
-            "offset": 174,
-            "parent_feature_id": null,
-            "recipe": null,
-            "root_schema_class": null,
-            "state_offset": 174,
-            "state_ordinal": 1,
-            "stored_name": "Hole id 40",
-            "stored_name_bytes": "486f6c65206964203430",
-            "stored_name_prefix": null
-          },
-          {
-            "current": true,
-            "display_name_stored": true,
-            "family": "Round",
-            "feature_id": 41,
-            "id": "creo:mdlstatus:feature_state#41:0",
-            "identifier_keyword": "id",
-            "offset": 111,
-            "parent_feature_id": null,
-            "recipe": null,
-            "root_schema_class": null,
-            "state_offset": 111,
-            "state_ordinal": 0,
-            "stored_name": "Round id 41",
-            "stored_name_bytes": "526f756e64206964203431",
-            "stored_name_prefix": null
-          },
-          {
-            "current": true,
-            "display_name_stored": true,
-            "family": "Future Feature",
-            "feature_id": 42,
-            "id": "creo:mdlstatus:feature_state#42:0",
-            "identifier_keyword": "id",
-            "offset": 123,
-            "parent_feature_id": null,
-            "recipe": null,
-            "root_schema_class": null,
-            "state_offset": 123,
-            "state_ordinal": 0,
-            "stored_name": "Future Feature id 42",
-            "stored_name_bytes": "4675747572652046656174757265206964203432",
-            "stored_name_prefix": null
-          },
-          {
-            "current": true,
-            "display_name_stored": true,
-            "family": "Datum Plane",
-            "feature_id": 43,
-            "id": "creo:mdlstatus:feature_state#43:0",
-            "identifier_keyword": "id",
-            "offset": 144,
-            "parent_feature_id": null,
-            "recipe": null,
-            "root_schema_class": null,
-            "state_offset": 144,
-            "state_ordinal": 0,
-            "stored_name": "Datum Plane id 43",
-            "stored_name_bytes": "446174756d20506c616e65206964203433",
-            "stored_name_prefix": null
-          },
-          {
-            "current": true,
-            "display_name_stored": true,
-            "family": "Draft",
-            "feature_id": 44,
-            "id": "creo:mdlstatus:feature_state#44:0",
-            "identifier_keyword": "id",
-            "offset": 162,
-            "parent_feature_id": null,
-            "recipe": null,
-            "root_schema_class": null,
-            "state_offset": 162,
-            "state_ordinal": 0,
-            "stored_name": "Draft id 44",
-            "stored_name_bytes": "4472616674206964203434",
-            "stored_name_prefix": null
-          },
-          {
-            "current": true,
-            "display_name_stored": true,
-            "family": "Surface",
-            "feature_id": 45,
-            "id": "creo:mdlstatus:feature_state#45:0",
-            "identifier_keyword": "id",
-            "offset": 186,
-            "parent_feature_id": null,
-            "recipe": null,
-            "root_schema_class": null,
-            "state_offset": 185,
-            "state_ordinal": 0,
-            "stored_name": "ySurface id 45",
-            "stored_name_bytes": "7953757266616365206964203435",
-            "stored_name_prefix": "y"
+            "id": "creo:MdlStatus:section#76"
           }
         ]
       }
@@ -398,8 +198,8 @@
       "decoded_feature_loop_history_entry_count": 0,
       "decoded_feature_loop_restore_direction_count": 0,
       "decoded_feature_opaque_segment_count": 0,
-      "decoded_feature_operation_count": 6,
-      "decoded_feature_operation_state_count": 7,
+      "decoded_feature_operation_count": 0,
+      "decoded_feature_operation_state_count": 0,
       "decoded_feature_order_entry_count": 0,
       "decoded_feature_outline_count": 0,
       "decoded_feature_placement_instruction_count": 0,
@@ -495,14 +295,14 @@
       "transferred_constrained_slot_fillet_cylinder_count": 0,
       "transferred_cross_section_plane_count": 0,
       "transferred_curve_expression_parameter_count": 0,
-      "transferred_draft_feature_count": 1,
+      "transferred_draft_feature_count": 0,
       "transferred_explicitly_unresolved_draft_feature_count": 0,
-      "transferred_explicitly_unresolved_feature_count": 1,
+      "transferred_explicitly_unresolved_feature_count": 0,
       "transferred_extrude_feature_count": 0,
       "transferred_extrusion_plane_boundary_curve_count": 0,
       "transferred_extrusion_plane_section_generator_curve_count": 0,
       "transferred_feature_circular_extrusion_brep_count": 0,
-      "transferred_feature_count": 6,
+      "transferred_feature_count": 0,
       "transferred_feature_dimension_parameter_count": 0,
       "transferred_feature_extrusion_brep_count": 0,
       "transferred_feature_extrusion_surface_count": 0,
@@ -515,24 +315,24 @@
       "transferred_feature_revolution_vertex_orbit_curve_count": 0,
       "transferred_feature_skamp_constraint_count": 0,
       "transferred_filled_surface_feature_count": 0,
-      "transferred_fillet_feature_count": 1,
+      "transferred_fillet_feature_count": 0,
       "transferred_first_instance_prototype_surface_count": 0,
       "transferred_geometry_generator_feature_count": 0,
       "transferred_hole_cylinder_count": 0,
       "transferred_hole_feature_count": 0,
       "transferred_incomplete_chamfer_feature_count": 0,
-      "transferred_incomplete_draft_feature_count": 1,
+      "transferred_incomplete_draft_feature_count": 0,
       "transferred_incomplete_extrude_feature_count": 0,
       "transferred_incomplete_extrude_start_feature_count": 0,
       "transferred_incomplete_extrude_termination_feature_count": 0,
       "transferred_incomplete_filled_surface_feature_count": 0,
-      "transferred_incomplete_fillet_feature_count": 1,
+      "transferred_incomplete_fillet_feature_count": 0,
       "transferred_incomplete_hole_feature_count": 0,
       "transferred_incomplete_hole_termination_feature_count": 0,
       "transferred_incomplete_knit_surface_feature_count": 0,
       "transferred_incomplete_other_construction_feature_count": 0,
       "transferred_incomplete_pattern_feature_count": 0,
-      "transferred_incomplete_recognized_feature_count": 2,
+      "transferred_incomplete_recognized_feature_count": 0,
       "transferred_incomplete_revolve_extent_feature_count": 0,
       "transferred_incomplete_revolve_feature_count": 0,
       "transferred_incomplete_section_shape_feature_count": 0,
@@ -545,7 +345,7 @@
       "transferred_native_draft_face_selection_feature_count": 0,
       "transferred_native_draft_neutral_plane_feature_count": 0,
       "transferred_native_extrude_profile_feature_count": 0,
-      "transferred_native_feature_count": 2,
+      "transferred_native_feature_count": 0,
       "transferred_native_feature_relation_constraint_count": 0,
       "transferred_native_feature_skamp_constraint_count": 0,
       "transferred_native_fillet_edge_selection_feature_count": 0,
@@ -574,29 +374,29 @@
       "transferred_thicken_feature_count": 0,
       "transferred_topological_point_count": 0,
       "transferred_topology_bound_plane_surface_count": 0,
-      "transferred_typed_feature_count": 4,
+      "transferred_typed_feature_count": 0,
       "transferred_typed_feature_relation_constraint_count": 0,
       "transferred_typed_feature_skamp_constraint_count": 0,
       "transferred_unresolved_boundary_surface_feature_count": 0,
       "transferred_unresolved_chamfer_edge_selection_feature_count": 0,
       "transferred_unresolved_chamfer_spec_feature_count": 0,
       "transferred_unresolved_datum_coordinate_system_feature_count": 0,
-      "transferred_unresolved_datum_plane_feature_count": 1,
-      "transferred_unresolved_draft_angle_feature_count": 1,
-      "transferred_unresolved_draft_direction_feature_count": 1,
-      "transferred_unresolved_draft_face_selection_feature_count": 1,
-      "transferred_unresolved_draft_neutral_plane_feature_count": 1,
-      "transferred_unresolved_draft_outward_feature_count": 1,
+      "transferred_unresolved_datum_plane_feature_count": 0,
+      "transferred_unresolved_draft_angle_feature_count": 0,
+      "transferred_unresolved_draft_direction_feature_count": 0,
+      "transferred_unresolved_draft_face_selection_feature_count": 0,
+      "transferred_unresolved_draft_neutral_plane_feature_count": 0,
+      "transferred_unresolved_draft_outward_feature_count": 0,
       "transferred_unresolved_extrude_boolean_operation_feature_count": 0,
       "transferred_unresolved_extrude_profile_feature_count": 0,
       "transferred_unresolved_filled_surface_boundary_feature_count": 0,
       "transferred_unresolved_filled_surface_continuity_feature_count": 0,
       "transferred_unresolved_filled_surface_merge_feature_count": 0,
       "transferred_unresolved_filled_surface_support_feature_count": 0,
-      "transferred_unresolved_fillet_edge_selection_feature_count": 1,
-      "transferred_unresolved_fillet_radius_feature_count": 1,
+      "transferred_unresolved_fillet_edge_selection_feature_count": 0,
+      "transferred_unresolved_fillet_radius_feature_count": 0,
       "transferred_unresolved_fillet_radius_with_generated_surface_feature_count": 0,
-      "transferred_unresolved_fillet_radius_without_generated_surface_feature_count": 1,
+      "transferred_unresolved_fillet_radius_without_generated_surface_feature_count": 0,
       "transferred_unresolved_hole_diameter_feature_count": 0,
       "transferred_unresolved_hole_direction_feature_count": 0,
       "transferred_unresolved_hole_face_selection_feature_count": 0,
@@ -727,36 +527,6 @@
         },
         "message": "Named feature operations and their decoded dependency/input tables transfer as typed or native design records. Curve-equation assignments transfer with their source, dependencies, and closed numeric and string operator and deterministic function values. Full neutral operation semantics, configuration presence, graph, case-study, cabling, and cross-model relation functions, materials, and display data remain untransferred.",
         "severity": "warning"
-      },
-      {
-        "code": {
-          "code": "feature.recognized-incomplete",
-          "kind": "feature_history_retained",
-          "namespace": "creo",
-          "scope": "namespaced"
-        },
-        "message": "2 recognized non-sweep history feature(s) retain incomplete required construction operands (fillet=1, draft=1).",
-        "severity": "warning"
-      },
-      {
-        "code": {
-          "code": "feature.native-semantics",
-          "kind": "feature_history_retained",
-          "namespace": "creo",
-          "scope": "namespaced"
-        },
-        "message": "2 history feature definition(s) retain only source-native semantics.",
-        "severity": "warning"
-      },
-      {
-        "code": {
-          "code": "feature.construction-unresolved",
-          "kind": "feature_history_retained",
-          "namespace": "creo",
-          "scope": "namespaced"
-        },
-        "message": "1 typed history feature definition(s) retain an explicitly unresolved model-space construction.",
-        "severity": "warning"
       }
     ],
     "notes": [
@@ -772,78 +542,22 @@
   },
   "source_fidelity": {
     "annotations": {
-      "exactness": {
-        "creo:model:feature#40": {
-          "entity": "derived",
-          "scope": "entity"
-        }
-      },
       "provenance": {
-        "creo:mdlstatus:feature_state#40:0": {
-          "offset": 93,
+        "creo:MdlStatus:section#76": {
+          "offset": 76,
           "stream": "creo:MdlStatus",
-          "tag": "feature_operation_state"
-        },
-        "creo:mdlstatus:feature_state#40:1": {
-          "offset": 174,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_state"
-        },
-        "creo:mdlstatus:feature_state#41:0": {
-          "offset": 111,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_state"
-        },
-        "creo:mdlstatus:feature_state#42:0": {
-          "offset": 123,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_state"
-        },
-        "creo:mdlstatus:feature_state#43:0": {
-          "offset": 144,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_state"
-        },
-        "creo:mdlstatus:feature_state#44:0": {
-          "offset": 162,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_state"
-        },
-        "creo:mdlstatus:feature_state#45:0": {
-          "offset": 185,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_state"
-        },
-        "creo:model:feature#40": {
-          "offset": 94,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_state_consensus"
-        },
-        "creo:model:feature#41": {
-          "offset": 111,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_name"
-        },
-        "creo:model:feature#42": {
-          "offset": 123,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_name"
-        },
-        "creo:model:feature#43": {
-          "offset": 144,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_name"
-        },
-        "creo:model:feature#44": {
-          "offset": 162,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_name"
-        },
-        "creo:model:feature#45": {
-          "offset": 186,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_name"
+          "tag": "modification_audit_section"
         }
+      }
+    },
+    "retained_records": {
+      "creo:MdlStatus:section#76": {
+        "bytes": {
+          "data": "I01kbFN0YXR1cwpub2lzZQB4UHJvdHJ1c2lvbiBpZCA0MABSb3VuZCBpZCA0MQBGdXR1cmUgRmVhdHVyZSBpZCA0MgBEYXR1bSBQbGFuZSBpZCA0MwBEcmFmdCBpZCA0NABIb2xlIGlkIDQwAHlTdXJmYWNlIGlkIDQ1AA==",
+          "retention": "inline"
+        },
+        "offset": 76,
+        "stream": "creo:MdlStatus"
       }
     }
   }

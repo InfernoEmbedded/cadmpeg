@@ -46,7 +46,7 @@ fn decode_keeps_differing_complete_round_carriers_unresolved() {
         &[
             ("VisibGeom", geometry([0x24, 0x24])),
             ("AllFeatur", allfeatur.clone()),
-            ("MdlStatus", b"Round id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
         ],
     );
 
@@ -77,7 +77,7 @@ fn decode_keeps_differing_complete_round_carriers_unresolved() {
         &[
             ("VisibGeom", geometry([0x24, 0x26])),
             ("AllFeatur", allfeatur),
-            ("MdlStatus", b"Round id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
         ],
     );
     let mixed = CreoCodec
@@ -119,7 +119,10 @@ fn decode_transfers_strong_parents_as_ordered_dependencies() {
             ("ActDatums", datum),
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("MdlStatus", b"Datum Plane id 2\0Protrusion id 4\0".to_vec()),
+            (
+                "DEPDB_DATA",
+                b"Datum Plane id 2\0Protrusion id 4\0".to_vec(),
+            ),
         ],
     );
     let result = CreoCodec
@@ -172,7 +175,10 @@ fn decode_resolves_feature_dependencies_independently_of_storage_order() {
             ("ActDatums", datum),
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("MdlStatus", b"Protrusion id 4\0Datum Plane id 2\0".to_vec()),
+            (
+                "DEPDB_DATA",
+                b"Protrusion id 4\0Datum Plane id 2\0".to_vec(),
+            ),
         ],
     );
     let result = CreoCodec
@@ -201,7 +207,7 @@ fn decode_resolves_feature_dependencies_independently_of_storage_order() {
 #[test]
 fn decode_retains_recipe_proven_revolution_with_unresolved_operands() {
     let mdlstatus = b"\xe3icon\0cutrevolve\0K\xc3\xb6rper id 40\0".to_vec();
-    let data = build_prt("c", &[("MdlStatus", mdlstatus)]);
+    let data = build_prt("c", &[("DEPDB_DATA", mdlstatus)]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -227,7 +233,7 @@ fn decode_retains_recipe_proven_revolution_with_unresolved_operands() {
 #[test]
 fn decode_retains_recipe_proven_extrusion_with_unresolved_operands() {
     let mdlstatus = b"\xe3icon\0cutextrude\0K\xc3\xb6rper id 40\0".to_vec();
-    let data = build_prt("c", &[("MdlStatus", mdlstatus)]);
+    let data = build_prt("c", &[("DEPDB_DATA", mdlstatus)]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -263,7 +269,7 @@ fn decode_retains_recipe_proven_extrusion_with_unresolved_operands() {
 #[test]
 fn decode_recipe_supplies_reference_backed_extrusion_boolean_effect() {
     let mdlstatus = b"\xe3icon\0cutextrude\0Extrude 1 id 40\0".to_vec();
-    let data = build_prt("c", &[("MdlStatus", mdlstatus)]);
+    let data = build_prt("c", &[("DEPDB_DATA", mdlstatus)]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -417,7 +423,7 @@ fn decode_transfers_feature_dimensions_as_owned_parameters() {
         "c",
         &[
             ("FeatDefs", payload),
-            ("MdlStatus", b"Extrude id 40\0".to_vec()),
+            ("DEPDB_DATA", b"Extrude id 40\0".to_vec()),
             (
                 "DEPDB_DATA",
                 b"\xe0\x00entity(crv_fr_eqn)\0\xe3\xe0\x01id\0\x07\
@@ -537,7 +543,7 @@ fn decode_transfers_decoded_dimensions_from_an_incomplete_table() {
         "c",
         &[
             ("FeatDefs", payload),
-            ("MdlStatus", b"Extrude id 40\0".to_vec()),
+            ("DEPDB_DATA", b"Extrude id 40\0".to_vec()),
         ],
     );
     let scan = container::scan_bytes_ok(data.clone());
@@ -724,7 +730,7 @@ fn decode_retains_bounded_unresolved_dimension_value_tokens() {
         "c",
         &[
             ("FeatDefs", payload),
-            ("MdlStatus", b"Extrude id 40\0".to_vec()),
+            ("DEPDB_DATA", b"Extrude id 40\0".to_vec()),
         ],
     );
     let result = CreoCodec
@@ -850,7 +856,7 @@ fn decode_retains_dimensions_from_repeated_feature_definition_ids() {
         "c",
         &[
             ("FeatDefs", payload),
-            ("MdlStatus", b"Extrude id 40\0".to_vec()),
+            ("DEPDB_DATA", b"Extrude id 40\0".to_vec()),
         ],
     );
     let scan = container::scan_bytes_ok(data.clone());

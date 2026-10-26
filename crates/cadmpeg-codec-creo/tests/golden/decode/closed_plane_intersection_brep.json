@@ -1301,25 +1301,6 @@
             "source_section": "AllFeatur"
           }
         ],
-        "feature_operation_states": [
-          {
-            "current": true,
-            "display_name_stored": true,
-            "family": "Round",
-            "feature_id": 4,
-            "id": "creo:mdlstatus:feature_state#4:0",
-            "identifier_keyword": "id",
-            "offset": 458,
-            "parent_feature_id": null,
-            "recipe": null,
-            "root_schema_class": null,
-            "state_offset": 458,
-            "state_ordinal": 0,
-            "stored_name": "Round id 4",
-            "stored_name_bytes": "526f756e642069642034",
-            "stored_name_prefix": null
-          }
-        ],
         "feature_rows": [
           {
             "body": "eb0400100100e5e3f68391e1e02167656f6d735f616666656374656400f80163e021656467735f616666656374656400f8020a0b230a",
@@ -3088,6 +3069,9 @@
         ],
         "unknowns": [
           {
+            "id": "creo:MdlStatus:section#447"
+          },
+          {
             "id": "creo:VisibGeom:section#76"
           }
         ]
@@ -3253,8 +3237,8 @@
       "decoded_feature_loop_history_entry_count": 0,
       "decoded_feature_loop_restore_direction_count": 0,
       "decoded_feature_opaque_segment_count": 0,
-      "decoded_feature_operation_count": 1,
-      "decoded_feature_operation_state_count": 1,
+      "decoded_feature_operation_count": 0,
+      "decoded_feature_operation_state_count": 0,
       "decoded_feature_order_entry_count": 0,
       "decoded_feature_outline_count": 0,
       "decoded_feature_placement_instruction_count": 0,
@@ -3931,6 +3915,11 @@
         }
       },
       "provenance": {
+        "creo:MdlStatus:section#447": {
+          "offset": 447,
+          "stream": "creo:MdlStatus",
+          "tag": "modification_audit_section"
+        },
         "creo:VisibGeom:section#76": {
           "offset": 76,
           "stream": "creo:VisibGeom",
@@ -3951,15 +3940,10 @@
           "stream": "creo:AllFeatur",
           "tag": "feature_affected_ids"
         },
-        "creo:mdlstatus:feature_state#4:0": {
-          "offset": 458,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_state"
-        },
         "creo:model:feature#4": {
-          "offset": 458,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_name"
+          "offset": 392,
+          "stream": "creo:AllFeatur",
+          "tag": "schema_feature_operation"
         },
         "creo:topology:half_edge#10:0": {
           "offset": 277,
@@ -4419,6 +4403,14 @@
       }
     },
     "retained_records": {
+      "creo:MdlStatus:section#447": {
+        "bytes": {
+          "data": "I01kbFN0YXR1cwpSb3VuZCBpZCA0AA==",
+          "retention": "inline"
+        },
+        "offset": 447,
+        "stream": "creo:MdlStatus"
+      },
       "creo:VisibGeom:section#76": {
         "bytes": {
           "data": "I1Zpc2liR2VvbQpzcmZfYXJyYXkA+AQBIgT2AAAPDw8PD0PwAEPwAA8vAAAvAADjD+QPDw/kDw8PDw8P4wIiBAEAAA8PDw9D8AAPQ/AA5A8vAADjDw/k5A8PDw8PDw8P4wMiBAEAAA8PDw9D8ABD8AAP5C8AAA/j5A8PD+QPDw8PDw8P4wQiBAEAAA8PDw8PDw8PDw/jSAAAQ/AALwAALwAASAAA5A8PD+QPD+NjcnZfYXJyYXkA8/gGdG9wb2xfcmVmX2RhdGEACggEAfYBAgwNAADj4fUF9uMLCAQB9gEDCg8AAOPh9QX24wwIBAH2AQQLDgAA4+H1BfbjDQgEAfYCAw4LAADj4fUF9uMOCAQB9gIECg8AAOPh9QX24w8IBAH2AwQNDAAA4+H1BfbjIwo=",

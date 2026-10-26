@@ -77,25 +77,6 @@
     },
     "native": {
       "creo": {
-        "feature_operation_states": [
-          {
-            "current": true,
-            "display_name_stored": true,
-            "family": "Hole",
-            "feature_id": 4,
-            "id": "creo:mdlstatus:feature_state#4:0",
-            "identifier_keyword": "id",
-            "offset": 163,
-            "parent_feature_id": null,
-            "recipe": null,
-            "root_schema_class": null,
-            "state_offset": 163,
-            "state_ordinal": 0,
-            "stored_name": "Hole id 4",
-            "stored_name_bytes": "486f6c652069642034",
-            "stored_name_prefix": null
-          }
-        ],
         "feature_rows": [
           {
             "body": "eb04001001808000e4e3f6838fe1230a",
@@ -160,6 +141,9 @@
           }
         ],
         "unknowns": [
+          {
+            "id": "creo:MdlStatus:section#152"
+          },
           {
             "id": "creo:VisibGeom:section#76"
           }
@@ -326,8 +310,8 @@
       "decoded_feature_loop_history_entry_count": 0,
       "decoded_feature_loop_restore_direction_count": 0,
       "decoded_feature_opaque_segment_count": 0,
-      "decoded_feature_operation_count": 1,
-      "decoded_feature_operation_state_count": 1,
+      "decoded_feature_operation_count": 0,
+      "decoded_feature_operation_state_count": 0,
       "decoded_feature_order_entry_count": 0,
       "decoded_feature_outline_count": 0,
       "decoded_feature_placement_instruction_count": 0,
@@ -702,6 +686,11 @@
         }
       },
       "provenance": {
+        "creo:MdlStatus:section#152": {
+          "offset": 152,
+          "stream": "creo:MdlStatus",
+          "tag": "modification_audit_section"
+        },
         "creo:VisibGeom:section#76": {
           "offset": 76,
           "stream": "creo:VisibGeom",
@@ -712,15 +701,10 @@
           "stream": "creo:AllFeatur",
           "tag": "feature_row"
         },
-        "creo:mdlstatus:feature_state#4:0": {
-          "offset": 163,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_state"
-        },
         "creo:model:feature#4": {
-          "offset": 163,
-          "stream": "creo:MdlStatus",
-          "tag": "feature_operation_name"
+          "offset": 135,
+          "stream": "creo:AllFeatur",
+          "tag": "schema_feature_operation"
         },
         "creo:visibgeom:surface#7": {
           "offset": 116,
@@ -740,6 +724,14 @@
       }
     },
     "retained_records": {
+      "creo:MdlStatus:section#152": {
+        "bytes": {
+          "data": "I01kbFN0YXR1cwpIb2xlIGlkIDQA",
+          "retention": "inline"
+        },
+        "offset": 152,
+        "stream": "creo:MdlStatus"
+      },
       "creo:VisibGeom:section#76": {
         "bytes": {
           "data": "I1Zpc2liR2VvbQpzcmZfYXJyYXkA+AHgInAAY3J2X2FycmF5APP4AAckBAEAACMK",

@@ -482,7 +482,7 @@ fn closed_plane_intersection_data(geomlists: Option<&[u8]>) -> Vec<u8> {
     let mut sections = vec![
         ("VisibGeom", payload),
         ("AllFeatur", allfeatur),
-        ("MdlStatus", b"Round id 4\0".to_vec()),
+        ("DEPDB_DATA", b"Round id 4\0".to_vec()),
     ];
     if let Some(geomlists) = geomlists {
         sections.push(("Geomlists", geomlists.to_vec()));

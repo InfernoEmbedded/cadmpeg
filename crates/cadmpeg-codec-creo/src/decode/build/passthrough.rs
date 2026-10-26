@@ -18,7 +18,7 @@ use super::super::native::annotate;
 use super::super::native::emit_arena;
 use cadmpeg_ir::unknown::UnknownRecord;
 
-/// Retain PSB geometry, thumbnail payloads, and every failed expansion.
+/// Retain PSB geometry, modification audits, thumbnails, and failed expansions.
 ///
 /// A section whose declared extent runs past the scanned buffer is a refusal
 /// naming the section, its declared end, and the buffer length. The declared
@@ -33,6 +33,7 @@ pub(super) fn preserve_passthrough_sections(
     for section in scan.framing.sections.iter().filter(|section| {
         section.role() == SectionRole::PsbGeometry
             || section.role() == SectionRole::Thumbnail
+            || section.name() == "MdlStatus"
             || scan
                 .framing
                 .expansion_losses
@@ -67,6 +68,13 @@ pub(super) fn preserve_passthrough_sections(
                 section.offset(),
                 "unexpanded_compressed_section",
                 Exactness::Unknown,
+            )
+        } else if section.name() == "MdlStatus" {
+            (
+                section_bytes,
+                section.offset(),
+                "modification_audit_section",
+                Exactness::ByteExact,
             )
         } else if section.role() == SectionRole::Thumbnail {
             if raw_is_compressed {

@@ -954,7 +954,7 @@ fn direct_round_radii_cover_homogeneous_and_mixed_carrier_sets() {
             &[
                 ("VisibGeom", geometry),
                 ("AllFeatur", allfeatur),
-                ("MdlStatus", b"Round id 4\0".to_vec()),
+                ("DEPDB_DATA", b"Round id 4\0".to_vec()),
             ],
         )
     };
@@ -994,7 +994,7 @@ fn direct_round_radii_cover_homogeneous_and_mixed_carrier_sets() {
                     4, 0xeb, 0x04, 0, 0x10, 1, 0x80, 0x80, 0, 0xe4, 0xe3, 0xf6, 0x83, 0x91, 0xe1,
                 ],
             ),
-            ("MdlStatus", b"Round id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
         ],
     );
     let result = CreoCodec
@@ -1028,7 +1028,7 @@ fn direct_round_radii_cover_homogeneous_and_mixed_carrier_sets() {
                     4, 0xeb, 0x04, 0, 0x10, 1, 0x80, 0x80, 0, 0xe4, 0xe3, 0xf6, 0x83, 0x91, 0xe1,
                 ],
             ),
-            ("MdlStatus", b"Round id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
         ],
     );
     let result = CreoCodec
@@ -1093,7 +1093,7 @@ fn prototype_minor_radius_replays_define_a_constant_round_radius() {
                     4, 0xeb, 0x04, 0, 0x10, 1, 0x80, 0x80, 0, 0xe4, 0xe3, 0xf6, 0x83, 0x91, 0xe1,
                 ],
             ),
-            ("MdlStatus", b"Round id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
         ],
     );
 

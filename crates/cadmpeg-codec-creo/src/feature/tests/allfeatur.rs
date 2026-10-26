@@ -44,7 +44,7 @@ fn scan_binds_allfeatur_mixed_entity_table_to_known_feature() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("MdlStatus", b"Protrusion id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Protrusion id 4\0".to_vec()),
         ],
     );
     let scan = container::scan_bytes_ok(data.clone());
@@ -238,7 +238,7 @@ fn scan_decodes_allfeatur_root_featdefs_schema_class() {
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
             (
-                "MdlStatus",
+                "DEPDB_DATA",
                 b"protrevolve\0Revolve id 4\0Round id 9\0".to_vec(),
             ),
         ],
@@ -379,7 +379,7 @@ fn scan_decodes_allfeatur_choice_field_wrappers() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("MdlStatus", b"Round id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
         ],
     );
     let scan = container::scan_bytes_ok(data.clone());
@@ -653,7 +653,7 @@ fn scan_partitions_allfeatur_positional_round_operands() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("MdlStatus", b"Round id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
         ],
     );
     let scan = container::scan_bytes_ok(data.clone());

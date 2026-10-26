@@ -752,21 +752,26 @@ place an orbit whose existing evidence does not select one point.
 
 **Need.** We must know the values to construct the complete material.
 
-### TP-18. `MdlStatus` prefix meanings
+### TP-18. Complete modification-audit event grammar
 
-**Question.** What stored-name state does each `MdlStatus` prefix `o`, `x`, `y`, and `z` represent, and which field selects the current same-ID candidate?
+**Question.** Which complete named and positional grammar recovers each
+`mtrack_record_ptr` action payload and its field ownership?
 
-**Known.** `creo_prt.md` §6 "Operation names end in" states that the prefix is not part of the operation-family name. Same-ID state candidates retain their byte order and exact prefixes. No candidate is projected as current without a selector.
+**Known.** `MdlStatus.mod_track_data.rec_arr` is a modification audit trail.
+The timestamp's `tm_year` precedes `item_name`; printable year bytes are not
+name-state prefixes. Repeated same-ID event names do not select a current
+feature operation. Whole physical `MdlStatus` bytes can be retained under
+their named section owner without projecting an event as current.
 
-**Need.** We must know the prefix meanings and current-state selector to preserve the native state semantics and project one current candidate.
+**Need.** Establish complete bounds and field types for each action-specific
+payload and its references. Current operations require separate current-model
+ownership evidence; audit names and order do not supply it.
 
-**Conflict.** `operations` in `src/feature/operations.rs` projects the first
-same-ID candidate when none has a stored display name. When multiple candidates
-have stored display names, it uses the last candidate as the projection base,
-takes offsets from the first, and retains only selected fields on which the
-candidates agree. Stored order and display-name presence are not a decoded
-current-state selector, so neither projection establishes the current native
-state.
+**Conflict.** Interpreting an audit timestamp's final scalar as a name-state
+prefix contradicts its declared field ownership.
+
+**Note.** The named prototype and compact six-scalar timestamp form do not
+define the complete heterogeneous event union.
 
 ### TP-19. `lo_array` roster semantics
 

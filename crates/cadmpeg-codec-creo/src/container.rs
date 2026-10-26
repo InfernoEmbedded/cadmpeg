@@ -590,7 +590,7 @@ pub(crate) struct FeatureScan {
     pub(crate) definitions: Vec<FeatureDefinition>,
     /// Section-to-model frames resolved from perpendicular active datums.
     pub(crate) section_transforms: Vec<FeatureSectionTransform>,
-    /// Every stored feature-operation state from `MdlStatus`, in byte order.
+    /// Every stored feature-operation state from `DEPDB_DATA`, in byte order.
     pub(crate) operation_states: Vec<FeatureOperationState>,
     /// Unambiguous or consensus feature-operation projection for each identifier.
     pub(crate) operations: Vec<FeatureOperation>,
@@ -2391,9 +2391,9 @@ fn feature_operations(
     sections: &[ScannedSection<'_>],
 ) -> Result<Vec<FeatureOperation>, CodecError> {
     let records = collect_section_records_result(
-        sections.iter().filter(|section| {
-            section.section.name() == "MdlStatus" || section.section.name() == "DEPDB_DATA"
-        }),
+        sections
+            .iter()
+            .filter(|section| section.section.name() == "DEPDB_DATA"),
         |bytes| Ok(feature::operations::operations(bytes)),
         |record, base| {
             record.offset += base;
@@ -2431,9 +2431,9 @@ fn feature_operation_states(
     sections: &[ScannedSection<'_>],
 ) -> Result<Vec<FeatureOperationState>, CodecError> {
     collect_section_records_result(
-        sections.iter().filter(|section| {
-            section.section.name() == "MdlStatus" || section.section.name() == "DEPDB_DATA"
-        }),
+        sections
+            .iter()
+            .filter(|section| section.section.name() == "DEPDB_DATA"),
         |bytes| Ok(feature::operations::operation_states(bytes)),
         |record, base| {
             record.offset += base;

@@ -346,7 +346,7 @@ fn decode_binds_ordered_visible_surfaces_to_matching_replay_runs() {
                     ("VisibGeom", visible),
                     ("NovisGeom", nonvisible),
                     ("AllFeatur", allfeatur),
-                    ("MdlStatus", b"Round id 4\0".to_vec()),
+                    ("DEPDB_DATA", b"Round id 4\0".to_vec()),
                 ],
             )),
             &DecodeOptions::default(),
@@ -461,11 +461,11 @@ fn decode_annotations_cover_every_emitted_entity() {
 }
 
 #[test]
-fn decode_retains_mdlstatus_states_and_projects_only_agreement() {
+fn decode_retains_depdb_states_and_projects_only_agreement() {
     let data = build_prt(
         "c",
         &[(
-            "MdlStatus",
+            "DEPDB_DATA",
             b"noise\0xProtrusion id 40\0Round id 41\0Future Feature id 42\0Datum Plane id 43\0Draft id 44\0Hole id 40\0ySurface id 45\0"
                 .to_vec(),
         )],
@@ -560,7 +560,7 @@ fn decode_retains_mdlstatus_states_and_projects_only_agreement() {
     assert_annotation(
         &result.source_fidelity().annotations,
         "creo:model:feature#40",
-        "creo:MdlStatus",
+        "creo:DEPDB_DATA",
         cadmpeg_core::decode::u64_from_index(scan.features.operations[0].offset),
         "feature_operation_state_consensus",
         Exactness::Derived,
@@ -589,7 +589,7 @@ fn decode_retains_mdlstatus_states_and_projects_only_agreement() {
     assert_annotation(
         &result.source_fidelity().annotations,
         "creo:model:feature#41",
-        "creo:MdlStatus",
+        "creo:DEPDB_DATA",
         cadmpeg_core::decode::u64_from_index(scan.features.operations[1].offset),
         "feature_operation_name",
         Exactness::ByteExact,
@@ -598,7 +598,7 @@ fn decode_retains_mdlstatus_states_and_projects_only_agreement() {
 
 #[test]
 fn decode_preserves_stored_feature_identifier_keyword() {
-    let data = build_prt("c", &[("MdlStatus", b"ySurface ID 45\0".to_vec())]);
+    let data = build_prt("c", &[("DEPDB_DATA", b"ySurface ID 45\0".to_vec())]);
 
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
@@ -718,7 +718,7 @@ fn container_only_preserves_sections_without_transferring_entities() {
         "c",
         &[
             ("VisibGeom", geometry),
-            ("MdlStatus", b"Datum Plane id 4\0".to_vec()),
+            ("DEPDB_DATA", b"Datum Plane id 4\0".to_vec()),
         ],
     );
     let result = CreoCodec
@@ -741,4 +741,62 @@ fn container_only_preserves_sections_without_transferring_entities() {
         .losses
         .iter()
         .all(|loss| !loss.message.starts_with("Transferred ")));
+}
+
+#[test]
+fn modification_audit_names_do_not_project_current_operations() {
+    let audit = b"\xe0\x00mod_track_data\0\xe3\xe0\x00rec_arr\0\xf8\x02\xf7\x05\xfb\xe2\xe0\x00mtrack_record_ptr\0\xe3\xe0\x00modif_time\0\xe2\x09\x08\x07\x06\x05\x77Extrude id 73\0\xe2\x0a\x08\x07\x06\x05\x77Cut id 73\0protextrude\0Round id 74\0".to_vec();
+    let data = build_prt("c", &[("MdlStatus", audit)]);
+    let scan = container::scan_bytes_ok(data.clone());
+    assert!(scan.features.operations.is_empty());
+    assert!(scan.features.operation_states.is_empty());
+    let section = scan
+        .framing
+        .sections
+        .iter()
+        .find(|section| section.name() == "MdlStatus")
+        .expect("named audit owner");
+    let expected = container::section_region(&scan.framing.data, section)
+        .expect("whole physical audit section");
+    let result = EditableDecodeResult::from(
+        CreoCodec
+            .decode(&mut Cursor::new(data), &DecodeOptions::default())
+            .expect("decode audit without a current operation"),
+    );
+    assert!(result.ir().model.features.is_empty());
+    let unknowns = result
+        .ir()
+        .native_unknowns("creo")
+        .expect("audit retention");
+    assert_eq!(unknowns.len(), 1);
+    let retained = result
+        .source_fidelity()
+        .retained_record(unknowns[0].id.as_str())
+        .expect("retained physical audit section");
+    assert_eq!(retained.data(), Some(expected));
+    assert_annotation(
+        &result.source_fidelity().annotations,
+        unknowns[0].id.as_str(),
+        "creo:MdlStatus",
+        u64::try_from(section.offset()).expect("small authored section"),
+        "modification_audit_section",
+        Exactness::ByteExact,
+    );
+}
+
+#[test]
+fn audit_names_cannot_override_an_independent_depdb_operation() {
+    let data = build_prt(
+        "c",
+        &[
+            ("DEPDB_DATA", b"Protrusion id 73\0".to_vec()),
+            ("MdlStatus", b"Cut id 73\0Round id 74\0".to_vec()),
+        ],
+    );
+    let scan = container::scan_bytes_ok(data);
+    assert_eq!(scan.features.operations.len(), 1);
+    assert_eq!(scan.features.operations[0].feature_id, 73);
+    assert_eq!(scan.features.operations[0].kind.as_str(), "Protrusion");
+    assert_eq!(scan.features.operation_states.len(), 1);
+    assert_eq!(scan.features.operation_states[0].feature_id, 73);
 }

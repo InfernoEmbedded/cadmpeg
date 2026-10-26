@@ -3304,7 +3304,11 @@ surface-of-revolution reductions require `ratio = 1`.
 
 `MdlStatus` creation-event rows retain feature identities. In `typed_data(MTTyped_CreateData).created_features`, `feat_id` owns `icon_name` and `ft_type`; `prev_feat_id` is a preceding feature identity. These fields do not identify an input body. Display text that names an operation does not change its feature identifier into a body identifier. Generated surface ownership binds result geometry to a feature and does not select the material body changed by that feature.
 
-`MdlStatus` names encode feature kinds as `<Kind> id <N>`. Defined names include
+`MdlStatus` item names can contain historical feature-kind text as
+`<Kind> id <N>`. These audit labels do not select current operations. A kind
+name describes a current operation only when an independently owned
+current-model record establishes the feature and its operation definition.
+Kind names include
 `Annotation Feature`, `Cross Section`, `Datum Plane`, `Round`, `Chamfer`,
 `Protrusion`, `Extrude`, `Revolve`, `Hole`, `Cut`, `Draft`, `Mirror`, and
 `Surface`. Reference-backed `Thicken <decimal-ordinal>` and
@@ -3383,24 +3387,30 @@ is a surface-body model-tree node. A recipe, root class, or reference name
 takes precedence and identifies the corresponding modeling operation. `Mirror`
 identifies a reflection operation.
 
-Operation names end in ` id <N>` or ` ID <N>`; the stored case follows the
-name's localization. An ASCII `o`, `x`, `y`, or `z` byte immediately preceding
-an uppercase operation-family name is a stored-name prefix, not part of the
-family name. Multiple operation names with the same feature identifier are
-ordered stored-state candidates. No candidate is the current state without a
-state selector. State ordinals are local to one feature identifier and increase
-in byte order from zero. Each candidate retains the prefix-inclusive name
-bytes, the `id`/`ID` spelling, and the offset of the optional prefix. The
-neutral projection retains only operation fields on which all candidates
-agree. A recipe-only state has no stored operation name.
+`MdlStatus.mod_track_data.rec_arr` stores a modification audit trail. A named
+`mtrack_record_ptr` prototype includes the action, item identity, attributes,
+comments, parent-record reference, user, modification timestamp, item name,
+and typed action data.
+
+The timestamp prototype declares `tm_sec`, `tm_min`, `tm_hour`, `tm_mday`,
+`tm_mon`, and `tm_year`, followed by `item_name`. `tm_mon` is zero-based;
+the calendar year is `1900 + tm_year`. In the compact six-scalar timestamp
+form, the sixth scalar belongs to the timestamp and the next byte starts
+the item name. Printable year bytes are not item-name state prefixes.
+
+An audit item name can contain ` id <N>` or ` ID <N>` with localized family
+text. Repeated names and identifiers belong to repeated audit events. Audit
+order, timestamps, a sole name, and agreement among names do not select a
+current feature operation. Current operation semantics require independently
+owned current-model records and exact identity joins. Missing evidence leaves
+the operation unresolved.
 
 `MdlRefInfo` feature-reference entries encode
 `f7 0x71 <own-ref-id> <reference-type> <feature-id> <name> 00 <own-ref-id> <own-ref-id>`.
 The three identifiers before the name and the two closing identifiers are
 compact integers. The repeated closing identifiers delimit the name entry and
 must equal its opening `own-ref-id`. The feature identifier joins the stored
-name to the corresponding model-history feature when `MdlStatus` has no
-identifier-bearing display name. Multiple names for one feature define a
+name to the corresponding independently identified model feature. Multiple names for one feature define a
 display name only when their bytes agree.
 
 The current-state record's root schema class selects the operation definition.
