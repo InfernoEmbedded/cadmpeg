@@ -376,3 +376,19 @@ type = "bytes[7]"
 source = "derived"
 anchor = "three seven-byte physical"
 note = "The third image follows the second seven-byte image."
+
+[[record]]
+name = "hybrid_visibgeom_clear_prefix"
+kind = "byte"
+section = "3"
+anchor = "the clear prefix `e0 00 53 6c`"
+size = 4
+note = "Clear prefix only. The following stored bytes use XOR 0x96 for the invariant-bounded pcurve tail. No carrier or leading-region grammar follows from this prefix alone."
+
+[[record.field]]
+name = "clear_prefix"
+offset = 0
+type = "bytes[4]"
+source = "spec"
+anchor = "the clear prefix `e0 00 53 6c`"
+value = [0xe0, 0x00, 0x53, 0x6c]

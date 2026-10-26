@@ -155,6 +155,16 @@ Parsed by:
 | 8 | 7 | `second_control` | `bytes[7]` | unstated | derived | The second image follows the seven-byte first image and separator. |
 | 15 | 7 | `third_control` | `bytes[7]` | unstated | derived | The third image follows the second seven-byte image. |
 
+## `hybrid_visibgeom_clear_prefix`
+
+Spec §3 · layout: byte offsets · size: 4 B
+
+Clear prefix only. The following stored bytes use XOR 0x96 for the invariant-bounded pcurve tail. No carrier or leading-region grammar follows from this prefix alone.
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `clear_prefix` | `bytes[4]` | — | spec | the clear prefix `e0 00 53 6c` · value `[224, 0, 83, 108]` |
+
 ## Not tabulated
 
 | Area | Spec | Reason |

@@ -823,13 +823,13 @@ neutral loop ownership or face admission.
 
 ## 5. Packed persistence data
 
-### PP-01. Packed `VisibGeom` records
+### PP-01. Hybrid visibility geometry and scalar values
 
-**Question.** What geometry record grammar does packed `VisibGeom` use outside the defined PSB rows?
+**Question.** What grammar defines the leading opaque region and the unresolved packed scalar values of a hybrid visibility section?
 
-**Known.** `creo_prt.md` §3 "`VisibGeom`" defines material `VisibGeom` namespaces that contain PSB `srf_array` and `crv_array` rows.
+**Known.** The capacitor specimen has a clear prefix and an XOR-96 tail with 1,718 complete eight-slot pcurve rows. The 691 recovered face identities all occur in the independently expanded persistence roster. Complete successor joins preserve face ownership; endpoint continuity distinguishes packed `e4 = 0` from the ordinary lane's one. The `0a = 0`, `1`, and `-1` rivals produce identical continuity outcomes and do not select its value. The leading region and the undefined three-, seven-, and eight-byte scalar images do not define geometry. Opposite endpoint slots do not all have equal form populations, so that claim is not a field-role proof.
 
-**Need.** We must know the packed grammar to construct its remaining geometry.
+**Need.** Establish the Source-owned tail start and count, the leading-region record or compression grammar, and independent numeric or chart oracles for each undefined scalar form. Preserve the bytes and abstain from neutral geometry until those inputs are complete. A complete framed tail does not prove a corpus-wide packed grammar or an analytic face bijection.
 
 ### PP-02. `SolidPrimdata` positional strip replay
 

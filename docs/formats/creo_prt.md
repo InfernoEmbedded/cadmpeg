@@ -556,6 +556,35 @@ A `geom_type = 22`, `boundary_type = 01`, `next_geom_ptr = 0` row is an
 unbounded feature plane. When it is the unique plane row carrying its
 `feat_id`, its placed carrier is the datum-plane definition for that feature.
 
+A hybrid visibility section can expose a masked positional pcurve tail after
+the clear prefix `e0 00 53 6c`. The remaining stored bytes use XOR `96` for
+this tail production. The prefix also occurs in unmasked named PSB data; it
+does not select XOR decoding or identify a complete geometry codec.
+A tail row is admitted only by its complete framing and topology invariants:
+
+```
+e3 <curve_ci3> 00 <feature_ci3> <dir0> <dir1>
+<eight packed scalar slots>
+<face0_ci3> <face1_ci3> <successor0_ci3> <successor1_ci3>
+00 00 e3 81 fa e1
+```
+
+The initial `e3` separates the row from the preceding terminator. `ci3` uses
+canonical one- and two-byte compact integers and the packed identity form
+`c0..df XX YY = ((head-c0)<<16) | (XX<<8) | YY`. This form does not extend
+another scalar or identifier lane. Directions are `01 f6` or `f6 01`.
+A complete row owns exactly eight scalar bodies and four topology identifiers.
+Every materialized successor must contain the current side's face identifier.
+The following named `lo_array` body remains separately bounded.
+
+Packed scalar widths are one byte for `0a`, `18`, and `e4`; three bytes for
+`1a`, `1b`, and `34`; eight bytes for `19`, `28`, `32`, `3c`, and `41`;
+and seven bytes for `2c`, `40`, `45`, `4b..61`, and `a4..a7`. Their endpoint
+slots are face-0 A, face-1 A, face-0 B, and face-1 B, with two coordinates per
+endpoint. In this owned packed lane, `18` and `e4` are zero. The ordinary
+lane's value for `e4` does not apply here. An undefined value retains the
+complete scalar body and does not supply a numeric endpoint.
+
 ### 3.1 Surface families
 
 | `geom_type` | Surface family                               |
