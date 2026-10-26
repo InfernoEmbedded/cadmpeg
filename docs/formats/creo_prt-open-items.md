@@ -829,13 +829,13 @@ neutral loop ownership or face admission.
 
 **Need.** We must know the packed grammar to construct its remaining geometry.
 
-### PP-02. `SolidPrimdata` strip continuation
+### PP-02. `SolidPrimdata` positional strip replay
 
-**Question.** How does `SolidPrimdata` continue one triangle strip across record boundaries?
+**Question.** Which complete positional class-84 body grammars and primitive scalar forms define each strip set?
 
-**Known.** `creo_prt.md` §8.4 "`SolidPrimdata` is a PSB compound stream. The named fields `p1`, `p2`, `pts`," defines primitive scalar arrays, cumulative strip sizes, vertex and normal tuples, and alternating triangle winding.
+**Known.** `creo_prt.md` §8.4 defines record-local cumulative intervals and winding reset. A strip does not continue across records. Compact and array-framed positional replays retain cumulative boundaries, fixed attribute fields, and XYZ position arrays. The position-only profile and the interleaved normal-position profile have different attribute tuples and size accounting. Neither `obj_type=84` nor `num_offsets` supplies the strip count. A bounded nine-slot position body can retain an unresolved three-byte scalar without defining its numeric value.
 
-**Need.** We must know the continuation rule to construct all strip triangles.
+**Need.** Complete physical framing must establish each positional cumulative-array extent and position count, including multiple-strip forms, before numeric geometry admission. Unresolved primitive scalar values and display placement require independent definitions.
 
 ### PP-03. `SolidPrimdata` persistent-segment binding
 

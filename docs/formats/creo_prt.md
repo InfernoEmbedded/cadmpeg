@@ -5413,6 +5413,11 @@ their position sequences must be equal. Multiple complete normal-position
 arrays must also have equal normal sequences. A disagreement invalidates the
 triangle-strip record; source order does not select one representation.
 Strip triangles alternate winding: `[i,i+1,i+2]`, then `[i,i+2,i+1]`.
+The index and winding parity start at zero for each cumulative interval.
+Each class-84 record owns its complete strip set. A record close discards all
+vertex, edge, and parity state; a shared persistent segment does not join
+strips across records. Missing, non-increasing, out-of-range, or incomplete
+cumulative arrays do not define a strip set.
 
 ### 8.5 Model reference geometry
 
