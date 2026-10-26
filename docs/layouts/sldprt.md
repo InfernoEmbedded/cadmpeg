@@ -2257,6 +2257,28 @@ Parsed by:
 | 30 | 8 | `zero_before_final_token` | `bytes[8]` | little | spec | eight zero bytes at +30 |
 | 38 | 2 | `final_token` | `u16` | little | spec | a second nonzero u16 token at +38 |
 
+## `extrusion_sparse_long_zero_operation_trailer`
+
+Spec §2 · layout: byte offsets · size: 44 B
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/resolved_features/operations.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `zero_header` | `u32` | little | spec | followed by four zero bytes |
+| 4 | 2 | `family` | `u16` | little | spec | The family word establishes the operation family independently of a shared class token |
+| 6 | 1 | `operation` | `u8` | little | spec | a one-byte Boolean operation |
+| 7 | 1 | `schema` | `u8` | little | spec | one schema byte |
+| 8 | 4 | `object_id` | `u32` | little | spec | the repeated little-endian u32 object identifier |
+| 12 | 4 | `zero_after_object` | `u32` | little | spec | and four zero bytes |
+| 16 | 6 | `sparse_zero_prefix` | `bytes[6]` | little | spec | stores six zero bytes at trailer +16 |
+| 22 | 2 | `sparse_marker` | `u16` | little | spec | u16 `1` at +22 |
+| 24 | 2 | `first_token` | `u16` | little | spec | a nonzero u16 token at +24 |
+| 26 | 4 | `optional_identity` | `u32` | little | spec | an optional u32 identity at +26 |
+| 30 | 12 | `zero_before_final_token` | `bytes[12]` | little | spec | twelve zero bytes at +30 |
+| 42 | 2 | `final_token` | `u16` | little | spec | a nonzero final token at +42 |
+
 ## `coordinate_system_component_point`
 
 Spec §2 · layout: byte offsets · size: 151 B

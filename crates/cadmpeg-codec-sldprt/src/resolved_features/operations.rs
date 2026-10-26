@@ -3,6 +3,7 @@
 use super::is_class_token;
 use super::scalars::FeatureObjectNames;
 use crate::classification::{classify, FeatureClass};
+use crate::layout::extrusion_sparse_long_zero_operation_trailer as sparse_long_tr;
 use crate::layout::extrusion_sparse_operation_trailer as sparse_tr;
 use crate::records::ObjectId;
 use crate::records::{Feature, FeatureInputLane, FeatureInputName};
@@ -261,6 +262,23 @@ pub(crate) fn bind_sweep_operations(
     }
 }
 
+fn complete_long_zero_operation_trailer(payload: &[u8], trailer: usize) -> bool {
+    trailer
+        .checked_add(sparse_long_tr::LEN)
+        .and_then(|end| payload.get(trailer..end))
+        .is_some_and(|frame| {
+            frame[sparse_tr::SPARSE_ZERO_PREFIX..sparse_tr::SPARSE_MARKER] == [0; 6]
+                && View::u16_le_at(frame, sparse_tr::SPARSE_MARKER) == Some(1)
+                && View::u16_le_at(frame, sparse_tr::FIRST_TOKEN).is_some_and(|token| token != 0)
+                && View::u32_le_at(frame, sparse_tr::OPTIONAL_IDENTITY)
+                    .is_some_and(|identity| identity != u32::MAX)
+                && frame[sparse_long_tr::ZERO_BEFORE_FINAL_TOKEN..sparse_long_tr::FINAL_TOKEN]
+                    == [0; 12]
+                && View::u16_le_at(frame, sparse_long_tr::FINAL_TOKEN)
+                    .is_some_and(|token| token != 0)
+        })
+}
+
 /// Inline extrusion trailer fields: the family word and operation byte.
 pub(super) fn feature_inline_operation_fields(
     lane: &FeatureInputLane,
@@ -312,6 +330,8 @@ pub(super) fn feature_inline_operation_fields(
                         && suffix[18..20] != [0, 0]
                         && suffix[20..24] == [0; 4])
             });
+    let terminated =
+        terminated || complete_long_zero_operation_trailer(&lane.native_payload, trailer);
     if bytes[sparse_tr::ZERO_HEADER..sparse_tr::FAMILY] != [0; 4]
         || bytes[sparse_tr::OBJECT_ID..sparse_tr::ZERO_AFTER_OBJECT]
             != name.object_id.and_then(ObjectId::value)?.to_le_bytes()

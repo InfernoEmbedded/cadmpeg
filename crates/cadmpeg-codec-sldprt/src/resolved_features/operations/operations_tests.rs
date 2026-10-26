@@ -885,3 +885,62 @@ fn ambiguous_thin_join_carrier_does_not_resolve_an_operation() {
         );
     }
 }
+
+#[test]
+fn inline_long_zero_tail_requires_all_twelve_zeros_and_final_token() {
+    let source = [
+        0x00, 0x00, 0x00, 0x00, 0x40, 0x01, 0x00, 0xc0, 0x79, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff, 0x7f, 0xf1, 0xb8, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x55, 0x45,
+    ];
+    let name = FeatureInputName {
+        id: "name".into(),
+        parent: "lane".into(),
+        ordinal: 0,
+        offset: 0,
+        value: "F".into(),
+        object_id: ObjectId::from_value(1401),
+    };
+    let mut lane = FeatureInputLane {
+        id: "lane".into(),
+        configuration: None,
+        native_payload: vec![0; 8].into(),
+        classes: Vec::new(),
+        names: Vec::new(),
+        scalars: Vec::new(),
+        relation_bindings: Vec::new(),
+        relation_instances: Vec::new(),
+        body_selections: Vec::new(),
+        edge_selections: Vec::new(),
+        surface_selections: Vec::new(),
+        generated_surface_identities: Vec::new(),
+        references: Vec::new(),
+        sketch_entities: Vec::new(),
+    };
+    lane.native_payload.extend(source);
+    assert_eq!(
+        feature_inline_operation_fields(&lane, &name),
+        Some((0x0140, 0))
+    );
+    assert_eq!(
+        feature_inline_operation(&lane, &name),
+        Some(BooleanOp::Join)
+    );
+    for length in 0..source.len() {
+        let mut truncated = lane.clone();
+        truncated.native_payload.truncate(8 + length);
+        assert_eq!(feature_inline_operation_fields(&truncated, &name), None);
+    }
+    for offset in [0, 8, 12, 16, 22, 24, 30, 42] {
+        let mut bad = lane.clone();
+        if offset == 24 || offset == 42 {
+            bad.native_payload[8 + offset..10 + offset].fill(0);
+        } else {
+            bad.native_payload[8 + offset] ^= 2;
+        }
+        assert_eq!(feature_inline_operation_fields(&bad, &name), None);
+    }
+    lane.native_payload[12..14].copy_from_slice(&0x01cau16.to_le_bytes());
+    lane.native_payload[14] = 2;
+    assert_eq!(feature_inline_operation(&lane, &name), Some(BooleanOp::Cut));
+}

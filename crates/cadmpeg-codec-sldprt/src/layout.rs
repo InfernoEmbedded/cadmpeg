@@ -1889,6 +1889,18 @@ pub(crate) mod extrusion_sparse_operation_trailer {
     pub(crate) const FINAL_TOKEN: usize = 38;
 }
 
+/// Byte offsets for the `extrusion_sparse_long_zero_operation_trailer` record.
+///
+/// Spec §2. Record length 44 B.
+pub(crate) mod extrusion_sparse_long_zero_operation_trailer {
+    /// Record length in bytes. Spec §2.
+    pub(crate) const LEN: usize = 44;
+    /// Offset of `zero_before_final_token` (`bytes[12]`). Spec §2.
+    pub(crate) const ZERO_BEFORE_FINAL_TOKEN: usize = 30;
+    /// Offset of `final_token` (`u16`, little-endian). Spec §2.
+    pub(crate) const FINAL_TOKEN: usize = 42;
+}
+
 /// Byte offsets for the `coordinate_system_component_point` record.
 ///
 /// Spec §2. Record length 151 B.
