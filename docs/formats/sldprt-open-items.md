@@ -488,11 +488,7 @@ input.
 **Need.** We must decode the profile dependency before projecting the extrusion
 with a neutral sketch profile.
 
-**Conflict.** `project_extrude` in `src/history/project/solid.rs` selects the
-non-origin sketch with the greatest source identifier smaller than the
-extrusion's source identifier for the supported profile-less forms. An
-unrelated intervening sketch can therefore be projected as the extrusion
-profile solely because it is nearest in source order.
+**Note.** A unique unused earlier sketch does not establish a universal no-reuse rule. Profile ownership and configuration-scoped absence or conflict require independent source relations; an unsupported provisional choice must not block an earned relation.
 
 ### DI-41. Pattern seed identity without a resolved seed relation
 

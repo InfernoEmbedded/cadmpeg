@@ -36,46 +36,26 @@ pub(super) fn project_extrude(
     let legacy_history_extrusion = feature.input_class.is_none()
         && feature.xml_tag.eq_ignore_ascii_case("Extrusion")
         && source_depth.is_some();
-    // Some modern ICE extrusions retain the dissection-root marker but omit
-    // both the child list and the explicit profile property. Their profile is
-    // still the nearest preceding non-origin sketch in the source namespace,
-    // the same ownership rule used by the legacy history form. Restrict this
-    // fallback to a sole source dimension so an operation with several
-    // unassigned dimensions cannot acquire a profile by proximity alone.
-    let root_history_extrusion = feature
-        .properties
-        .get("DissectableRoot")
-        .is_some_and(|value| value == "true")
-        && !feature.properties.contains_key("DissectableChildren")
-        && !feature.properties.contains_key("Profile")
-        && source_depth.is_some();
-    let history_profile_extrusion = legacy_history_extrusion || root_history_extrusion;
     let implicit_modern_blind =
         feature.input_class.as_deref() == Some("moExtrusion_c") && source_depth.is_some();
-    let history_profile = history_profile_extrusion
-        .then(|| {
-            let source = feature.source_id?.value().map_or(-1i64, i64::from);
+    let legacy_history_join = legacy_history_extrusion
+        && feature.source_id.is_some_and(|source| {
+            let source = source.value().map_or(-1i64, i64::from);
             features_by_source
                 .iter()
-                .filter_map(|(candidate_source, candidate)| {
+                .any(|(candidate_source, candidate)| {
                     let candidate_source = candidate_source.value().map_or(-1i64, i64::from);
-                    (candidate_source < source
+                    candidate_source < source
                         && classify(candidate) == Some(FeatureClass::Sketch)
-                        && candidate.input_class.as_deref() != Some("moOriginProfileFeature_c"))
-                    .then_some((candidate_source, candidate.id.as_str()))
+                        && candidate.input_class.as_deref() != Some("moOriginProfileFeature_c")
                 })
-                .max_by_key(|candidate| candidate.0)
-                .map(|(_, profile)| profile)
-        })
-        .flatten();
+        });
     let op = feature
         .properties
         .get("Operation")
         .and_then(|value| parse_boolean_op(value))
         .or_else(|| extrude_feature_op(feature))
-        .or_else(|| {
-            (legacy_history_extrusion && history_profile.is_some()).then_some(BooleanOp::Join)
-        })
+        .or_else(|| legacy_history_join.then_some(BooleanOp::Join))
         .unwrap_or(BooleanOp::Unresolved);
     let sole_length = || {
         let mut values = feature.parameters.values();
@@ -237,8 +217,6 @@ pub(super) fn project_extrude(
             )),
             None => ProfileRef::Planar(PlanarProfileRef::Unresolved(feature.id.clone())),
         }
-    } else if let Some(profile) = history_profile {
-        ProfileRef::Planar(PlanarProfileRef::Native(profile.to_owned()))
     } else {
         ProfileRef::Planar(PlanarProfileRef::Unresolved(feature.id.clone()))
     };
