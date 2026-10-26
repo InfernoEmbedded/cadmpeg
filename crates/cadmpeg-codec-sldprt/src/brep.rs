@@ -272,6 +272,24 @@ pub(crate) fn parse_carrier(body: &[u8], off: usize) -> Option<Carrier> {
     candidates.next().is_none().then_some(carrier)
 }
 
+pub(super) fn parse_carrier_for_role(body: &[u8], off: usize, deltas: bool) -> Option<Carrier> {
+    let carrier = parse_carrier(body, off)?;
+    let n = analytic_value_count(*body.get(off.checked_add(1)?)?)?;
+    let end = match &carrier {
+        Carrier::Curve(curve) => curve.end,
+        Carrier::Surface(surface) => surface.end,
+    };
+    let marker = end.checked_sub(n.checked_mul(8)?.checked_add(1)?)?;
+    let tag_end = off.checked_add(2)?;
+    let header = tag_end.checked_add(usize::from(body.get(tag_end) == Some(&0xff)))?;
+    let expected = header.checked_add(if deltas {
+        DELTAS_MARKER_OFFSET
+    } else {
+        analytic::MARKER
+    })?;
+    (marker == expected).then_some(carrier)
+}
+
 /// Map a tag's decoded f64 run to IR geometry, applying the ×1000 length rule to
 /// coordinates and radii only.
 fn decode_carrier_values(
@@ -832,5 +850,38 @@ mod tests {
         );
 
         assert!(parse_carrier(&bytes, 0).is_none());
+    }
+    #[test]
+    fn analytic_carrier_role_refuses_the_other_frame_without_changing_values() {
+        let values = [0.017, -0.029, 0.043, 0.0, 1.0, 0.0];
+        let partition = compact_carrier(tag::LINE, 79, &values);
+        assert!(super::parse_carrier_for_role(&partition, 0, false).is_some());
+        assert!(super::parse_carrier_for_role(&partition, 0, true).is_none());
+        for escape in [false, true] {
+            let delta = tripled_compact_carrier(tag::LINE, 79, [1, 17, 73, 1, 1], &values, escape);
+            let Some(Carrier::Curve(old)) = parse_carrier(&delta, 0) else {
+                panic!("authored delta")
+            };
+            let Some(Carrier::Curve(accepted)) = super::parse_carrier_for_role(&delta, 0, true)
+            else {
+                panic!("declared delta role")
+            };
+            assert_eq!(old.attr, accepted.attr);
+            assert_eq!(old.offset, accepted.offset);
+            assert_eq!(old.end, accepted.end);
+            assert_eq!(
+                serde_json::to_value(old.geometry).unwrap(),
+                serde_json::to_value(accepted.geometry).unwrap()
+            );
+            assert!(super::parse_carrier_for_role(&delta, 0, false).is_none());
+            let mut malformed = delta.clone();
+            malformed[2 + usize::from(escape) + 8] = 0x66;
+            assert!(super::parse_carrier_for_role(&malformed, 0, true).is_none());
+        }
+        let invalid = compact_carrier(tag::LINE, 79, &[0.017, -0.029, 0.043, 2.0, 0.0, 0.0]);
+        assert!(parse_carrier(&invalid, 0).is_none());
+        for role in [false, true] {
+            assert!(super::parse_carrier_for_role(&invalid, 0, role).is_none());
+        }
     }
 }

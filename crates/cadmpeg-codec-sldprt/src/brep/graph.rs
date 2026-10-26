@@ -40,7 +40,7 @@ use super::entity;
 use super::evaluation::{
     nurbs_surface_parameter_segment_chord_bound, nurbs_surface_parameter_within_tolerance,
 };
-use super::index::{scan_carriers, CarrierIndex, IndexedCurve};
+use super::index::{scan_carriers_for_role, CarrierIndex, IndexedCurve};
 use super::offset::OffsetCarrier;
 use super::sweep::{self, SweepKind};
 use super::topology;
@@ -1185,7 +1185,12 @@ pub(crate) fn decode(
     header: &StreamHeader,
     stream: &cadmpeg_ir::StreamName,
 ) -> Result<Brep, cadmpeg_core::CodecError> {
-    decode_body(ctx, header_body(payload, header)?, stream)
+    decode_body(
+        ctx,
+        header_body(payload, header)?,
+        stream,
+        is_deltas_stream(header),
+    )
 }
 
 fn is_deltas_stream(header: &StreamHeader) -> bool {
@@ -1268,7 +1273,7 @@ pub(crate) fn decode_bodies(
         let is_deltas = is_deltas_stream(header);
         let typed_face_offsets =
             selected_typed_face_offsets(&stream_typed_facts, typed_bridge_attrs.as_ref());
-        carriers.merge_missing(scan_carriers(ctx, body)?);
+        carriers.merge_missing(scan_carriers_for_role(ctx, body, is_deltas)?);
         let curve_attrs = carriers.curve_attrs();
         let scanned_tables = if is_deltas {
             topology::scan_deltas_with_owner_attrs(
@@ -1309,8 +1314,9 @@ fn decode_body(
     ctx: &DecodeContext<'_>,
     body: &[u8],
     stream: &cadmpeg_ir::StreamName,
+    deltas: bool,
 ) -> Result<Brep, cadmpeg_core::CodecError> {
-    let mut carriers = scan_carriers(ctx, body)?;
+    let mut carriers = scan_carriers_for_role(ctx, body, deltas)?;
     let curve_attrs = carriers.curve_attrs();
     let typed_facts = typed::scan(body);
     let owner_attrs = typed::topology_owner_attrs_for_streams([(&typed_facts, body, false)]);
@@ -6761,7 +6767,7 @@ mod tests {
         let body = [0x00, 0x1e, 0x00];
         let (ctx, _) =
             cadmpeg_core::decode::DecodeContext::from_root_bytes(&body, &arena, &policy).unwrap();
-        let carriers = super::scan_carriers(&ctx, &body).unwrap();
+        let carriers = super::super::index::scan_carriers(&ctx, &body).unwrap();
         assert!(carriers.curve_attrs().is_empty());
         let tables = super::topology::scan(&body);
         assert!(tables.points().is_empty());
@@ -6770,9 +6776,13 @@ mod tests {
         let arena = cadmpeg_core::decode::DecodeArena::new();
         let (ctx, _) =
             cadmpeg_core::decode::DecodeContext::from_root_bytes(&body, &arena, &policy).unwrap();
-        let decoded =
-            super::decode_body(&ctx, &body, &cadmpeg_ir::stream_name!("incomplete-marker"))
-                .unwrap();
+        let decoded = super::decode_body(
+            &ctx,
+            &body,
+            &cadmpeg_ir::stream_name!("incomplete-marker"),
+            false,
+        )
+        .unwrap();
         assert!(decoded.points.is_empty());
         assert!(decoded.loops.is_empty());
         ctx.finish_session().unwrap();
@@ -7783,7 +7793,7 @@ mod tests {
             &cadmpeg_core::decode::DecodePolicy::service(),
         )
         .unwrap();
-        let decoded = super::decode_body(&ctx, &[], &cadmpeg_ir::stream_name!("empty"))
+        let decoded = super::decode_body(&ctx, &[], &cadmpeg_ir::stream_name!("empty"), false)
             .expect("valid exactness fields");
 
         assert!(decoded.faces.is_empty());
@@ -7802,6 +7812,7 @@ mod tests {
             &ctx,
             &body,
             &cadmpeg_ir::stream_name!("candidate-admission"),
+            false,
         )
         .expect("decode body");
     }
@@ -7901,6 +7912,7 @@ mod tests {
             &ctx,
             &body,
             &cadmpeg_ir::stream_name!("shared-metadata-head"),
+            false,
         )
         .expect("valid exactness fields");
 

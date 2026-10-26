@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 use super::{
-    blend, intersection, offset, parse_carrier, spline, subset, sweep, Carrier, CurveCarrier,
-    SurfaceCarrier,
+    blend, intersection, offset, parse_carrier, parse_carrier_for_role, spline, subset, sweep,
+    Carrier, CurveCarrier, SurfaceCarrier,
 };
 use cadmpeg_core::decode::DecodeContext;
 use cadmpeg_ir::report::loss::LossNote;
@@ -123,11 +123,31 @@ pub(super) fn scan_carriers(
     ctx: &DecodeContext<'_>,
     body: &[u8],
 ) -> Result<CarrierIndex, cadmpeg_core::CodecError> {
+    scan_carriers_with_framing(ctx, body, None)
+}
+
+pub(super) fn scan_carriers_for_role(
+    ctx: &DecodeContext<'_>,
+    body: &[u8],
+    deltas: bool,
+) -> Result<CarrierIndex, cadmpeg_core::CodecError> {
+    scan_carriers_with_framing(ctx, body, Some(deltas))
+}
+
+fn scan_carriers_with_framing(
+    ctx: &DecodeContext<'_>,
+    body: &[u8],
+    deltas: Option<bool>,
+) -> Result<CarrierIndex, cadmpeg_core::CodecError> {
     let mut out = CarrierIndex::default();
     let mut i = 0usize;
     while i + 2 <= body.len() {
         if body[i] == 0x00 {
-            if let Some(c) = parse_carrier(body, i) {
+            let carrier = match deltas {
+                Some(deltas) => parse_carrier_for_role(body, i, deltas),
+                None => parse_carrier(body, i),
+            };
+            if let Some(c) = carrier {
                 out.insert(c);
             }
         }

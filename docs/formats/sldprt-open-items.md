@@ -72,7 +72,7 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 **Question.** Which occurrence is authoritative when one stream contains multiple valid geometry carriers with the same stream-local attribute?
 
-**Known.** Geometry carriers are indexed by stream-local attribute. The specification does not define a duplicate-identity rule or a precedence field.
+**Known.** Geometry carriers are indexed by stream-local attribute. Analytic decode refuses a uniquely parsed carrier whose header framing disagrees with the Partition/Deltas role selected from the stream header. The role filter cannot recover a record rejected by the role-unknown parser, and the writer retains that conservative role-unknown path. Stream role does not prove chronology or duplicate authority.
 
 **Need.** We must select the authoritative carrier without silently changing geometry when a duplicate record is present.
 
