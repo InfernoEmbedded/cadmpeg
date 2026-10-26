@@ -4094,6 +4094,47 @@ mod tests {
     }
 
     #[test]
+    fn signed_surface_scalars_own_complete_delimiter_payloads() {
+        let cache = ScalarCache::default();
+        for tail in [[0; 6], [0xe3, 0xe0, 0x18, 0x73, 0xbb, 0xf8], [0xff; 6]] {
+            let mut values = [0.0; 2];
+            for (index, prefix) in [0x73, 0xbb].into_iter().enumerate() {
+                let mut encoded = [0; 7];
+                encoded[0] = prefix;
+                encoded[1..].copy_from_slice(&tail);
+                let mut ieee = [0; 8];
+                ieee[0] = if index == 0 { 0x3f } else { 0xbf };
+                ieee[1] = 0xe8;
+                ieee[2..].copy_from_slice(&tail);
+                let (value, end) = decode_in_surface_row_lane(&encoded, 0, &cache)
+                    .expect("complete surface scalar");
+                assert_eq!(end, encoded.len());
+                assert_eq!(value.to_bits(), f64::from_be_bytes(ieee).to_bits());
+                values[index] = value;
+                assert_eq!(decode_in_lane(&encoded, 0, &cache), None);
+                for length in 0..encoded.len() {
+                    assert_eq!(
+                        decode_in_surface_row_lane(&encoded[..length], 0, &cache),
+                        None
+                    );
+                }
+                let mut after_zero = [0; 8];
+                after_zero[0] = 0x18;
+                after_zero[1..].copy_from_slice(&encoded);
+                assert_eq!(
+                    decode_in_surface_row_lane(&after_zero, 0, &cache),
+                    Some((0.0, 1))
+                );
+                assert_eq!(
+                    decode_in_surface_row_lane(&after_zero, 1, &cache),
+                    Some((value, 8))
+                );
+            }
+            assert_eq!(values[1].to_bits(), (-values[0]).to_bits());
+        }
+    }
+
+    #[test]
     fn surface_row_zero_does_not_consume_a_surface_only_opener() {
         let cache = ScalarCache::default();
 

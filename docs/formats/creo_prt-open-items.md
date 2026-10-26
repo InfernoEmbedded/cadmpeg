@@ -81,14 +81,6 @@ surface, or pcurve transition semantics apply.
 
 **Need.** We must know the bounds to distinguish one slot from following slots.
 
-### SE-09. Positional plane-envelope prefixes
-
-**Question.** What scalar value does each undefined prefix in a positional plane envelope encode?
-
-**Known.** `creo_prt.md` §3.4 "Plane row bodies contain envelope/domain data" through `creo_prt.md` §3.4 "In the frame-bound held-coordinate outline form" define the standard, compact, held-coordinate, and planar-envelope plane forms.
-
-**Need.** We must know the remaining prefixes to construct the plane envelope and domain.
-
 ### SE-11–SE-13. Short unresolved solver-body tails
 
 **Question.** What solver identities or state do the tails of the bounded `00 <tail2>`, `01 <tail3>`, and `34 <tail2>` variable bodies retain?

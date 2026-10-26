@@ -1705,9 +1705,10 @@ Every other defined separator stores `radius2` directly. `radius1 = 0` selects
 a sphere; a positive `radius1` selects a torus.
 
 Decoded positional parameter scalars retain their source offset and token length. Structural field binding uses these spans; scalar order alone does not assign frame or radius roles.
-The unresolved seven-byte `73` and `bb` forms retain their exact bytes as one
-scalar slot. Bytes inside either token cannot open another scalar or terminate
-the row.
+In the positional surface-row lane, `73 <tail6>` reconstructs
+`3f e8 <tail6>` and `bb <tail6>` reconstructs `bf e8 <tail6>` as big-endian
+IEEE-754 values. Each form consumes one prefix and all six payload bytes.
+Bytes inside either token cannot open another scalar or terminate the row.
 Each bounded positional body transfers to the Creo native
 `surface_parameters` arena with its surface identifier, family, boundary kind,
 exact body bytes, ordered decoded or opaque scalar slots, and maximal opaque
@@ -1897,10 +1898,9 @@ The remaining support triple can be zero or nonzero. A second equal-scale
 orthogonal pair makes the frame ambiguous. A residual magnitude between
 `1e-9` and `1e-6` is not a zero triple and leaves the frame unresolved.
 `outline f9 02 03` stores two XYZ corners. In these positional scalar lanes,
-`73` and `bb` each begin a seven-byte scalar token. Repeated identical tokens
-denote equal stored values; tokens with different prefixes denote distinct
-values. Token equality remains defined when the scalar magnitude is not
-decoded.
+`73` and `bb` each begin a seven-byte scalar token. Equal six-byte tails
+give opposite values with equal magnitude. A preceding standalone `18` leaves
+the complete scalar token unread.
 
 When the outline independently holds exactly one model coordinate, a complete
 support frame may instead store one nonzero triple parallel to that held axis,
