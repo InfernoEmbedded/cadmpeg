@@ -14,7 +14,7 @@ use crate::resolved_features::axes::declared_line_reference_directions as typed_
 use crate::resolved_features::axes::line_reference_direction as typed_line_reference_direction;
 use crate::resolved_features::axes::linear_pattern_display_directions as typed_linear_pattern_display_directions;
 use crate::resolved_features::bindings::bind_pattern_inputs;
-use crate::resolved_features::bindings::bind_sweep_adjacent_profiles;
+use crate::resolved_features::bindings::bind_sweep_profile_inputs;
 use crate::resolved_features::relation_geometry::project_relation_bindings;
 use crate::resolved_features::relation_geometry::project_relation_point_geometry;
 use crate::resolved_features::relation_geometry::project_relation_solved_line_geometry;
@@ -949,9 +949,6 @@ fn pattern_inputs_bind_adjacent_objects_and_line_reference_direction() {
         [features[2].id.clone()]
     );
 
-    let mut sweep_history = history;
-    sweep_history.features[0].input_class = Some("moProfileFeature_c".into());
-    sweep_history.features[1].input_class = Some("moSweep_c".into());
     let path_sketch = SketchId::mint("synthetic:test:id#sweep-path").unwrap();
     features[2]
         .evaluation
@@ -982,21 +979,16 @@ fn pattern_inputs_bind_adjacent_objects_and_line_reference_direction() {
             scale: None,
             allow_multi_profile_faces: None,
         }));
-    bind_sweep_adjacent_profiles(&mut features, &[sweep_history], std::slice::from_ref(&lane));
+    bind_sweep_profile_inputs(&mut features);
     assert!(matches!(
-    features[0].evaluation.definition(), FeatureDefinition::Operation(FeatureOperation::Sweep {
-        shape,
-        path: Some(PathRef::Sketch(ref path)),
-        ..
-    }) if matches!(
-        (shape.referenced_profile(),),
-        (Some(cadmpeg_ir::features::PlanarProfileRef::Sketch(ref profile)),)
-            if profile == &sketch && path == &path_sketch
-    )));
-    assert_eq!(
-        features[0].dependencies.as_slice(),
-        [features[1].id.clone(), features[2].id.clone()]
-    );
+        features[0].evaluation.definition(),
+        FeatureDefinition::Operation(FeatureOperation::Sweep {
+            shape,
+            path: Some(PathRef::Native(path)),
+            ..
+        }) if shape.section_is_unresolved() && path == "curve-reference"
+    ));
+    assert!(features[0].dependencies.is_empty());
 }
 
 #[test]

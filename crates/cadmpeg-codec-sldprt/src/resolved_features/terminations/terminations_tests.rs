@@ -1639,7 +1639,7 @@ fn compact_combine_operation_is_name_length_relative() {
 }
 
 #[test]
-fn sweep_path_enrichment_binds_the_general_curve_path() {
+fn sweep_section_enrichment_retains_the_general_curve_carrier() {
     let histories = [FeatureHistory {
         id: "history".into(),
         part_name: None,
@@ -1698,14 +1698,15 @@ fn sweep_path_enrichment_binds_the_general_curve_path() {
         sketch_entities: Vec::new(),
     }];
     let mut admitted = histories.clone();
-    super::enrich_history_sweep_paths(&mut admitted, &lanes);
+    super::enrich_history_sweep_profiles(&mut admitted, &lanes);
     assert_eq!(
         admitted[0].features[0]
             .properties
-            .get("Path")
+            .get("Profile")
             .map(String::as_str),
         Some("sldprt:feature-input:general-curve-ref:35:40")
     );
+    assert!(!admitted[0].features[0].properties.contains_key("Path"));
 }
 
 #[test]
@@ -1789,5 +1790,6 @@ fn combine_selection_enrichment_binds_target_and_tool_paths() {
 mod combine_projection;
 mod route_limits;
 mod surface_sweep_projection;
+mod sweep_operands;
 
 mod component_text;

@@ -34,7 +34,6 @@ use cadmpeg_core::decode::index_from_u64;
 use cadmpeg_core::decode::{u64_from_index, DecodeContext, View};
 use cadmpeg_ir::geometry::SolvedSurfaceGeometry;
 use cadmpeg_ir::math::{Point3, Vector3};
-use cadmpeg_ir::sketches::SketchId;
 use cadmpeg_ir::{
     features::{
         patterns::{PatternKind, PatternSeed, PatternTransform},
@@ -929,134 +928,47 @@ pub(crate) fn bind_mirror_surface_planes(
     Ok(())
 }
 
-pub(crate) fn bind_sweep_adjacent_profiles(
-    model_features: &mut [cadmpeg_ir::features::Feature],
-    histories: &[crate::records::FeatureHistory],
-    lanes: &[FeatureInputLane],
-) {
-    let metadata_ids = history_metadata_ids(histories);
-    let history_features = histories
-        .iter()
-        .flat_map(|history| &history.features)
-        .collect::<Vec<_>>();
-    let mut model_by_native = HashMap::new();
-    for (index, feature) in model_features.iter().enumerate() {
-        if let Some(native) = feature.native_ref.as_deref() {
-            model_by_native.insert(native, index);
-        }
-    }
-    let mut assignments = HashMap::<
-        usize,
-        Vec<(
-            cadmpeg_ir::features::FeatureId,
-            SketchId,
-            Option<(cadmpeg_ir::features::FeatureId, SketchId)>,
-        )>,
-    >::new();
-    for lane in lanes {
-        let names = FeatureObjectNames::new(&lane.names);
-        let mut starts = history_features
-            .iter()
-            .filter(|feature| !metadata_ids.contains(feature.id.as_str()))
-            .filter_map(|feature| Some((names.of(feature)?.offset, *feature)))
-            .collect::<Vec<_>>();
-        starts.sort_unstable_by_key(|(left, _)| *left);
-        for (index, (_, feature)) in starts.iter().enumerate() {
-            if feature.input_class.as_deref() != Some("moSweep_c") {
-                continue;
-            }
-            let Some(&model_index) = model_by_native.get(feature.id.as_str()) else {
-                continue;
-            };
-            if !matches!(
-                model_features[model_index].evaluation.definition(), FeatureDefinition::Operation(FeatureOperation::Sweep {
-                    shape,
-                    ..
-                }) if shape.section_is_unresolved())
-            {
-                continue;
-            }
-            let Some((_, profile_feature)) = starts.get(index + 1) else {
-                continue;
-            };
-            if profile_feature.input_class.as_deref() != Some("moProfileFeature_c") {
-                continue;
-            }
-            let Some(&profile_index) = model_by_native.get(profile_feature.id.as_str()) else {
-                continue;
-            };
-            let FeatureDefinition::Operation(FeatureOperation::Sketch {
-                sketch: cadmpeg_ir::features::SketchFeatureBinding::Planar(Some(sketch)),
-            }) = model_features[profile_index].evaluation.definition()
-            else {
-                continue;
-            };
-            let path = index.checked_sub(1).and_then(|path_object_index| {
-                let (_, path_feature) = starts[path_object_index];
-                if path_feature.input_class.as_deref() != Some("moProfileFeature_c") {
-                    return None;
-                }
-                let path_index = *model_by_native.get(path_feature.id.as_str())?;
-                let FeatureDefinition::Operation(FeatureOperation::Sketch {
-                    sketch: cadmpeg_ir::features::SketchFeatureBinding::Planar(Some(path)),
-                }) = model_features[path_index].evaluation.definition()
-                else {
-                    return None;
-                };
-                Some((&model_features[path_index].id, path))
-            });
-            let path = path.map(|(feature, sketch)| (feature.clone(), sketch.clone()));
-            let candidate = (
-                model_features[profile_index].id.clone(),
-                sketch.clone(),
-                path,
-            );
-            let candidates = assignments.entry(model_index).or_default();
-            if !candidates.contains(&candidate) {
-                candidates.push(candidate);
-            }
-        }
-    }
-    for (index, mut candidates) in assignments {
-        if candidates.len() != 1 {
-            continue;
-        }
-        let Some((profile_dependency, sketch, path)) = candidates.pop() else {
+pub(crate) fn bind_sweep_profile_inputs(model_features: &mut [cadmpeg_ir::features::Feature]) {
+    use cadmpeg_ir::features::PlanarProfileRef;
+    let mut represented = HashMap::new();
+    for feature in model_features.iter() {
+        let Some(native) = &feature.native_ref else {
             continue;
         };
-        let mut profile_bound = false;
-        let mut path_dependency = None;
-        model_features[index].evaluation.edit(|definition, _| {
-            if let FeatureDefinition::Operation(FeatureOperation::Sweep {
-                shape,
-                path: path_slot,
-                ..
-            }) = definition
-            {
-                if shape.section_is_unresolved() {
-                    shape.set_referenced_profile(sketch.into());
-                    profile_bound = true;
-                }
-                if let Some((dependency, path)) = path {
-                    if path_slot
-                        .as_ref()
-                        .is_none_or(|existing| matches!(existing, PathRef::Native(_)))
-                    {
-                        *path_slot = Some(PathRef::Sketch(path));
-                    }
-                    path_dependency = Some(dependency);
-                }
-            } else {
-                path_dependency = path.map(|(dependency, _)| dependency);
-            }
+        let profile = match feature.evaluation.definition() {
+            FeatureDefinition::Operation(FeatureOperation::Sketch {
+                sketch: cadmpeg_ir::features::SketchFeatureBinding::Planar(Some(sketch)),
+            }) => Some((feature.id.clone(), sketch.clone())),
+            _ => None,
+        };
+        represented
+            .entry(native.clone())
+            .and_modify(|value| *value = None)
+            .or_insert(profile);
+    }
+    for feature in model_features {
+        let mut dependency = None;
+        feature.evaluation.edit(|definition, _| {
+            let FeatureDefinition::Operation(FeatureOperation::Sweep { shape, .. }) = definition
+            else {
+                return;
+            };
+            let Some(profile) = shape.referenced_profile_mut() else {
+                return;
+            };
+            let PlanarProfileRef::Native(native) = profile else {
+                return;
+            };
+            let Some(Some((owner, sketch))) = represented.get(native.as_str()) else {
+                return;
+            };
+            *profile = PlanarProfileRef::Sketch(sketch.clone());
+            dependency = Some(owner.clone());
         });
-        if profile_bound {
-            model_features[index]
-                .dependencies
-                .insert(profile_dependency);
-        }
-        if let Some(dependency) = path_dependency {
-            model_features[index].dependencies.insert(dependency);
+        if let Some(dependency) = dependency {
+            if dependency != feature.id {
+                feature.dependencies.insert(dependency);
+            }
         }
     }
 }

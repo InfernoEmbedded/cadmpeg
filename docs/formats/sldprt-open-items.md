@@ -400,21 +400,23 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Need.** We must define the topology join from the retained compact edge identity to the final B-rep edge before projecting the selected edge.
 
-### DI-28. Unbound general-curve references
+### DI-28. Sweep reference child versions
 
-**Question.** How does a general-curve-reference form select geometry when it has no component-profile source record and no immediately preceding unique profile feature?
+**Question.** Which complete class and version grammar selects the shorter component-profile source record, and which source-less forms establish an operand owner?
 
-**Known.** `sldprt.md` §2 "An extrusion object without `Profile` or `DissectableChildren` has an unresolved profile unless" defines ownership for a unique enclosed sweep profile. The supported general-curve-reference forms bind through a component-profile source or an adjacent profile feature.
+**Known.** A general-curve reference identifies the sweep cross-section. A component-reference curve identifies its path. The supported complete source records identify a feature independently of neighboring feature order. An unresolved reference does not establish a sketch or a final B-rep curve.
 
-**Need.** We must know the other binding rule to select sketch or B-rep geometry.
+**Need.** We must identify each version before reading its source field and prove the reference namespace before selecting geometry.
 
-### DI-29. Unbound composite sweep profiles
+**Conflict.** A neighboring sketch does not replace an explicit reference whose child form is unsupported.
 
-**Question.** How does a composite sweep-profile form select its profile when it has no unique enclosed planar profile stream and no immediately following unique profile feature?
+### DI-29. Composite sweep path identity
 
-**Known.** `sldprt.md` §2 "An extrusion object without `Profile` or `DissectableChildren` has an unresolved profile unless" defines the enclosed planar profile rule. The supported composite form can also bind to an adjacent profile feature.
+**Question.** How do the complete ordered component instances and persistent identifiers select the curves in an earlier feature result?
 
-**Need.** We must know the other binding rule to construct the sweep profile.
+**Known.** The component-reference curve is the path operand. Its type signatures, instances, identifiers, and order are separate parts of the reference. Repeated local identifiers do not establish repeated curve instances. A resolved producer does not establish a final B-rep edge.
+
+**Need.** We must bind the complete producer-result identity before representing individual generated path curves. Preserve the reference record when that join is unavailable.
 
 ### DI-30. Other compact sweep Boolean codes
 

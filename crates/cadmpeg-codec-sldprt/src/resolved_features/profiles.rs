@@ -256,9 +256,6 @@ pub(crate) fn bind_sketch_profiles(
             }
             let replace = match feature.evaluation.definition() {
                 FeatureDefinition::Operation(FeatureOperation::Sketch { .. }) => true,
-                FeatureDefinition::Operation(FeatureOperation::Sweep { shape, .. }) => {
-                    shape.section_is_unresolved()
-                }
                 FeatureDefinition::Operation(FeatureOperation::Extrude { profile, .. }) => {
                     matches!(profile,
                     cadmpeg_ir::features::ProfileRef::Planar(cadmpeg_ir::features::PlanarProfileRef::Unresolved(owner))
@@ -284,9 +281,6 @@ pub(crate) fn bind_sketch_profiles(
                     }) => {
                         *feature_sketch =
                             cadmpeg_ir::features::SketchFeatureBinding::Planar(Some(sketch_id));
-                    }
-                    FeatureDefinition::Operation(FeatureOperation::Sweep { shape, .. }) => {
-                        shape.set_referenced_profile(sketch_id.into());
                     }
                     FeatureDefinition::Operation(FeatureOperation::Extrude { profile, .. }) => {
                         *profile = cadmpeg_ir::features::ProfileRef::Planar(

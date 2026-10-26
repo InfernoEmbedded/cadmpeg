@@ -2578,11 +2578,7 @@ fn build_geometry_ir(
         &histories,
         lanes,
     )?;
-    crate::resolved_features::bindings::bind_sweep_adjacent_profiles(
-        &mut ir.model.features,
-        &histories,
-        lanes,
-    );
+    crate::resolved_features::bindings::bind_sweep_profile_inputs(&mut ir.model.features);
     crate::resolved_features::dimensions::project_dimensioned_sketch_geometry(
         &mut sketch_entities,
         &sketches,
@@ -3890,11 +3886,7 @@ fn build_metadata_ir(
         &histories,
         lanes,
     )?;
-    crate::resolved_features::bindings::bind_sweep_adjacent_profiles(
-        &mut ir.model.features,
-        &histories,
-        lanes,
-    );
+    crate::resolved_features::bindings::bind_sweep_profile_inputs(&mut ir.model.features);
     crate::resolved_features::dimensions::project_dimensioned_sketch_geometry(
         &mut ir.model.sketch_entities,
         &ir.model.sketches,
