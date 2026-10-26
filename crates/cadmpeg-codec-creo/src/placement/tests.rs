@@ -774,7 +774,7 @@ fn resolves_oblique_reference_from_an_earlier_extruded_line() {
             sketch_plane_entity_id: Some(799),
             sketch_plane_flip: None,
             reference_planes: crate::feature::definitions::ReferencePlanes::Named(vec![43]),
-            reference_plane_datum_geometry_id: None,
+            reference_plane_datum_geometry_id: Some(43),
             orientation: FeatureSectionOrientation::default(),
             dimension_ids: Vec::new(),
             offset: 40,
@@ -1449,7 +1449,7 @@ fn resolves_section_frame_from_complete_generated_planar_prism() {
     row_flipped_section.reference_planes =
         ReferencePlanes::Positional(vec![FeatureSectionReferencePlane {
             plane_entity_id: 1,
-            reference_type: None,
+            reference_type: Some(5),
             external_reference_id: None,
             segment_id: None,
             sub_index: None,
@@ -1653,4 +1653,90 @@ fn section_frame_refuses_a_non_finite_origin_or_axis() {
                 .is_none()
         );
     }
+}
+
+#[test]
+fn placement_reference_candidates_reject_foreign_namespaces_and_mixed_rows() {
+    let row = |reference_type| FeatureSectionReferencePlane {
+        plane_entity_id: 815,
+        reference_type,
+        external_reference_id: None,
+        segment_id: Some(21),
+        sub_index: None,
+        reference_flip: Some(BinaryFlag::Clear),
+    };
+    let mut section = FeatureSection3d {
+        sketch_plane_entity_id: None,
+        sketch_plane_flip: None,
+        reference_planes: ReferencePlanes::Positional(vec![row(Some(5))]),
+        reference_plane_datum_geometry_id: None,
+        orientation: FeatureSectionOrientation::default(),
+        dimension_ids: Vec::new(),
+        offset: 0,
+    };
+    assert_eq!(super::unique_carrier_reference_id(&section), Some(815));
+    for foreign in [Some(6), Some(21), Some(25), None] {
+        section.reference_planes = ReferencePlanes::Positional(vec![row(foreign)]);
+        assert_eq!(super::unique_carrier_reference_id(&section), None);
+        section.reference_planes = ReferencePlanes::Positional(vec![row(Some(5)), row(foreign)]);
+        assert_eq!(super::unique_carrier_reference_id(&section), None);
+    }
+}
+
+#[test]
+fn placement_reference_candidates_reject_unproved_qualifiers() {
+    let row = FeatureSectionReferencePlane {
+        plane_entity_id: 4,
+        reference_type: Some(5),
+        external_reference_id: None,
+        segment_id: Some(0),
+        sub_index: None,
+        reference_flip: Some(BinaryFlag::Clear),
+    };
+    let mut section = FeatureSection3d {
+        sketch_plane_entity_id: None,
+        sketch_plane_flip: None,
+        reference_planes: ReferencePlanes::Positional(Vec::new()),
+        reference_plane_datum_geometry_id: None,
+        orientation: FeatureSectionOrientation::default(),
+        dimension_ids: Vec::new(),
+        offset: 0,
+    };
+    for qualified in [
+        FeatureSectionReferencePlane {
+            external_reference_id: Some(0),
+            ..row.clone()
+        },
+        FeatureSectionReferencePlane {
+            sub_index: Some(0),
+            ..row.clone()
+        },
+    ] {
+        section.reference_planes = ReferencePlanes::Positional(vec![row.clone(), qualified]);
+        assert_eq!(super::unique_carrier_reference_id(&section), None);
+    }
+}
+
+#[test]
+fn placement_reference_candidates_keep_explicit_target_and_raw_class_identity_separate() {
+    let mut section = FeatureSection3d {
+        sketch_plane_entity_id: None,
+        sketch_plane_flip: None,
+        reference_planes: ReferencePlanes::Named(vec![173]),
+        reference_plane_datum_geometry_id: None,
+        orientation: FeatureSectionOrientation::default(),
+        dimension_ids: Vec::new(),
+        offset: 0,
+    };
+    assert_eq!(
+        section.reference_planes.entity_ids().collect::<Vec<_>>(),
+        vec![173]
+    );
+    assert_eq!(super::unique_carrier_reference_id(&section), None);
+    section.reference_plane_datum_geometry_id = Some(4);
+    assert_eq!(super::unique_carrier_reference_id(&section), Some(4));
+    assert_eq!(
+        section.reference_planes.entity_ids().collect::<Vec<_>>(),
+        vec![173]
+    );
 }
