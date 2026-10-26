@@ -967,6 +967,7 @@ mod tests {
                 ),
                 boundary: crate::surface::SurfaceBodyBoundary::CompoundClose,
                 offset: 0,
+                type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
                 body_offset: 0,
             });
         let table = crate::feature::entity::FeatureEntityTable::new(

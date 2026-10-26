@@ -899,6 +899,9 @@ pub(crate) enum InlineNonPlaneLocalSystemPrefix {
     Explicit(InlineLocalSystemFrame),
 }
 
+pub(crate) const MAX_INLINE_EXPLICIT_FRAME_CANDIDATES: usize = 16;
+pub(crate) const MAX_INLINE_ORIGIN_CANDIDATES: usize = 8;
+
 /// Decode the bounded local-system prefix used by inline non-plane rows.
 ///
 /// This lane is separate from the older positional-cylinder grammars. Compact
@@ -917,7 +920,7 @@ pub(crate) fn decode_inline_non_plane_local_system_prefix(
             ))
         });
 
-    let mut explicit = [None; 16];
+    let mut explicit = [None; MAX_INLINE_EXPLICIT_FRAME_CANDIDATES];
     let mut count = 0;
     let mut values = [0.0; 12];
     walk_inline_explicit_local_system(
@@ -945,7 +948,7 @@ pub(crate) fn decode_inline_non_plane_origin_prefix(
     cache: &ScalarCache,
 ) -> Result<impl Iterator<Item = ([f64; 3], usize)>, CodecError> {
     let mut values = [0.0; 3];
-    let mut results = [None; 8];
+    let mut results = [None; MAX_INLINE_ORIGIN_CANDIDATES];
     let mut count = 0;
     walk_inline_origin(
         ctx,

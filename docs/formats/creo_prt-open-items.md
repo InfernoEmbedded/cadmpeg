@@ -141,11 +141,11 @@ length unit.
 
 ### GS-02. Torus and sphere radius overrides
 
-**Question.** What grammar and value rule apply to a `geom_type = 26` radius body that is not a tagged radius trailer or terminal prototype-minor-radius replay?
+**Question.** What complete grammar and placement rule apply to a `geom_type = 26` body outside the tagged radius trailer, complete inline local-system plus radius pair, and terminal prototype-minor-radius replay forms?
 
 **Known.** `creo_prt.md` §3.3 "A `srf_prim_ptr(torus)` prototype stores" through `creo_prt.md` §3.3 "In named `radius`, `radius1`, and `radius2` fields" define the recognized torus and sphere radius forms and their carrier invariants.
 
-**Need.** We must know the override to construct the torus or sphere carrier.
+**Need.** Define the remaining body grammar and a unique placement witness before constructing a torus or sphere carrier from those forms. An agreeing inline radius pair does not resolve conflicting origin or direction readings.
 
 ### GS-06. Prototype-adjacent `tab_cyl` parameters
 

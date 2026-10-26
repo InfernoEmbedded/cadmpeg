@@ -2764,6 +2764,7 @@ mod surface_parameter_projection_tests {
             carrier: SurfaceParameterCarrier::Unresolved(SurfaceKind::Plane),
             boundary: SurfaceBodyBoundary::CompoundClose,
             offset: 3,
+            type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
             body_offset: 4,
         });
         scan

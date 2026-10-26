@@ -286,6 +286,7 @@ fn split_outline_scan() -> crate::container::ContainerScan<'static> {
         ),
         boundary: crate::surface::SurfaceBodyBoundary::CompoundClose,
         offset: usize::try_from(surface_id).expect("fixture index fits usize"),
+        type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
         body_offset: usize::try_from(surface_id).expect("fixture index fits usize"),
     };
     scan.surfaces.parameters.extend([
@@ -504,6 +505,7 @@ fn section_feature_type24_frame_is_not_admitted_as_round_cylinder() {
             ),
             boundary: crate::surface::SurfaceBodyBoundary::CompoundClose,
             offset: 7,
+            type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
             body_offset: 7,
         });
     let mut ir = cadmpeg_ir::document::CadIr::empty();
@@ -575,6 +577,7 @@ fn unresolved_round_type24_frame_is_not_admitted_as_constant_cylinder() {
         ),
         boundary: crate::surface::SurfaceBodyBoundary::CompoundClose,
         offset: usize::try_from(surface_id).expect("fixture index fits usize"),
+        type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
         body_offset: usize::try_from(surface_id).expect("fixture index fits usize"),
     };
     scan.surfaces
@@ -639,6 +642,7 @@ fn inline_type24_scan() -> crate::container::ContainerScan<'static> {
             ),
             boundary: crate::surface::SurfaceBodyBoundary::CompoundClose,
             offset: 7,
+            type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
             body_offset: 7,
         });
     scan
@@ -711,6 +715,7 @@ fn positional_frame_reconciles_an_existing_model_cylinder() {
             ),
             boundary: crate::surface::SurfaceBodyBoundary::CompoundClose,
             offset: 7,
+            type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
             body_offset: 7,
         });
     let mut ir = cadmpeg_ir::document::CadIr::empty();
@@ -913,6 +918,7 @@ fn counterbore_dimension_gate_scan(radius: f64) -> crate::container::ContainerSc
             ),
             boundary: crate::surface::SurfaceBodyBoundary::CompoundClose,
             offset: 3,
+            type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
             body_offset: 3,
         });
     let entry = |entity_id, source_entity_id| crate::feature::entity::FeatureEntityTableEntry {

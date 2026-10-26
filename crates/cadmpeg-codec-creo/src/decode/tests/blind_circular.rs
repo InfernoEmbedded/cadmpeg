@@ -694,6 +694,7 @@ fn mixed_round_families_reconcile_placed_cylinders_and_prototype_tori() {
             ),
             boundary: crate::surface::SurfaceBodyBoundary::CompoundClose,
             offset: 200,
+            type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
             body_offset: 201,
         });
     let scalar = |name: &str, value: f64| crate::surface::SurfaceNamedParameter {
@@ -930,6 +931,7 @@ fn unequal_round_samples_are_not_hidden_by_support_radius() {
                     ),
                     boundary: crate::surface::SurfaceBodyBoundary::CompoundClose,
                     offset: usize::try_from(id).expect("fixture index fits usize"),
+                    type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
                     body_offset: usize::try_from(id).expect("fixture index fits usize") + 1,
                 });
         }

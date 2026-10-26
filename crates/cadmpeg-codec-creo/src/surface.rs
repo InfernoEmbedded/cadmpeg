@@ -382,6 +382,7 @@ pub(crate) struct SurfaceParameterRecord {
     pub(crate) scalar_frames: Vec<SurfaceParameterScalarFrame>,
     /// Row kind and its decoded carrier, when available.
     pub(crate) carrier: SurfaceParameterCarrier,
+    pub(crate) type26_minor_radius: InlineType26MinorRadius,
     /// Structural form that bounded the body.
     pub(crate) boundary: SurfaceBodyBoundary,
     /// Byte offset of the positional surface row in the original stream.
@@ -395,6 +396,41 @@ pub(crate) struct SurfaceParameterRecord {
 pub(crate) enum SurfaceParameterCarrier {
     Unresolved(SurfaceKind),
     Resolved(InlineSurfaceCarrier),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub(crate) enum InlineType26MinorRadius {
+    #[default]
+    Absent,
+    Withheld,
+    Unique {
+        major: u64,
+        minor: u64,
+        start: usize,
+        end: usize,
+    },
+}
+
+impl InlineType26MinorRadius {
+    fn observe(&mut self, major: f64, minor: f64, start: usize, end: usize) {
+        let candidate = Self::Unique {
+            major: major.to_bits(),
+            minor: minor.to_bits(),
+            start,
+            end,
+        };
+        *self = match *self {
+            Self::Absent => candidate,
+            previous if previous == candidate => previous,
+            _ => Self::Withheld,
+        };
+    }
+
+    fn saturate(&mut self, count: usize, capacity: usize) {
+        if count >= capacity {
+            *self = Self::Withheld;
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1396,6 +1432,14 @@ impl SurfaceParameterRecord {
             && prototype_minor_radius.is_finite()
             && prototype_minor_radius > 0.0)
             .then_some(())?;
+        match self.type26_minor_radius {
+            InlineType26MinorRadius::Unique { minor, .. } => {
+                return (minor == prototype_minor_radius.to_bits())
+                    .then_some(f64::from_bits(minor));
+            }
+            InlineType26MinorRadius::Withheld => return None,
+            InlineType26MinorRadius::Absent => {}
+        }
         let frame = self.terminal_scalar_frame()?;
         let slot = frame.slots.last()?;
         let value = slot.value?;
@@ -4131,11 +4175,45 @@ pub(crate) enum InlineSurfaceCarrier {
 struct InlineSurfaceBody {
     terminal_close: usize,
     carrier: Option<InlineSurfaceCarrier>,
+    type26_minor_radius: InlineType26MinorRadius,
 }
 
 const EPS_INLINE_WITNESS: f64 = 1.0e-9;
 const EPS_INLINE_FRAME: f64 = 1.0e-8;
 const MAX_INLINE_FRAME_CANDIDATES: usize = 24;
+
+fn observe_inline_type26_radius(
+    evidence: &mut InlineType26MinorRadius,
+    kind: SurfaceKind,
+    local: &[u8],
+    local_start: usize,
+    frame: ResolvedInlineLocalSystemFrame,
+    cache: &scalar::ScalarCache,
+) {
+    if kind != SurfaceKind::TorusOrSphere || inline_suffix_frame_directions(frame).is_none() {
+        return;
+    }
+    let decode_radius = |cursor| {
+        if local.get(cursor) == Some(&0x0d) {
+            Some((0.25, cursor + 1))
+        } else {
+            scalar::decode_inline_surface_suffix_scalar(local, cursor, cache)
+        }
+    };
+    let Some((major, cursor)) = decode_radius(frame.cursor) else {
+        return;
+    };
+    let Some((minor, end)) = decode_radius(cursor) else {
+        return;
+    };
+    if end == local.len() {
+        if major.is_finite() && major >= 0.0 && minor.is_finite() && minor > 0.0 {
+            evidence.observe(major, minor, local_start + frame.cursor, local_start + end);
+        } else {
+            *evidence = InlineType26MinorRadius::Withheld;
+        }
+    }
+}
 
 fn inline_surface_body(
     ctx: &DecodeContext<'_>,
@@ -4159,6 +4237,7 @@ fn inline_surface_body(
             return Ok(Some(InlineSurfaceBody {
                 terminal_close,
                 carrier: decode_positional_cone_frame(body, cache).map(InlineSurfaceCarrier::Cone),
+                type26_minor_radius: InlineType26MinorRadius::Absent,
             }));
         }
     }
@@ -4184,6 +4263,8 @@ fn inline_surface_body(
         let Some(local) = body.get(local_start..terminal_close) else {
             return Ok(None);
         };
+        let mut type26_minor_radius = InlineType26MinorRadius::Absent;
+        let mut explicit_count = 0;
         let mut structurally_complete = false;
         let mut geometric_interpretation_count = 0;
         let mut first_carrier = None;
@@ -4200,7 +4281,22 @@ fn inline_surface_body(
             }
         }
         for prefix in scalar::decode_inline_non_plane_local_system_prefix(ctx, local, cache)? {
+            explicit_count += usize::from(matches!(
+                prefix,
+                scalar::InlineNonPlaneLocalSystemPrefix::Explicit(_)
+            ));
+            let mut frame_count = 0;
             for frame in inline_resolved_frames(ctx, local, prefix, cache)? {
+                frame_count += 1;
+                type26_minor_radius.saturate(frame_count, scalar::MAX_INLINE_ORIGIN_CANDIDATES);
+                observe_inline_type26_radius(
+                    &mut type26_minor_radius,
+                    kind,
+                    local,
+                    local_start,
+                    frame,
+                    cache,
+                );
                 if inline_surface_suffix(kind, local, frame.cursor, cache).is_none() {
                     continue;
                 }
@@ -4218,6 +4314,7 @@ fn inline_surface_body(
                 }
             }
         }
+        type26_minor_radius.saturate(explicit_count, scalar::MAX_INLINE_EXPLICIT_FRAME_CANDIDATES);
         if !structurally_complete || geometric_interpretation_count == 0 {
             continue;
         }
@@ -4229,6 +4326,7 @@ fn inline_surface_body(
         let layout = InlineSurfaceBody {
             terminal_close,
             carrier,
+            type26_minor_radius,
         };
         if sole_layout.replace(layout).is_some() {
             return Ok(None);
@@ -4251,6 +4349,7 @@ fn inline_surface_suffix_body(
     cache: &scalar::ScalarCache,
 ) -> Result<Option<InlineSurfaceBody>, CodecError> {
     let mut sole_layout = None;
+    let mut discovery_saturated = false;
     let local_starts =
         std::iter::once(0).chain(body.iter().enumerate().filter_map(|(offset, byte)| {
             (*byte == psb::token::COMPOUND_CLOSE).then_some(offset + 1)
@@ -4261,8 +4360,17 @@ fn inline_surface_suffix_body(
         };
         let mut terminal_closes = [0usize; MAX_INLINE_FRAME_CANDIDATES];
         let mut close_count = 0;
+        let mut discovery_explicit_count = 0;
         for prefix in scalar::decode_inline_non_plane_local_system_prefix(ctx, local, cache)? {
+            discovery_explicit_count += usize::from(matches!(
+                prefix,
+                scalar::InlineNonPlaneLocalSystemPrefix::Explicit(_)
+            ));
+            let mut discovery_origin_count = 0;
             for frame in inline_resolved_frames(ctx, local, prefix, cache)? {
+                discovery_origin_count += 1;
+                discovery_saturated |=
+                    discovery_origin_count >= scalar::MAX_INLINE_ORIGIN_CANDIDATES;
                 if let Some((_, end)) =
                     decode_inline_surface_suffix_at(kind, local, frame.cursor, cache)
                 {
@@ -4276,6 +4384,8 @@ fn inline_surface_suffix_body(
                 }
             }
         }
+        discovery_saturated |=
+            discovery_explicit_count >= scalar::MAX_INLINE_EXPLICIT_FRAME_CANDIDATES;
         terminal_closes[..close_count].sort_unstable_by(Ord::cmp);
         let mut previous_close = None;
         for relative_close in terminal_closes[..close_count].iter().copied() {
@@ -4287,12 +4397,29 @@ fn inline_surface_suffix_body(
             let Some(local) = body.get(local_start..terminal_close) else {
                 return Ok(None);
             };
+            let mut type26_minor_radius = InlineType26MinorRadius::Absent;
+            let mut explicit_count = 0;
             let mut structurally_complete = false;
             let mut geometric_interpretation_count = 0;
             let mut carriers = [None; MAX_INLINE_FRAME_CANDIDATES];
             let mut carrier_count = 0;
             for prefix in scalar::decode_inline_non_plane_local_system_prefix(ctx, local, cache)? {
+                explicit_count += usize::from(matches!(
+                    prefix,
+                    scalar::InlineNonPlaneLocalSystemPrefix::Explicit(_)
+                ));
+                let mut frame_count = 0;
                 for frame in inline_resolved_frames(ctx, local, prefix, cache)? {
+                    frame_count += 1;
+                    type26_minor_radius.saturate(frame_count, scalar::MAX_INLINE_ORIGIN_CANDIDATES);
+                    observe_inline_type26_radius(
+                        &mut type26_minor_radius,
+                        kind,
+                        local,
+                        local_start,
+                        frame,
+                        cache,
+                    );
                     if inline_surface_suffix(kind, local, frame.cursor, cache).is_none() {
                         continue;
                     }
@@ -4311,6 +4438,8 @@ fn inline_surface_suffix_body(
                     }
                 }
             }
+            type26_minor_radius
+                .saturate(explicit_count, scalar::MAX_INLINE_EXPLICIT_FRAME_CANDIDATES);
             if !structurally_complete || geometric_interpretation_count == 0 {
                 continue;
             }
@@ -4334,10 +4463,16 @@ fn inline_surface_suffix_body(
             let layout = InlineSurfaceBody {
                 terminal_close,
                 carrier,
+                type26_minor_radius,
             };
             if sole_layout.replace(layout).is_some() {
                 return Ok(None);
             }
+        }
+    }
+    if discovery_saturated {
+        if let Some(layout) = &mut sole_layout {
+            layout.type26_minor_radius = InlineType26MinorRadius::Withheld;
         }
     }
     Ok(sole_layout)
@@ -5190,6 +5325,9 @@ fn parameter_records_for_rows(
             opaque_spans,
             scalar_frames,
             carrier: SurfaceParameterCarrier::Unresolved(row.kind),
+            type26_minor_radius: inline.map_or(InlineType26MinorRadius::Absent, |layout| {
+                layout.type26_minor_radius
+            }),
             body,
             boundary,
             offset: row.offset,

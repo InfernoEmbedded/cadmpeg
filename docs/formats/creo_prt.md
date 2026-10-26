@@ -1165,8 +1165,18 @@ system has three direction triples followed
 by one origin triple and is closed by `e3`. A cylinder suffix is one radius, a
 cone suffix is one half-angle, and a type-26 suffix is `radius1 radius2`.
 The suffix lane uses exact `18` for zero, `0f` for one, and `0e` for one half.
+A type-26 radius slot also uses `0d` for one quarter. These radius-slot
+meanings do not apply to local-system coordinates or generic row scalars.
 For type 26, a finite non-negative `radius1` and positive `radius2` define a
 torus; exact `radius1 = 0` selects a sphere whose radius is `radius2`.
+
+A complete orthonormal twelve-slot local system followed by exactly two
+radius slots bounds the inline radius pair independently of placement.
+Complete readings must agree on both radius values and their byte positions.
+A complete unique pair can replay the uniquely associated prototype minor
+radius only when its minor-radius bits equal the positive finite prototype
+value. A tagged radius override takes precedence. Radius agreement alone does
+not select a local-system origin, frame branch, or placed carrier.
 
 A selector envelope stores `<selector0> <v0> <selector1> <v1>` followed by the
 same two XYZ outline corners, optional replay reference, and `e3`. A selector

@@ -73,6 +73,7 @@ fn line_extrusion_parameter_record(
         ),
         boundary: SurfaceBodyBoundary::CompoundClose,
         offset: 0,
+        type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
         body_offset: 0,
     }
 }

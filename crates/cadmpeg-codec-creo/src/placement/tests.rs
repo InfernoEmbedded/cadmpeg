@@ -1162,6 +1162,7 @@ fn resolves_section_frame_from_two_generated_arc_cylinders() {
         ),
         boundary: SurfaceBodyBoundary::CompoundClose,
         offset,
+        type26_minor_radius: crate::surface::InlineType26MinorRadius::Absent,
         body_offset: offset + 1,
     };
     let parameters = [
