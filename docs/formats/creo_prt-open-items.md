@@ -582,7 +582,7 @@ turn. Preserve the complete raw choice vectors.
 
 **Known.** The current outer key and optional `feat_id / ref_model_info` replay-source reference are separate identities. A copied replay can retain an older source while belonging to a different current key. A complete three-row table still requires the recipe-selected external-ID/type roles. Equal envelopes, names, ordinals, or dimension tuples elsewhere do not establish that owner. A blind depth proved equal to the owned cylinder's axial span ends at its shoulder; the conical point extends beyond it. This independently earns `depth_to_tip = false` only with the cylinder-span and angle evidence.
 
-**Need.** The parser must retain complete current-entry bounds and bind exactly one eligible table before model projection. Unknown compound/replay boundaries must abstain. A missing or invalid owned table must not borrow another feature's equal-radius/depth tuple. Different point-angle controls and envelope-free negatives must preserve both the ownership and Shoulder/Tip boundary.
+**Need.** The parser must retain complete current-entry bounds and bind exactly one eligible table before model projection. Unknown compound/replay boundaries must abstain. A missing or invalid owned table must not borrow another feature's equal-radius/depth tuple. Schema-class identity and internal replay-source IDs do not provide a current outer-entry binding. Raw model-unit values and Native unit labels need an explicit conversion contract. Different point-angle controls and envelope-free negatives must preserve both the ownership and Shoulder/Tip boundary.
 
 ### SP-41. Native counterbore and countersink additions
 

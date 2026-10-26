@@ -4010,8 +4010,8 @@ rowless face uses. Every source in the materialization roster has one of these
 forms. A complete three-row class-911 external-ID-2 dimension table assigns
 external ID `0` to the bore radius, ID `1` to the included drill-point angle,
 and ID `2` to the blind depth. IDs `0` and `2` have
-dimension type `2` and millimetre units. ID `1` has dimension type `10` and
-radian units. The bore radius is positive, the depth is nonzero, and the
+dimension type `2` and use the model's native length system. Target model
+length conversion is separate. ID `1` has dimension type `10` and radian units. The bore radius is positive, the depth is nonzero, and the
 included angle is strictly between zero and π. The neutral bore diameter is
 twice the stored radius. The depth magnitude is the blind length; its sign is
 an orientation state and does not change that length. Only a table with these
@@ -4068,12 +4068,13 @@ the other radial coordinate. The first axial coordinate and the common signed
 axial delta supply the entry coordinate and direction. This cross-record form
 does not make other cone terminal triples model-space origins.
 
-When the cylinder envelope is available, complete three-row class-911 tables
-whose diameter and depth do not match it do not participate in template
-selection. All participating tables must supply one equal tuple. When the
-envelope is unavailable, every complete three-row class-911 table in the
-recipe-selected dimension family must supply one equal tuple. The recipe
-transfers as a simple drilled hole with that diameter, angle, and blind depth.
+A complete current-feature owner binding must select the eligible dimension
+table before its values can supply hole parameters. A file-wide class-911
+pool does not supply that binding, even when it contains one matching tuple.
+Cylinder-envelope agreement is a consistency check on an already owned table;
+it does not select an owner. A missing, invalid, or unowned table leaves the
+dimension-derived diameter, drill-point angle, depth, and dependent placement
+unresolved. Independent materialized geometry retains its separate proof.
 Each complete positional cylinder frame on the paired cylinder rows must have
 the dimension-assigned bore radius. The available frames must define one
 coaxial line; origins may differ only along that line and axis signs may differ.

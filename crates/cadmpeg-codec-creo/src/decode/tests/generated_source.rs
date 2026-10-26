@@ -818,7 +818,7 @@ fn drill_tip_cone_points_define_a_clipped_radial_coordinate() {
 }
 
 #[test]
-fn class_911_simple_drilled_recipe_transfers_dimension_tuple() {
+fn unowned_drilled_templates_do_not_supply_dimensions_or_hide_independent_geometry() {
     let mut scan = crate::test_support::empty_container_scan();
     scan.features
         .entity_tables
@@ -870,33 +870,34 @@ fn class_911_simple_drilled_recipe_transfers_dimension_tuple() {
             offset: 0,
         });
 
-    assert!(matches!(
-        crate::decode::with_service_context(|ctx| schema_feature_definition(ctx,
-            &scan,
-            &CadIr::empty(),
-            &crate::decode::source_carriers::SourceUnitCarriers::default(),
-            9,
-            Some(SchemaClass::Hole),
-            "Hole"
-        )).expect("valid test fixture"), IrFeatureDefinition::Operation(IrFeatureOperation::Hole {
-            shape,
-
-            extent: Some(LinearTermination::Blind {
-                length: actual_length,
-            }),
-            bottom: None,
-            ..
-        }) if matches!((shape.construction(), &shape.diameter(),), (cadmpeg_ir::features::holes::HoleConstruction::Form {
-                kind: HoleKind::SimpleDrilled {
-                    drill_point_angle: angle,
-                },
+    for replay_owner in [None, Some(9), Some(17)] {
+        scan.features.definitions[0].identity =
+            crate::feature::definitions::DefinitionIdentity::Parsed {
+                schema_id: std::num::NonZeroU32::new(911),
+                owner_feature_id: replay_owner,
+            };
+        assert!(matches!(
+            crate::decode::with_service_context(|ctx| schema_feature_definition(
+                ctx,
+                &scan,
+                &CadIr::empty(),
+                &crate::decode::source_carriers::SourceUnitCarriers::default(),
+                9,
+                Some(SchemaClass::Hole),
+                "Hole",
+            )).expect("valid test fixture"),
+            IrFeatureDefinition::Operation(IrFeatureOperation::Hole {
+                shape,
+                extent: None,
+                bottom: None,
+                placements: None,
                 ..
-            }, Some(actual_diameter),)
-                if ((FiniteReal::new(angle.get()))
-                    .zip(FiniteReal::new(drill_point_angle))
-                    .is_some_and(|(first, second)| approximately_equal(first, second)))
-                    && actual_diameter.get() == 8.4
-                    && actual_length.get() == 25.0)));
+            }) if matches!((shape.construction(), &shape.diameter()),
+                (cadmpeg_ir::features::holes::HoleConstruction::Form {
+                    kind: HoleKind::Unresolved(None), ..
+                }, None))
+        ));
+    }
 
     let compact_entry =
         |entity_id, class_id, source_entity_id| crate::feature::entity::FeatureEntityTableEntry {
