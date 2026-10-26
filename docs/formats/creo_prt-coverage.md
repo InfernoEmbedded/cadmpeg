@@ -737,3 +737,12 @@ fixtures, scores above L1 remain blocked.
 
 The current public score remains L1. Capabilities above L1 are extras
 until every cumulative gate through their level passes for a closed envelope.
+
+- Class-932 positional cylinders with a complete cap-envelope body retain the
+  entire body as opaque Native data. Generic scalar and terminal-support frame
+  interpretations are withheld before Native and neutral construction. The
+  gate requires unique row ownership, a resolved feature class, and complete
+  body consumption; a short prefix alone does not select it. This does not
+  promote an axis, radius, chart direction, or face binding. Pcurve-derived
+  carriers and endpoint evidence that depend on a withheld visible chart stay
+  unresolved; an ordinary missing chart remains a separate case.

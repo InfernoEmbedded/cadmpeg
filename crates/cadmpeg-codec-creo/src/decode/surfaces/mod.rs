@@ -2,6 +2,7 @@
 //! Native B-rep, prototype surfaces, positional solids, and carrier intersections.
 
 pub(super) mod brep;
+pub(super) mod cap_envelopes;
 pub(super) mod cylinders;
 pub(super) mod intersection_candidates;
 pub(super) mod intersection_resolve;

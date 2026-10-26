@@ -208,6 +208,13 @@ and `0.74` and `0.7399999999999998`. It does not always equal that span: one
 example has a first scalar of `1.78` and an axial corner span of `1.68`. Its
 role is not known.
 
+A fully framed cap-envelope body owned by a unique cylinder row and resolved
+class 932 remains opaque. A bounded station/envelope and a radial suffix can
+agree with stored circles without defining the chart direction, phase, or
+initial control roles. The generic terminal-support frame does not establish
+those roles. Incomplete centers remain unresolved; an absent center cannot be
+replaced by an envelope midpoint. Raw body bytes retain the unsupported fields.
+
 The selector-corner interval family reconstructs its unique axis line, radius,
 and extent from two directrix parameters, two XYZ corners, and the selector
 pair. Its split-selector and one-placeholder variants use the same equation.

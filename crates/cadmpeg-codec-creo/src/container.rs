@@ -426,6 +426,10 @@ pub(crate) struct ReferenceScan {
 
 /// Typed surface rows, parameter bodies, and prototypes.
 pub(crate) struct SurfaceScan {
+    /// Visible surface identities whose cap chart was explicitly withheld.
+    pub(crate) withheld_cap_surface_ids: BTreeSet<u32>,
+    /// Visible curve identities whose cap chart was explicitly withheld.
+    pub(crate) withheld_cap_curve_ids: BTreeSet<u32>,
     /// Typed fixed-prefix surface rows from the selected material model
     /// geometry namespace. Parameter bodies are decoded separately.
     pub(crate) rows: Vec<SurfaceRow>,
@@ -2992,6 +2996,8 @@ pub(crate) fn scan_bytes<'a>(
         primitives,
         references,
         surfaces: SurfaceScan {
+            withheld_cap_surface_ids: BTreeSet::new(),
+            withheld_cap_curve_ids: BTreeSet::new(),
             rows: surface_rows,
             nonvisible_rows: nonvisible_surface_rows,
             cross_section_rows: cross_section_surface_rows,

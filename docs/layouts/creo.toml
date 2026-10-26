@@ -334,3 +334,45 @@ offset = 1
 type = "bytes[8]"
 source = "spec"
 anchor = "byte offset 1, and occupies exactly nine bytes."
+
+[[record]]
+name = "type24_cap_envelope_control_prefix"
+kind = "byte"
+section = "3.2"
+anchor = "The class-932 cap-envelope control prefix contains three seven-byte physical"
+size = 22
+endianness = "unstated"
+note = "Physical scalar images remain opaque; no numeric role or carrier chart follows from this prefix."
+parsed_by = "crates/cadmpeg-codec-creo/src/decode/surfaces/cap_envelopes.rs"
+
+[[record.field]]
+name = "first_control"
+offset = 0
+type = "bytes[7]"
+source = "spec"
+anchor = "three seven-byte physical"
+
+[[record.field]]
+name = "separator"
+offset = 7
+type = "u8"
+value = 24
+source = "derived"
+anchor = "literal `18` between the first and second images"
+note = "One byte follows the first seven-byte image."
+
+[[record.field]]
+name = "second_control"
+offset = 8
+type = "bytes[7]"
+source = "derived"
+anchor = "literal `18` between the first and second images"
+note = "The second image follows the seven-byte first image and separator."
+
+[[record.field]]
+name = "third_control"
+offset = 15
+type = "bytes[7]"
+source = "derived"
+anchor = "three seven-byte physical"
+note = "The third image follows the second seven-byte image."

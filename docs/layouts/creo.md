@@ -139,6 +139,22 @@ Parsed by:
 | 0 | 1 | `opener` | `bytes[1]` | big | spec | A section full-width scalar starts with `ed` · value `[237]` |
 | 1 | 8 | `payload` | `bytes[8]` | big | spec | byte offset 1, and occupies exactly nine bytes. |
 
+## `type24_cap_envelope_control_prefix`
+
+Spec §3.2 · layout: byte offsets · size: 22 B
+
+Physical scalar images remain opaque; no numeric role or carrier chart follows from this prefix.
+
+Parsed by:
+- `crates/cadmpeg-codec-creo/src/decode/surfaces/cap_envelopes.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 7 | `first_control` | `bytes[7]` | unstated | spec | three seven-byte physical |
+| 7 | 1 | `separator` | `u8` | unstated | derived | One byte follows the first seven-byte image. · value `24` |
+| 8 | 7 | `second_control` | `bytes[7]` | unstated | derived | The second image follows the seven-byte first image and separator. |
+| 15 | 7 | `third_control` | `bytes[7]` | unstated | derived | The third image follows the second seven-byte image. |
+
 ## Not tabulated
 
 | Area | Spec | Reason |

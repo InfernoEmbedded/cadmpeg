@@ -99,3 +99,25 @@ pub(crate) mod section_full_width_scalar {
     /// Offset of `payload` (`bytes[8]`). Spec §5.
     pub(crate) const PAYLOAD: usize = 1;
 }
+
+/// Byte offsets for the `type24_cap_envelope_control_prefix` record.
+///
+/// Spec §3.2. Record length 22 B.
+///
+/// ```text
+/// Physical scalar images remain opaque; no numeric role or carrier chart follows from this prefix.
+/// ```
+pub(crate) mod type24_cap_envelope_control_prefix {
+    /// Record length in bytes. Spec §3.2.
+    pub(crate) const LEN: usize = 22;
+    /// Offset of `first_control` (`bytes[7]`). Spec §3.2.
+    pub(crate) const FIRST_CONTROL: usize = 0;
+    /// Offset of `separator` (`u8`). Spec §3.2.
+    pub(crate) const SEPARATOR: usize = 7;
+    /// Stated value of `separator` (`u8`). Spec §3.2.
+    pub(crate) const SEPARATOR_VALUE: u8 = 24;
+    /// Offset of `second_control` (`bytes[7]`). Spec §3.2.
+    pub(crate) const SECOND_CONTROL: usize = 8;
+    /// Offset of `third_control` (`bytes[7]`). Spec §3.2.
+    pub(crate) const THIRD_CONTROL: usize = 15;
+}

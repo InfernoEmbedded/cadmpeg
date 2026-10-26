@@ -1018,6 +1018,9 @@ pub(in super::super) fn transfer_positional_cylinders(
             continue;
         };
         let feature_class = schema_classes.get(row.feature_id);
+        if scan.surfaces.withheld_cap_surface_ids.contains(&record.surface_id) {
+            continue;
+        }
         let inline_non_plane = record.has_inline_non_plane_envelope()
             || record.has_inline_non_plane_local_system_suffix(ctx)?;
         let selector_corner_interval = record.selector_corner_interval_cylinder_frame().is_some();

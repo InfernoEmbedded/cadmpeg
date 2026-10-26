@@ -1519,6 +1519,12 @@ The scalar has precedence over scalar candidates beginning inside its payload;
 the following close byte is not part of the scalar. The bounded body transfers
 the value and source offset as `cone_half_angle_override`.
 
+The class-932 cap-envelope control prefix contains three seven-byte physical
+scalar images, with literal `18` between the first and second images. The
+layout table records their positions. These images have no established
+numeric role or oriented-carrier interpretation. The following envelope and
+optional radial suffix do not define a complete chart from their bounds alone.
+
 ### 3.3 Torus and sphere representation
 
 A `srf_prim_ptr(torus)` prototype stores `e1[3], e2[3], e3[3], origin[3], radius1, radius2`. A sphere uses `radius1 = 0` and radius `radius2`; a torus uses nonzero `radius1`. Per-instance row-body overrides use a separate grammar.
