@@ -712,13 +712,25 @@ place an orbit whose existing evidence does not select one point.
 
 **Need.** We must know the binding to transfer per-face display data.
 
-### TP-16. Other RGB lanes
+### TP-16. Unresolved RGB constants and appearance projection
 
-**Question.** What scalar value does each undefined token in an RGB appearance lane encode?
+**Question.** Which RGB-lane evidence fixes `0d` and `18`, and which owned
+row grammar binds the channels to an appearance and its model-item uses?
 
-**Known.** The decoder preserves complete recognized RGB values and retains undefined token bodies.
+**Known.** `creo_prt.md` §1.2 defines RGB `0f = 1` and bounded predecessor
+replay within three channels. The non-RGB transmission field stores
+`18 = 0`; that field does not define RGB `18`. Complete `NeuPrtSld` bytes
+are retained without a typed `color_tab` parser or appearance-binding
+projection. Explicit positive RGB values remain separate from unresolved
+compact constants.
 
-**Need.** We must know the values to construct the stored color.
+**Need.** Establish each unresolved constant with independently paired RGB
+definitions or controlled RGB changes. Define complete named and positional
+row ownership and model-item binding before emitting colors and their uses.
+
+**Conflict.** STEP green `.4` covariance does not identify native RGB `0d`.
+A component value in another lane does not establish the RGB value. A STEP
+color fit cannot replace the native value without an independent row identity.
 
 ### TP-17. Other appearance component lanes
 

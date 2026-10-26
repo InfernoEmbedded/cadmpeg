@@ -299,6 +299,13 @@ complete three-component highlight vector, `e5` repeats the preceding
 component twice, including when that component is nonzero. A scalar's value
 does not establish an appearance-to-face binding or a surface side.
 
+A binary `color_rgb f8 03` field contains three logical RGB channels. In
+this field, `0f` represents `1`. `e4` emits one more copy of the preceding
+logical channel; `e5` emits two more copies. A replay requires a predecessor
+and cannot exceed the three-channel field. The following appearance
+component cannot complete a missing RGB channel. Preserve each physical
+token even when it emits more than one channel.
+
 ### 1.3 Units
 
 `_principal_sys_units_id` identifies the active coordinate unit system.
