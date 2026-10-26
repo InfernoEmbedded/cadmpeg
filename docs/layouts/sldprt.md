@@ -3343,6 +3343,24 @@ Spec §2 · layout: byte offsets · size: 120 B
 | 80 | 24 | `pull_direction` | `f64[3]` | little | spec | signed unit pull vector at +80 |
 | 104 | 16 | `zero_tail` | `bytes[16]` | little | spec | sixteen zero bytes at +104 |
 
+## `compact_line_reference_terminated_eight`
+
+Spec §2 · layout: byte offsets · size: 136 B
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 8 | `handles` | `bytes[8]` | little | spec | Its handle pair is at +0 |
+| 8 | 4 | `zero_at_8` | `u32` | little | spec | zero u32 at +8 |
+| 12 | 4 | `address` | `u32` | little | spec | nonzero stream address at +12 |
+| 16 | 8 | `prefix_zero` | `bytes[8]` | little | spec | eight zero bytes at +16 |
+| 24 | 40 | `leading_scalars` | `f64[5]` | little | spec | Five leading scalar values start at +24 |
+| 64 | 24 | `direction` | `f64[3]` | little | spec | the unit xyz direction starts at +64 |
+| 88 | 14 | `zero_trailer` | `bytes[14]` | little | spec | Fourteen zero bytes start at +88 |
+| 102 | 4 | `first_one` | `u32` | little | spec | u32 values `1` and `1` are at +102 and +106 |
+| 106 | 4 | `second_one` | `u32` | little | spec | u32 values `1` and `1` are at +102 and +106 |
+| 110 | 24 | `zero_tail` | `bytes[24]` | little | spec | 24 zero bytes start at +110 |
+| 134 | 2 | `terminal` | `u16` | little | spec | a non-sentinel high-bit u16 instance token is at +134 |
+
 ## Not tabulated
 
 | Area | Spec | Reason |

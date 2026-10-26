@@ -12573,3 +12573,89 @@ offset = 104
 type = "bytes[16]"
 source = "spec"
 anchor = "sixteen zero bytes at +104"
+
+
+[[record]]
+name = "compact_line_reference_terminated_eight"
+kind = "byte"
+section = "2"
+anchor = "exactly eight finite f64 values in a 136-byte token-terminated record"
+size = 136
+endianness = "little"
+
+[[record.field]]
+name = "handles"
+offset = 0
+type = "bytes[8]"
+source = "spec"
+anchor = "Its handle pair is at +0"
+
+[[record.field]]
+name = "zero_at_8"
+offset = 8
+type = "u32"
+source = "spec"
+anchor = "zero u32 at +8"
+
+[[record.field]]
+name = "address"
+offset = 12
+type = "u32"
+source = "spec"
+anchor = "nonzero stream address at +12"
+
+[[record.field]]
+name = "prefix_zero"
+offset = 16
+type = "bytes[8]"
+source = "spec"
+anchor = "eight zero bytes at +16"
+
+[[record.field]]
+name = "leading_scalars"
+offset = 24
+type = "f64[5]"
+source = "spec"
+anchor = "Five leading scalar values start at +24"
+
+[[record.field]]
+name = "direction"
+offset = 64
+type = "f64[3]"
+source = "spec"
+anchor = "the unit xyz direction starts at +64"
+
+[[record.field]]
+name = "zero_trailer"
+offset = 88
+type = "bytes[14]"
+source = "spec"
+anchor = "Fourteen zero bytes start at +88"
+
+[[record.field]]
+name = "first_one"
+offset = 102
+type = "u32"
+source = "spec"
+anchor = "u32 values `1` and `1` are at +102 and +106"
+
+[[record.field]]
+name = "second_one"
+offset = 106
+type = "u32"
+source = "spec"
+anchor = "u32 values `1` and `1` are at +102 and +106"
+
+[[record.field]]
+name = "zero_tail"
+offset = 110
+type = "bytes[24]"
+source = "spec"
+anchor = "24 zero bytes start at +110"
+
+[[record.field]]
+name = "terminal"
+offset = 134
+type = "u16"
+source = "spec"
+anchor = "a non-sentinel high-bit u16 instance token is at +134"

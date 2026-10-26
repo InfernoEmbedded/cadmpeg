@@ -434,13 +434,13 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Need.** We must recover the native outward flag of a neutral-plane Draft when Keywords omits it. The signed declared pull vector does not establish an unflipped neutral-plane orientation or the outward Boolean. Compact parting-line frame direction semantics require separate Source controls; they do not share the declared +80 field.
 
-### DI-32. Compact line-reference width
+### DI-32. Other compact line-reference widths and owned pattern units
 
-**Question.** Which compact line-reference width and trailer layout are authoritative when more than one valid direction triple occurs in a record?
+**Question.** Which complete enclosing grammars select additional compact line-reference directions, and which owned metric fields establish the corresponding pattern spacings?
 
-**Known.** `sldprt.md` §2 defines the supported compact line-reference layouts and requires an exact trailer for each layout. A final ambiguous layout with distinct valid directions remains unresolved.
+**Known.** The complete 136-byte token-terminated eight-scalar form stores its unit vector at +64. Its trailer and next-object boundary select the width. An overlapping unit triple does not select another width. The raw display-spacing fields and bare history literals are separate carriers; a new direction does not establish the literals' length unit.
 
-**Need.** We must know the record width and direction field to decode each line reference without choosing a candidate by plausibility.
+**Need.** Bind the complete dimension-record framing, feature owner, role and unit before enabling a pattern extent. Preserve unknown directions or spacing semantics when those joins are unavailable. Do not apply a document-wide scale from numeric agreement.
 
 ### DI-34. SWIFT implicit nominal construction
 
