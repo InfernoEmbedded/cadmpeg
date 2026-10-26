@@ -1001,9 +1001,9 @@ successfully decoded partition supplies the configuration body set. A missing
 partition leaves membership unresolved; a decoded empty partition supplies an
 empty body set.
 
-For a manifest row with `swConfigurationNeedsUpdate="NO"`, the complete
-identity join also binds a Keywords configuration without `SourceIndex`:
-its unique `Name` equals the unique `swConfiguration/@swName`; that row's
+The complete saved identity join binds a configuration without a Keywords
+`SourceIndex`, including an absent Keywords carrier. Its unique
+`swConfiguration/@swName` agrees with the Keywords `Name` when present; the row's
 `swModelRef` references exactly one `swModel` in the same XML document;
 the model's `swConfigurationName` equals that name and its
 `swConfigurationId` equals the row's decimal `swID=N`. The numeric `swID`
@@ -1016,7 +1016,7 @@ partitions. Inactive `swMostRecentConfiguration="NO"` rows use the same join.
 Exactly one `swMostRecentConfiguration="YES"` row identifies the active
 configuration through its decimal `swID`. That index matches a unique valid
 explicit Keywords `SourceIndex`, or the complete identity join above. Present
-row names and referenced model identities agree with the bound Keywords name
+row names and referenced model identities agree with the bound configuration name
 and index. Missing alternate-carrier fields do not erase an independently
 valid explicit binding. A valid conflicting manifest binding, duplicate
 identity, or contradictory active identity remains unresolved. An unresolved
@@ -1024,6 +1024,11 @@ manifest does not select the first model name or a synthetic partition
 configuration.
 `swConfigurationNeedsUpdate`, `swConfigurationFlags`, and
 `swConfigurationAlternateName` retain their stored configuration metadata.
+Regeneration-needed state does not erase the saved configuration identity or
+its stored partition. This join does not establish current feature definitions
+or regenerated geometry. A partition-backed configuration without a decoded
+Keywords definition retains the manifest name and body set without assigning
+a native definition or feature states.
 
 Keywords `Feature` elements use the `Type` attribute as their operation-family token. All feature instances with the same exact `Type` token use the same feature-input class. A directly object-ID-bound class instance therefore supplies the class of the other instances carrying that token. `Helix/Spiral`, `Surface-Sweep`, and `Thicken` denote helix, surface-sweep, and face-thickening operations independently of the localized display name in `Name`.
 

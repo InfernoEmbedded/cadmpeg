@@ -8,6 +8,7 @@ pub(super) struct ConfigurationBindings {
     keywords: Vec<Keyword>,
     documents: Vec<Manifest>,
     resolved: BTreeMap<String, Option<usize>>,
+    names_by_index: BTreeMap<usize, Option<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,7 +29,6 @@ struct Configuration {
     index: Option<String>,
     model: Option<String>,
     most_recent: Option<String>,
-    needs_update: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,9 +67,6 @@ impl ConfigurationBindings {
                     most_recent: node
                         .attribute("swMostRecentConfiguration")
                         .map(str::to_owned),
-                    needs_update: node
-                        .attribute("swConfigurationNeedsUpdate")
-                        .map(str::to_owned),
                 }),
                 "swModel" => manifest.models.push(Model {
                     id: node.attribute("id").map(str::to_owned),
@@ -98,9 +95,11 @@ impl ConfigurationBindings {
     pub(super) fn finish(&mut self) {
         let mut keywords = BTreeMap::<&str, Vec<&Keyword>>::new();
         let mut explicit_counts = BTreeMap::<usize, usize>::new();
+        let mut explicit_names = BTreeMap::new();
         for keyword in &self.keywords {
             if let Some(index) = decimal(keyword.source_index.as_deref()) {
                 *explicit_counts.entry(index).or_default() += 1;
+                explicit_names.insert(index, keyword.name.as_deref());
             }
             if let Some(name) = keyword.name.as_deref() {
                 keywords.entry(name).or_default().push(keyword);
@@ -108,7 +107,7 @@ impl ConfigurationBindings {
         }
         let mut rows = BTreeMap::<&str, Vec<(usize, &Configuration)>>::new();
         let mut counts = BTreeMap::<usize, usize>::new();
-        let mut update_required = BTreeSet::new();
+        let mut row_names = BTreeMap::new();
         let mut models = Vec::new();
         for (document_index, document) in self.documents.iter().enumerate() {
             let mut by_id = BTreeMap::<&str, Vec<&Model>>::new();
@@ -124,17 +123,18 @@ impl ConfigurationBindings {
                 }
                 if let Some(index) = decimal(row.index.as_deref()) {
                     *counts.entry(index).or_default() += 1;
-                    if row.needs_update.as_deref() == Some("YES") {
-                        update_required.insert(index);
-                    }
+                    row_names.insert(index, row.name.as_deref());
                 }
             }
         }
         let mut resolved = BTreeMap::new();
-        for (name, group) in keywords {
+        let names: BTreeSet<_> = keywords.keys().chain(rows.keys()).copied().collect();
+        for name in names {
             let index = (|| {
-                let [keyword] = group.as_slice() else {
-                    return None;
+                let keyword = match keywords.get(name).map(Vec::as_slice) {
+                    None => None,
+                    Some([keyword]) => Some(*keyword),
+                    Some(_) => return None,
                 };
                 if name.is_empty() {
                     return None;
@@ -143,11 +143,13 @@ impl ConfigurationBindings {
                     let [(document, row)] = rows.get(name)?.as_slice() else {
                         return None;
                     };
-                    if row.needs_update.as_deref() != Some("NO") {
-                        return None;
-                    }
                     let index = decimal(row.index.as_deref())?;
-                    if counts.get(&index) != Some(&1) {
+                    if counts.get(&index) != Some(&1)
+                        || explicit_counts.get(&index).is_some_and(|count| *count > 1)
+                        || explicit_names
+                            .get(&index)
+                            .is_some_and(|other| *other != Some(name))
+                    {
                         return None;
                     }
                     let reference = row.model.as_deref().filter(|s| !s.is_empty())?;
@@ -161,14 +163,19 @@ impl ConfigurationBindings {
                     }
                     Some(index)
                 })();
-                let Some(raw_index) = keyword.source_index.as_deref() else {
+                let Some(raw_index) = keyword.and_then(|keyword| keyword.source_index.as_deref())
+                else {
                     return manifest_index;
                 };
                 let index = decimal(Some(raw_index))?;
                 if explicit_counts.get(&index) != Some(&1)
                     || counts.get(&index).is_some_and(|count| *count > 1)
                     || rows.get(name).is_some_and(|rows| rows.len() > 1)
-                    || update_required.contains(&index)
+                    || row_names
+                        .get(&index)
+                        .copied()
+                        .flatten()
+                        .is_some_and(|other| other != name)
                     || manifest_index.is_some_and(|manifest| manifest != index)
                 {
                     return None;
@@ -177,12 +184,26 @@ impl ConfigurationBindings {
             })();
             resolved.insert(name.to_owned(), index);
         }
+        let mut names_by_index = BTreeMap::new();
+        for (name, index) in &resolved {
+            if let Some(index) = index {
+                names_by_index
+                    .entry(*index)
+                    .and_modify(|value| *value = None)
+                    .or_insert_with(|| Some(name.clone()));
+            }
+        }
         self.resolved = resolved;
+        self.names_by_index = names_by_index;
     }
 
     pub(super) fn index_for(&self, name: &str) -> Option<Option<usize>> {
         self.has_manifest_rows()
             .then(|| self.resolved.get(name).copied().flatten())
+    }
+
+    pub(super) fn name_for(&self, index: usize) -> Option<&str> {
+        self.names_by_index.get(&index).and_then(Option::as_deref)
     }
 
     pub(super) fn active(&self) -> super::ManifestActiveConfiguration {
@@ -209,14 +230,10 @@ impl ConfigurationBindings {
         {
             return super::ManifestActiveConfiguration::Ambiguous;
         }
-        let mut names = self
-            .resolved
-            .iter()
-            .filter(|(_, value)| **value == Some(index));
-        let Some((name, _)) = names.next() else {
+        let Some(name) = self.name_for(index) else {
             return super::ManifestActiveConfiguration::Ambiguous;
         };
-        if names.next().is_some() || row.name.as_deref().is_some_and(|value| value != name) {
+        if row.name.as_deref().is_some_and(|value| value != name) {
             return super::ManifestActiveConfiguration::Ambiguous;
         }
         if let Some(reference) = row.model.as_deref() {
@@ -240,7 +257,7 @@ impl ConfigurationBindings {
                 return super::ManifestActiveConfiguration::Ambiguous;
             }
         }
-        super::ManifestActiveConfiguration::Unique(index, Some(name.clone()))
+        super::ManifestActiveConfiguration::Unique(index, Some(name.to_owned()))
     }
 }
 

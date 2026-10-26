@@ -4266,6 +4266,14 @@ fn mark_active_configuration(ir: &mut CadIr) {
         by_name
     } else if active_index.is_some() {
         by_index
+    } else if ir.source.as_ref().is_some_and(|source| {
+        source
+            .attributes
+            .get("sldprt_active_partition_unresolved")
+            .map(String::as_str)
+            == Some("true")
+    }) {
+        None
     } else if ir.model.configurations.len() == 1 {
         Some(0)
     } else {
@@ -4653,6 +4661,14 @@ fn assign_configuration_bodies(
         }
     }
     for (source_index, bodies) in partition_map {
+        let name = scan
+            .and_then(|scan| {
+                usize::try_from(source_index)
+                    .ok()
+                    .and_then(|index| container::manifest_configuration_name(scan, index))
+            })
+            .filter(|_| !source_counts.contains_key(&source_index))
+            .map_or_else(|| format!("Config-{source_index}"), str::to_owned);
         let ordinal = match ir
             .model
             .configurations
@@ -4675,7 +4691,7 @@ fn assign_configuration_bodies(
                 ordinal,
                 active: false,
                 source_index: Some(source_index),
-                name: format!("Config-{source_index}").into(),
+                name: name.into(),
                 material: None,
                 properties: std::collections::BTreeMap::new(),
                 bodies: Some(cadmpeg_ir::features::DistinctMembers::try_from(bodies)?),

@@ -1087,6 +1087,16 @@ pub(crate) fn manifest_configuration_index(
     scan.solidworks.configuration_bindings.index_for(name)
 }
 
+pub(crate) fn manifest_configuration_name<'a>(
+    scan: &'a ContainerScan<'_>,
+    index: usize,
+) -> Option<&'a str> {
+    if !has_manifest_configuration_rows(scan) {
+        return None;
+    }
+    scan.solidworks.configuration_bindings.name_for(index)
+}
+
 /// Return the active configuration's unique manifest identity, when one
 /// manifest row provides it. A manifest with zero or several `YES` rows is
 /// deliberately not an index source.

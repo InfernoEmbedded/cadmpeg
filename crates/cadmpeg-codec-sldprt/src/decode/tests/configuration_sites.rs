@@ -377,3 +377,72 @@ fn multiple_model_names_without_manifest_rows_do_not_mark_the_first_active() {
         .contains_key("sw_configuration_name"));
     assert!(decoded.ir().model.configurations.iter().all(|c| !c.active));
 }
+
+#[test]
+fn decode_preserves_saved_manifest_name_and_body_without_keywords_or_fresh_design_claim() {
+    for needs_update in ["YES", "NO"] {
+        let mut source = sldprt_with_body(&triangle_body());
+        let xml = format!(
+            r#"<swSolidWorks xmlns="http://www.solidworks.com/sw2003/schema"><swModel id="m" swConfigurationName="Saved" swConfigurationId="0"/><swConfiguration swName="Saved" swID="0" swModelRef="m" swMostRecentConfiguration="YES" swConfigurationNeedsUpdate="{needs_update}"/></swSolidWorks>"#
+        );
+        source.extend(make_block(0x43, "Contents/Features", xml.as_bytes()));
+        let decoded = SldprtCodec
+            .decode(&mut Cursor::new(source), &DecodeOptions::default())
+            .unwrap();
+        let configurations = &decoded.ir().model.configurations;
+        assert_eq!(configurations.len(), 1);
+        let configuration = &configurations[0];
+        assert_eq!(configuration.name.as_deref(), Some("Saved"));
+        assert_eq!(configuration.source_index, Some(0));
+        assert!(configuration.active);
+        assert!(configuration.native_ref.is_none());
+        assert!(configuration.feature_states.is_empty());
+        assert_eq!(
+            configuration.bodies.as_deref(),
+            Some(
+                decoded
+                    .ir()
+                    .model
+                    .bodies
+                    .iter()
+                    .map(|body| body.id.clone())
+                    .collect::<Vec<_>>()
+                    .as_slice()
+            )
+        );
+        assert_eq!(
+            decoded.ir().source.as_ref().unwrap().attributes["active_parasolid_block"],
+            "Contents/Config-0-Partition"
+        );
+        assert_eq!(
+            decoded.ir().source.as_ref().unwrap().attributes["sw_configuration_name"],
+            "Saved"
+        );
+    }
+}
+
+#[test]
+fn a_single_saved_inactive_manifest_does_not_become_active_from_body_count() {
+    let mut source = sldprt_with_body(&triangle_body());
+    source.extend(make_block(0x43, "Contents/Features", br#"<swSolidWorks xmlns="http://www.solidworks.com/sw2003/schema"><swModel id="m" swConfigurationName="Saved" swConfigurationId="0"/><swConfiguration swName="Saved" swID="0" swModelRef="m" swMostRecentConfiguration="NO" swConfigurationNeedsUpdate="YES"/></swSolidWorks>"#));
+    let decoded = SldprtCodec
+        .decode(&mut Cursor::new(source), &DecodeOptions::default())
+        .unwrap();
+    assert_eq!(decoded.ir().model.configurations.len(), 1);
+    let configuration = &decoded.ir().model.configurations[0];
+    assert_eq!(configuration.name.as_deref(), Some("Saved"));
+    assert_eq!(configuration.source_index, Some(0));
+    assert!(!configuration.active);
+    assert!(configuration.bodies.is_some());
+    assert!(configuration.native_ref.is_none());
+    assert!(configuration.feature_states.is_empty());
+    let attributes = &decoded.ir().source.as_ref().unwrap().attributes;
+    assert_eq!(
+        attributes
+            .get("sldprt_active_partition_unresolved")
+            .map(String::as_str),
+        Some("true")
+    );
+    assert!(!attributes.contains_key("active_parasolid_block"));
+    assert!(!attributes.contains_key("sw_configuration_name"));
+}

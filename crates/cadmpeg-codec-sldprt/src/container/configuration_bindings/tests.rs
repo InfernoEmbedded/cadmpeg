@@ -101,15 +101,15 @@ fn source_index_must_be_valid_and_agree_with_the_complete_manifest() {
 }
 
 #[test]
-fn needs_update_and_non_unique_activity_abstain() {
+fn saved_identity_survives_regeneration_needed_but_non_unique_activity_abstains() {
     let features = FEATURES.replace(
         "swConfigurationNeedsUpdate=\"NO\"",
         "swConfigurationNeedsUpdate=\"YES\"",
     );
     let result = bindings(&features, KEYWORDS);
-    assert_eq!(result.index_for("Default"), Some(None));
-    assert_eq!(result.index_for("HI"), Some(None));
-    assert!(result.active().unique().is_none());
+    assert_eq!(result.index_for("Default"), Some(Some(0)));
+    assert_eq!(result.index_for("HI"), Some(Some(3)));
+    assert_eq!(result.active().unique(), Some((3, Some("HI".into()))));
     let features = FEATURES.replace(
         "swMostRecentConfiguration=\"NO\"",
         "swMostRecentConfiguration=\"YES\"",
@@ -147,7 +147,7 @@ fn absent_manifest_has_no_binding_claim_and_empty_keyword_names_are_unresolved()
     let keywords = KEYWORDS.replace("Name=\"HI\"", "Name=\"\"");
     let bindings = bindings(FEATURES, &keywords);
     assert_eq!(bindings.index_for(""), Some(None));
-    assert!(bindings.active().unique().is_none());
+    assert_eq!(bindings.active().unique(), Some((3, Some("HI".into()))));
 }
 
 #[test]
@@ -177,5 +177,46 @@ fn contradictory_partial_active_identity_and_duplicate_direct_indices_abstain() 
     let result = bindings(features, &keywords);
     assert_eq!(result.index_for("Default"), Some(None));
     assert_eq!(result.index_for("Other"), Some(None));
+    assert!(result.active().unique().is_none());
+}
+
+#[test]
+fn complete_saved_identity_does_not_require_a_keywords_carrier() {
+    let result = bindings(FEATURES, "<Keywords/>");
+    assert_eq!(result.index_for("Default"), Some(Some(0)));
+    assert_eq!(result.index_for("HI"), Some(Some(3)));
+    assert_eq!(result.name_for(0), Some("Default"));
+    assert_eq!(result.active().unique(), Some((3, Some("HI".into()))));
+}
+
+#[test]
+fn manifest_only_identity_still_requires_complete_same_document_model_join() {
+    for features in [
+        FEATURES.replace("swModelRef=\"9\"", "swModelRef=\"missing\""),
+        FEATURES.replace(
+            "swConfigurationName=\"HI\"",
+            "swConfigurationName=\"Other\"",
+        ),
+        FEATURES.replace("swConfigurationId=\"3\"", ""),
+        FEATURES.replace(
+            "</swSolidWorks>",
+            "<swConfiguration swName=\"HI\" swID=\"7\"/></swSolidWorks>",
+        ),
+    ] {
+        let result = bindings(&features, "<Keywords/>");
+        assert_eq!(result.index_for("HI"), Some(None));
+        assert!(result.active().unique().is_none());
+    }
+}
+
+#[test]
+fn manifest_only_identity_cannot_override_an_explicit_other_name_for_the_same_partition() {
+    let result = bindings(
+        FEATURES,
+        r#"<Keywords><Configuration Name="Other" SourceIndex="3"/></Keywords>"#,
+    );
+    assert_eq!(result.index_for("HI"), Some(None));
+    assert_eq!(result.index_for("Other"), Some(None));
+    assert_eq!(result.name_for(3), None);
     assert!(result.active().unique().is_none());
 }
