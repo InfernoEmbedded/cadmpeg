@@ -202,13 +202,17 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 **Need.** A source-level freshness rule and an independently validated cache-owner relation before a stored calculated snapshot can supply a live value. Saved scalar and dictionary identity alone do not establish either relation.
 
-### DI-04. Configuration property lookup
+### DI-04. Configured-property resolver and legacy ownership
 
-**Question.** How does a `property@configuration@part` operand select its property namespace?
+**Question.** What complete model/configuration/property resolver and legacy carrier grammar admit a configured property operand without borrowing another namespace or stale calculated value?
 
-**Known.** `sldprt.md` §2 "When exactly one line-distance operand identifies a profile line, the other operand identifies" through `sldprt.md` §2 "A bare `0` or `1` Keywords dimension bound to a unique driving distance" define independently evaluated configuration snapshots and configuration-local properties.
+**Known.** `sldprt.md` §8.1 "Modern configuration custom properties use" defines the exact modern configuration-name/stored-ID/carrier join and its UserDefinedProperties section. Stored IDs differ from element positions. Default, document custom and configuration custom properties are separate namespaces.
 
-**Need.** We must know the lookup rule to evaluate a configuration-qualified property operand.
+**Need.** Independent legacy configuration-property dictionary/FMTID ownership, no-ID admission, complete operand binding, and strict retained-writer behavior for configuration-local property edits. A saved formula does not establish currentness or override carrier ownership.
+
+**Conflict.** The current configuration projection retains Keywords fields but does not incorporate the modern configuration-property namespace. The saved default-property reader has a separate document owner and does not resolve configured custom properties.
+
+**Note.** Modern name/ID evidence does not establish a legacy singleton fallback, property-cache freshness, or complete evaluator execution.
 
 ### DI-05. Offset-edge relation invariant
 
