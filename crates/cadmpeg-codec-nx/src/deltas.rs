@@ -1961,7 +1961,7 @@ fn type_91_layout(
     let (xmt, consumed) = read_xmt(stream, offset.checked_add(2 + envelope_len)?)?;
     (xmt > 1).then_some(())?;
     let mut at = offset.checked_add(2 + envelope_len + consumed)?;
-    matches!(View::u32_be_at(stream, at), Some(0 | 1)).then_some(())?;
+    View::u32_be_at(stream, at)?;
     at += 4;
     let mut references = Vec::new();
     for _ in 0..6 {
@@ -1972,6 +1972,7 @@ fn type_91_layout(
         at += 1;
         references.push(reference);
     }
+    (references[0] > 1 && references[1] > 1).then_some(())?;
     Some((xmt, references, at))
 }
 

@@ -452,10 +452,9 @@ fn deltas_walks_complete_type_91_records() {
 
     let mut invalid = direct;
     invalid[4..8].copy_from_slice(&2u32.to_be_bytes());
-    assert!(crate::deltas::census::walk(&invalid)
-        .unwrap()
-        .records
-        .is_empty());
+    let admitted = crate::deltas::census::walk(&invalid).unwrap();
+    assert_eq!(admitted.records.len(), 1);
+    assert_eq!(admitted.records[0].canonical_bytes, invalid);
     invalid[4..8].copy_from_slice(&0u32.to_be_bytes());
     invalid[10] = 2;
     assert!(crate::deltas::census::walk(&invalid)
@@ -1577,3 +1576,5 @@ fn scope_index_matches_any_scope_containment() {
     assert!(inside > 4_000 && inside < 21_000);
     assert!(!ScopeIndex::new(&[]).contains(0));
 }
+
+mod member_labels;
