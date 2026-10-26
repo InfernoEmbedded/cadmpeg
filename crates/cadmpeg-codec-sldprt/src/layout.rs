@@ -2249,14 +2249,14 @@ pub(crate) mod component_face_flagged_operation_prefix {
 
 /// Byte offsets for the `temporary_axis_reference_nine_scalar` record.
 ///
-/// Spec §2. Record length 316 B.
+/// Spec §2. Record length 311 B.
 ///
 /// ```text
-/// Offsets begin at the class declaration. The carrier body ends at +311; a following class marker at +312 terminates the record after zero padding of at most 24 bytes.
+/// Offsets begin at the class declaration. The complete nine-scalar body ends before its exact tagged or declared boundary.
 /// ```
 pub(crate) mod temporary_axis_reference_nine_scalar {
     /// Record length in bytes. Spec §2.
-    pub(crate) const LEN: usize = 316;
+    pub(crate) const LEN: usize = 311;
     /// Offset of `class_marker` (`bytes[4]`). Spec §2.
     pub(crate) const CLASS_MARKER: usize = 0;
     /// Stated value of `class_marker` (`bytes[4]`). Spec §2.
@@ -2278,13 +2278,44 @@ pub(crate) mod temporary_axis_reference_nine_scalar {
     /// Stated value of `zero_before_address` (`bytes[4]`). Spec §2.
     pub(crate) const ZERO_BEFORE_ADDRESS_VALUE: [u8; 4] = [0x00, 0x00, 0x00, 0x00];
     /// Offset of `stream_address` (`u32`, little-endian). Spec §2.
+    #[cfg(test)]
     pub(crate) const STREAM_ADDRESS: usize = 235;
     /// Offset of `axis_frame` (`f64[9]`, little-endian). Spec §2.
     pub(crate) const AXIS_FRAME: usize = 239;
-    /// Offset of `next_class_marker` (`bytes[4]`). Spec §2.
-    pub(crate) const NEXT_CLASS_MARKER: usize = 312;
-    /// Stated value of `next_class_marker` (`bytes[4]`). Spec §2.
-    pub(crate) const NEXT_CLASS_MARKER_VALUE: [u8; 4] = [0xff, 0xff, 0x01, 0x00];
+}
+
+/// Byte offsets for the `temporary_axis_compact_boundary` record.
+///
+/// Spec §2. Record length 13 B.
+pub(crate) mod temporary_axis_compact_boundary {
+    /// Record length in bytes. Spec §2.
+    pub(crate) const LEN: usize = 13;
+    /// Offset of `zero` (`bytes[7]`). Spec §2.
+    pub(crate) const ZERO: usize = 0;
+    /// Stated value of `zero` (`bytes[7]`). Spec §2.
+    pub(crate) const ZERO_VALUE: [u8; 7] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+    /// Offset of `prologue` (`bytes[6]`). Spec §2.
+    pub(crate) const PROLOGUE: usize = 7;
+    /// Stated value of `prologue` (`bytes[6]`). Spec §2.
+    pub(crate) const PROLOGUE_VALUE: [u8; 6] = [0xff, 0xfe, 0xff, 0x00, 0x04, 0x00];
+}
+
+/// Byte offsets for the `temporary_axis_declared_boundary_prefix` record.
+///
+/// Spec §2. Record length 7 B.
+pub(crate) mod temporary_axis_declared_boundary_prefix {
+    /// Record length in bytes. Spec §2.
+    pub(crate) const LEN: usize = 7;
+    /// Offset of `zero` (`bytes[1]`). Spec §2.
+    pub(crate) const ZERO: usize = 0;
+    /// Stated value of `zero` (`bytes[1]`). Spec §2.
+    pub(crate) const ZERO_VALUE: [u8; 1] = [0x00];
+    /// Offset of `class_marker` (`bytes[4]`). Spec §2.
+    pub(crate) const CLASS_MARKER: usize = 1;
+    /// Stated value of `class_marker` (`bytes[4]`). Spec §2.
+    pub(crate) const CLASS_MARKER_VALUE: [u8; 4] = [0xff, 0xff, 0x01, 0x00];
+    /// Offset of `name_length` (`u16`, little-endian). Spec §2.
+    pub(crate) const NAME_LENGTH: usize = 5;
 }
 
 /// Byte offsets for the `cosmetic_thread_component_edge_wrapper_prefix` record.

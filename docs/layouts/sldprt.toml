@@ -10198,9 +10198,9 @@ parsed_by = "crates/cadmpeg-codec-sldprt/src/resolved_features/axes.rs"
 kind = "byte"
 section = "2"
 anchor = "An `moTempAxisRef_w` declaration stores two `c7 cf ff ff` handle words"
-size = 316
+size = 311
 endianness = "little"
-note = "Offsets begin at the class declaration. The carrier body ends at +311; a following class marker at +312 terminates the record after zero padding of at most 24 bytes."
+note = "Offsets begin at the class declaration. The complete nine-scalar body ends before its exact tagged or declared boundary."
 
 [[record.field]]
 name = "class_marker"
@@ -10239,7 +10239,7 @@ name = "zero_before_address"
 offset = 231
 type = "bytes[4]"
 source = "spec"
-anchor = "followed by a zero u32 and a nonzero stream address"
+anchor = "followed by a zero u32 and a stream-address word"
 value = [0x00, 0x00, 0x00, 0x00]
 
 [[record.field]]
@@ -10247,32 +10247,76 @@ name = "stream_address"
 offset = 235
 type = "u32"
 source = "spec"
-anchor = "followed by a zero u32 and a nonzero stream address"
+anchor = "followed by a zero u32 and a stream-address word"
 
 [[record.field]]
 name = "axis_frame"
 offset = 239
 type = "f64[9]"
 source = "spec"
-anchor = "Nine little-endian f64 values at declaration offset `+239` store the axis point in metres in the first xyz triple and the unit axis direction in the final xyz triple."
-
-[[record.field]]
-name = "next_class_marker"
-offset = 312
-type = "bytes[4]"
-source = "spec"
-anchor = "the next class declaration starts at `+312`"
-value = [0xff, 0xff, 0x01, 0x00]
+anchor = "Nine little-endian f64 values begin at declaration offset `+239`."
 
 [[record.gap]]
 offset = 21
 size = 202
 note = "Undecoded class-body bytes between the class name and the handle pair."
 
-[[record.gap]]
-offset = 311
-size = 1
-note = "One byte separates the final f64 scalar from the next class marker."
+[[record]]
+name = "temporary_axis_compact_boundary"
+parsed_by = "crates/cadmpeg-codec-sldprt/src/resolved_features/axes.rs"
+kind = "byte"
+section = "2"
+anchor = "The compact boundary has zero bytes at boundary offset"
+size = 13
+endianness = "little"
+
+[[record.field]]
+name = "zero"
+offset = 0
+type = "bytes[7]"
+source = "spec"
+anchor = "zero bytes at boundary offset `+0`"
+value = [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]
+
+[[record.field]]
+name = "prologue"
+offset = 7
+type = "bytes[6]"
+source = "spec"
+anchor = "the prologue at `+7`"
+value = [0xff, 0xfe, 0xff, 0x0, 0x4, 0x0]
+
+[[record]]
+name = "temporary_axis_declared_boundary_prefix"
+parsed_by = "crates/cadmpeg-codec-sldprt/src/resolved_features/axes.rs"
+kind = "byte"
+section = "2"
+anchor = "The declared boundary has zero at"
+size = 7
+endianness = "little"
+
+[[record.field]]
+name = "zero"
+offset = 0
+type = "bytes[1]"
+source = "spec"
+anchor = "zero at `+0`"
+value = [0x0]
+
+[[record.field]]
+name = "class_marker"
+offset = 1
+type = "bytes[4]"
+source = "spec"
+anchor = "the class marker at `+1`"
+value = [0xff, 0xff, 0x1, 0x0]
+
+[[record.field]]
+name = "name_length"
+offset = 5
+type = "u16"
+source = "spec"
+anchor = "name length at `+5`"
 
 [[record]]
 name = "cosmetic_thread_component_edge_wrapper_prefix"

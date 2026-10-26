@@ -2580,9 +2580,9 @@ Unstated regions:
 
 ## `temporary_axis_reference_nine_scalar`
 
-Spec §2 · layout: byte offsets · size: 316 B
+Spec §2 · layout: byte offsets · size: 311 B
 
-Offsets begin at the class declaration. The carrier body ends at +311; a following class marker at +312 terminates the record after zero padding of at most 24 bytes.
+Offsets begin at the class declaration. The complete nine-scalar body ends before its exact tagged or declared boundary.
 
 Parsed by:
 - `crates/cadmpeg-codec-sldprt/src/resolved_features/axes.rs`
@@ -2593,15 +2593,38 @@ Parsed by:
 | 4 | 2 | `name_length` | `u16` | little | spec | name length `15` at `+4` · value `15` |
 | 6 | 15 | `name` | `bytes[15]` | little | spec | class name `moTempAxisRef_w` at `+6` · value `[109, 111, 84, 101, 109, 112, 65, 120, 105, 115, 82, 101, 102, 95, 119]` |
 | 223 | 8 | `handles` | `bytes[8]` | little | spec | two `c7 cf ff ff` handle words at declaration offsets `+223` and `+227` · value `[199, 207, 255, 255, 199, 207, 255, 255]` |
-| 231 | 4 | `zero_before_address` | `bytes[4]` | little | spec | followed by a zero u32 and a nonzero stream address · value `[0, 0, 0, 0]` |
-| 235 | 4 | `stream_address` | `u32` | little | spec | followed by a zero u32 and a nonzero stream address |
-| 239 | 72 | `axis_frame` | `f64[9]` | little | spec | Nine little-endian f64 values at declaration offset `+239` store the axis point in metres in the first xyz triple and the unit axis direction in the final xyz triple. |
-| 312 | 4 | `next_class_marker` | `bytes[4]` | little | spec | the next class declaration starts at `+312` · value `[255, 255, 1, 0]` |
+| 231 | 4 | `zero_before_address` | `bytes[4]` | little | spec | followed by a zero u32 and a stream-address word · value `[0, 0, 0, 0]` |
+| 235 | 4 | `stream_address` | `u32` | little | spec | followed by a zero u32 and a stream-address word |
+| 239 | 72 | `axis_frame` | `f64[9]` | little | spec | Nine little-endian f64 values begin at declaration offset `+239`. |
 
 Unstated regions:
 
 - `21..223` (202 B): Undecoded class-body bytes between the class name and the handle pair.
-- `311..312` (1 B): One byte separates the final f64 scalar from the next class marker.
+
+## `temporary_axis_compact_boundary`
+
+Spec §2 · layout: byte offsets · size: 13 B
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/resolved_features/axes.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 7 | `zero` | `bytes[7]` | little | spec | zero bytes at boundary offset `+0` · value `[0, 0, 0, 0, 0, 0, 0]` |
+| 7 | 6 | `prologue` | `bytes[6]` | little | spec | the prologue at `+7` · value `[255, 254, 255, 0, 4, 0]` |
+
+## `temporary_axis_declared_boundary_prefix`
+
+Spec §2 · layout: byte offsets · size: 7 B
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/resolved_features/axes.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `zero` | `bytes[1]` | little | spec | zero at `+0` · value `[0]` |
+| 1 | 4 | `class_marker` | `bytes[4]` | little | spec | the class marker at `+1` · value `[255, 255, 1, 0]` |
+| 5 | 2 | `name_length` | `u16` | little | spec | name length at `+5` |
 
 ## `cosmetic_thread_component_edge_wrapper_prefix`
 

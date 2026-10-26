@@ -466,13 +466,13 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Need.** Distinguish the wrapper selector byte and the tail words between the surface-body identity pair and the termination sentinels with labeled parts cut to opposite sides before assigning the reverse value.
 
-### DI-39. `moTempAxisRef_w` carrier end and middle triple
+### DI-39. Temporary-axis ownership in revolution features
 
-**Question.** What fixes the end of a `moTempAxisRef_w` nine-scalar carrier, and what do its scalars at `+263`, `+271`, and `+279` hold?
+**Question.** Which owned revolution input identifies the temporary-axis carrier when a profile-source join or another line-reference candidate is also present?
 
-**Known.** `sldprt.md` §2 "An `moCirPattern_c` interval retains its repeated seed" gives the carrier at offsets `+0` through `+311`, the axis origin at `+239`, the axis direction at `+287`, and zero padding of at most 24 bytes before the next class declaration. `crates/cadmpeg-codec-sldprt/src/resolved_features/axes.rs:786-863` searches that 24-byte window for the next class marker and rejects the carrier when the search fails. The specification gives no stored field that fixes the padding length. The decoder reads the three scalars between the origin and the direction, tests them for a finite value, and then discards them.
+**Known.** `sldprt.md` §2 defines the nine-scalar carrier's middle point, direction, exact compact or declared boundary, and valid zero stream address. Those carrier fields do not establish which feature owns the axis or whether another independent source selects a different axis.
 
-**Need.** We must know the field that ends the carrier, so the record does not need a tuned search window, and the middle triple, so the complete axis frame is decoded.
+**Need.** A complete profile and axis ownership relation must connect the carrier to the revolution. Competing complete source operands must agree before the axis is admitted; source order and fallback priority do not establish agreement.
 
 ### DI-40. Extrusion profile identity without an explicit profile relation
 
