@@ -326,3 +326,25 @@ fn schema_field_roles_charge_retained_metadata_before_copying() {
         matches!(error, cadmpeg_core::CodecError::ResourceLimit(limit) if limit.dimension == cadmpeg_core::decode::ResourceDimension::RetainedBytes && limit.operation == "retain CATIA schema-configuration field roles")
     );
 }
+
+#[test]
+fn field_role_name_has_one_absence_spelling() {
+    let native = CatiaNative::decode(&standard_catpart_with_schema_field_roles(
+        &[8],
+        &[(8, 6)],
+        "body",
+    ));
+    let role = &native.schema_configuration_row_chains[0].links()[0].field_roles[0];
+    let mut value = serde_json::to_value(role).unwrap();
+    assert!(
+        serde_json::from_value::<super::CatiaSchemaConfigurationFieldRole>(value.clone()).is_ok()
+    );
+    value.as_object_mut().unwrap().remove("name");
+    let absent: super::CatiaSchemaConfigurationFieldRole =
+        serde_json::from_value(value.clone()).unwrap();
+    assert!(absent.name.is_none());
+    value["name"] = serde_json::Value::Null;
+    let error =
+        serde_json::from_value::<super::CatiaSchemaConfigurationFieldRole>(value).unwrap_err();
+    assert!(error.to_string().contains("name"));
+}

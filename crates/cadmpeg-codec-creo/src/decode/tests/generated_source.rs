@@ -23,7 +23,6 @@ use crate::decode::holes::drilled::{
     simple_drilled_hole_recipe, stepped_hole_form, SimpleDrilledDimensionFamily,
 };
 
-use crate::decode::sketch::equations_coordinate::approximately_equal;
 use crate::decode::surfaces::cylinders::rowless_round_cylinder_pairs;
 
 use crate::feature::schema::SchemaClass;
@@ -34,7 +33,6 @@ use cadmpeg_ir::features::FeatureOperation as IrFeatureOperation;
 use cadmpeg_ir::features::LinearTermination;
 use cadmpeg_ir::geometry::{SolvedSurfaceGeometry, SurfaceGeometry};
 use cadmpeg_ir::math::{Point2, Point3, Vector3};
-use cadmpeg_ir::scalar::FiniteReal;
 use cadmpeg_ir::scalar::{Length, PositiveLength};
 use cadmpeg_ir::sketches::{SketchGeometry, SketchGeometryDefinition};
 use std::collections::{BTreeMap, BTreeSet};

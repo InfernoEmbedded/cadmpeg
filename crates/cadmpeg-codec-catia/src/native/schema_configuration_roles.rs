@@ -29,7 +29,11 @@ pub(crate) struct CatiaSchemaFieldIncidence {
 pub(crate) struct CatiaSchemaConfigurationFieldRole {
     pub(crate) target: CatiaEntityReference,
     pub(crate) target_object: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_role_name"
+    )]
     pub(crate) name: Option<String>,
     pub(crate) incidences: Vec<CatiaSchemaFieldIncidence>,
 }
@@ -287,3 +291,5 @@ pub(super) fn bind<'e, 'o>(
     }
     Ok(())
 }
+
+cadmpeg_core::named_optional_field!(deserialize_role_name, String, "name");

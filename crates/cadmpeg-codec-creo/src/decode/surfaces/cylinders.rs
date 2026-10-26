@@ -1018,7 +1018,11 @@ pub(in super::super) fn transfer_positional_cylinders(
             continue;
         };
         let feature_class = schema_classes.get(row.feature_id);
-        if scan.surfaces.withheld_cap_surface_ids.contains(&record.surface_id) {
+        if scan
+            .surfaces
+            .withheld_cap_surface_ids
+            .contains(&record.surface_id)
+        {
             continue;
         }
         let inline_non_plane = record.has_inline_non_plane_envelope()
@@ -1510,7 +1514,11 @@ pub(in super::super) fn transfer_positional_cones(
     let rows = UniqueById::new(&scan.surfaces.rows, |row| row.id);
     let mut transferred = 0;
     for record in &scan.surfaces.parameters {
-        if scan.surfaces.withheld_cone_origin_surface_ids.contains(&record.surface_id) {
+        if scan
+            .surfaces
+            .withheld_cone_origin_surface_ids
+            .contains(&record.surface_id)
+        {
             continue;
         }
         let Some(frame) = record.positional_cone_frame() else {

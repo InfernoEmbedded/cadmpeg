@@ -1200,36 +1200,63 @@ fn owned_radius_consensus_withholds_conflicting_pair_offsets_and_saturation() {
 
 #[test]
 fn compact_cone_origin_selected_prefix_retains_unresolved_and_ambiguous_state() {
-    let make = |reference| vec![
-        0x18,0x10,0x18,0x10,0x18,0xe6,0x10,0x18,reference,0xc6,0x0f,0xaf,0xbf,0xd9,0x73,0x04,
-        0x2f,0x34,0x00,0x74,0x21,0xfb,0x54,0x44,0x2d,0x19,0xe3,
-    ];
+    let make = |reference| {
+        vec![
+            0x18, 0x10, 0x18, 0x10, 0x18, 0xe6, 0x10, 0x18, reference, 0xc6, 0x0f, 0xaf, 0xbf,
+            0xd9, 0x73, 0x04, 0x2f, 0x34, 0x00, 0x74, 0x21, 0xfb, 0x54, 0x44, 0x2d, 0x19, 0xe3,
+        ]
+    };
     crate::decode::with_service_context(|ctx| {
         let cache = scalar::ScalarCache::default();
-        for reference in [0x19,0x32] {
-            let mut bytes=make(reference);
-            for payload_close in [false,true] {
-                if payload_close {bytes[11]=0xe3;}
-                let layout=inline_surface_body(ctx,SurfaceKind::Cone,&bytes,&cache).expect("bounded scan").expect("owned suffix");
-                assert_eq!(layout.terminal_close,Some(bytes.len()-1));
-                assert_eq!(layout.withheld_cone_origin_start,Some(0));
+        for reference in [0x19, 0x32] {
+            let mut bytes = make(reference);
+            for payload_close in [false, true] {
+                if payload_close {
+                    bytes[11] = 0xe3;
+                }
+                let layout = inline_surface_body(ctx, SurfaceKind::Cone, &bytes, &cache)
+                    .expect("bounded scan")
+                    .expect("owned suffix");
+                assert_eq!(layout.terminal_close, Some(bytes.len() - 1));
+                assert_eq!(layout.withheld_cone_origin_start, Some(0));
                 assert!(layout.carrier.is_none());
             }
         }
-        let full=make(0x19);
-        let mut nonreference=full.clone();nonreference[8]=0x28;
-        let mut missing_zero=full.clone();missing_zero[7]=0x10;
-        for bytes in [full[..full.len()-1].to_vec(), full[..12].to_vec(), nonreference, missing_zero] {
-            let layout=inline_surface_body(ctx,SurfaceKind::Cone,&bytes,&cache).expect("bounded scan");
-            assert!(layout.and_then(|layout|layout.withheld_cone_origin_start).is_none());
+        let full = make(0x19);
+        let mut nonreference = full.clone();
+        nonreference[8] = 0x28;
+        let mut missing_zero = full.clone();
+        missing_zero[7] = 0x10;
+        for bytes in [
+            full[..full.len() - 1].to_vec(),
+            full[..12].to_vec(),
+            nonreference,
+            missing_zero,
+        ] {
+            let layout =
+                inline_surface_body(ctx, SurfaceKind::Cone, &bytes, &cache).expect("bounded scan");
+            assert!(layout
+                .and_then(|layout| layout.withheld_cone_origin_start)
+                .is_none());
         }
-        let mut known=full[..7].to_vec();known.extend([0x18,0x18,0x18]);known.extend(&full[19..]);
-        let layout=inline_surface_body(ctx,SurfaceKind::Cone,&known,&cache).expect("known scan").expect("known suffix");
-        assert!(layout.carrier.is_some());assert!(layout.withheld_cone_origin_start.is_none());
-        for parts in [vec![full.clone(),known.clone()],vec![known.clone(),known.clone(),full.clone()]] {
-            let bytes=parts.concat();
-            let layout=inline_surface_body(ctx,SurfaceKind::Cone,&bytes,&cache).expect("ambiguous scan").expect("veto survives ambiguity");
-            assert!(layout.carrier.is_none());assert!(layout.withheld_cone_origin_start.is_some());
+        let mut known = full[..7].to_vec();
+        known.extend([0x18, 0x18, 0x18]);
+        known.extend(&full[19..]);
+        let layout = inline_surface_body(ctx, SurfaceKind::Cone, &known, &cache)
+            .expect("known scan")
+            .expect("known suffix");
+        assert!(layout.carrier.is_some());
+        assert!(layout.withheld_cone_origin_start.is_none());
+        for parts in [
+            vec![full.clone(), known.clone()],
+            vec![known.clone(), known.clone(), full.clone()],
+        ] {
+            let bytes = parts.concat();
+            let layout = inline_surface_body(ctx, SurfaceKind::Cone, &bytes, &cache)
+                .expect("ambiguous scan")
+                .expect("veto survives ambiguity");
+            assert!(layout.carrier.is_none());
+            assert!(layout.withheld_cone_origin_start.is_some());
             assert!(layout.terminal_close.is_none());
         }
     });

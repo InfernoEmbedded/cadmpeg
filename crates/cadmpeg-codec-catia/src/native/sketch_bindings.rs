@@ -19,7 +19,11 @@ pub(crate) struct CatiaSketchMemberTarget {
     pub(crate) entity: String,
     pub(crate) object: String,
     pub(crate) group: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_sketch_child"
+    )]
     pub(crate) child: Option<String>,
 }
 
@@ -28,7 +32,11 @@ pub(crate) struct CatiaSketchMember {
     pub(crate) ordinal: u64,
     pub(crate) payload_offset: u64,
     pub(crate) entity_id: u32,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_sketch_target"
+    )]
     pub(crate) target: Option<CatiaSketchMemberTarget>,
 }
 
@@ -333,3 +341,6 @@ pub(super) fn bind(
 
 #[cfg(test)]
 mod tests;
+
+cadmpeg_core::named_optional_field!(deserialize_sketch_child, String, "child");
+cadmpeg_core::named_optional_field!(deserialize_sketch_target, CatiaSketchMemberTarget, "target");

@@ -8,9 +8,9 @@
 pub(crate) mod arrays;
 pub(crate) mod cylinder_frame_readers;
 
-use cadmpeg_core::CodecError;
 use cadmpeg_core::bytes::{find_from as find, find_in};
-use cadmpeg_core::decode::{DecodeContext, bounded_len};
+use cadmpeg_core::decode::{bounded_len, DecodeContext};
+use cadmpeg_core::CodecError;
 use cadmpeg_ir::features::FinitePoint3;
 use cadmpeg_ir::math::{Point3, Vector3};
 use cadmpeg_ir::scalar::{NonNegativeLength, PositiveAngle, PositiveLength};
@@ -1296,8 +1296,9 @@ pub(crate) struct TabulatedCylinderCurveReplay {
 impl SurfaceParameterRecord {
     pub(crate) fn unresolved_cone_origin_suffix(&self) -> Option<std::ops::Range<usize>> {
         match self.carrier {
-            SurfaceParameterCarrier::WithheldConeOrigin { suffix_start } =>
-                Some(suffix_start..self.body.len()),
+            SurfaceParameterCarrier::WithheldConeOrigin { suffix_start } => {
+                Some(suffix_start..self.body.len())
+            }
             _ => None,
         }
     }
@@ -1314,7 +1315,10 @@ impl SurfaceParameterRecord {
             "retain unresolved cone origin suffix",
         )?;
         self.scalar_tokens.retain(|token| {
-            token.offset.checked_add(token.raw.len()).is_some_and(|end| end <= suffix.start)
+            token
+                .offset
+                .checked_add(token.raw.len())
+                .is_some_and(|end| end <= suffix.start)
         });
         self.scalar_frames = scalar_frames(&self.scalar_tokens);
         self.opaque_spans = opaque_spans(&self.body, &self.scalar_tokens);
@@ -1554,15 +1558,7 @@ impl SurfaceParameterRecord {
                     .last()
                     .and_then(|slot| slot.offset.checked_add(slot.raw.len()));
                 if let (
-                    Ok(
-                        [
-                            coordinate0,
-                            coordinate1,
-                            coordinate2,
-                            coordinate3,
-                            coordinate4,
-                        ],
-                    ),
+                    Ok([coordinate0, coordinate1, coordinate2, coordinate3, coordinate4]),
                     true,
                 ) = (
                     <&[SurfaceParameterScalar; 5]>::try_from(frame.slots.as_slice()),
@@ -2080,17 +2076,7 @@ impl SurfaceParameterRecord {
                     radial_end.value?,
                 ]
             }
-            (
-                [control],
-                [
-                    auxiliary,
-                    axial_start,
-                    radial_start,
-                    held,
-                    axial_end,
-                    radial_end,
-                ],
-            ) => {
+            ([control], [auxiliary, axial_start, radial_start, held, axial_end, radial_end]) => {
                 let controls_end = contiguous_end(controls)?;
                 let terminal_end = contiguous_end(terminal)?;
                 (control.value?.is_finite()
@@ -4266,13 +4252,20 @@ fn merge_inline_layout(
         Some(previous) => {
             *ambiguous = true;
             if let Some(start) = layout.withheld_cone_origin_start {
-                previous.withheld_cone_origin_start = Some(previous.withheld_cone_origin_start.map_or(start, |old| old.min(start)));
+                previous.withheld_cone_origin_start = Some(
+                    previous
+                        .withheld_cone_origin_start
+                        .map_or(start, |old| old.min(start)),
+                );
             }
         }
     }
 }
 
-fn finish_inline_layout(sole: Option<InlineSurfaceBody>, ambiguous: bool) -> Option<InlineSurfaceBody> {
+fn finish_inline_layout(
+    sole: Option<InlineSurfaceBody>,
+    ambiguous: bool,
+) -> Option<InlineSurfaceBody> {
     let mut layout = sole?;
     if ambiguous {
         if layout.withheld_cone_origin_start.is_none() {
@@ -4396,8 +4389,11 @@ fn inline_surface_body(
                 prefix,
                 scalar::InlineNonPlaneLocalSystemPrefix::Explicit(_)
             ));
-            if kind == SurfaceKind::Cone && unresolved_compact_cone_origin(local, prefix, cache)
-                .is_some_and(|cursor| inline_surface_suffix(kind, local, cursor, cache).is_some()) {
+            if kind == SurfaceKind::Cone
+                && unresolved_compact_cone_origin(local, prefix, cache).is_some_and(|cursor| {
+                    inline_surface_suffix(kind, local, cursor, cache).is_some()
+                })
+            {
                 withheld_cone_origin_start = Some(local_start);
                 structurally_complete = true;
                 geometric_interpretation_count += 1;
@@ -4449,7 +4445,9 @@ fn inline_surface_body(
             withheld_cone_origin_start,
         };
         merge_inline_layout(&mut sole_layout, &mut ambiguous_layout, layout);
-        if ambiguous_layout && kind != SurfaceKind::Cone { return Ok(None); }
+        if ambiguous_layout && kind != SurfaceKind::Cone {
+            return Ok(None);
+        }
     }
     if sole_layout.is_some() {
         Ok(finish_inline_layout(sole_layout, ambiguous_layout))
@@ -4489,8 +4487,10 @@ fn inline_surface_suffix_body(
             ));
             if kind == SurfaceKind::Cone {
                 if let Some(cursor) = unresolved_compact_cone_origin(local, prefix, cache) {
-                    if let Some((_, end)) = decode_inline_surface_suffix_at(kind, local, cursor, cache)
-                        .filter(|(_, end)| local.get(*end) == Some(&psb::token::COMPOUND_CLOSE)) {
+                    if let Some((_, end)) =
+                        decode_inline_surface_suffix_at(kind, local, cursor, cache)
+                            .filter(|(_, end)| local.get(*end) == Some(&psb::token::COMPOUND_CLOSE))
+                    {
                         discovery_withheld_origin = Some(local_start);
                         let Some(target) = terminal_closes.get_mut(close_count) else {
                             return Ok(Some(withheld_inline_cone_origin(local_start)));
@@ -4512,8 +4512,11 @@ fn inline_surface_suffix_body(
                     if local.get(end) == Some(&psb::token::COMPOUND_CLOSE) {
                         *match terminal_closes.get_mut(close_count) {
                             Some(value) => value,
-                            None => return Ok(discovery_withheld_origin.map(withheld_inline_cone_origin)
-                                .or_else(|| finish_inline_layout(sole_layout, true))),
+                            None => {
+                                return Ok(discovery_withheld_origin
+                                    .map(withheld_inline_cone_origin)
+                                    .or_else(|| finish_inline_layout(sole_layout, true)))
+                            }
                         } = end;
                         close_count += 1;
                     }
@@ -4545,8 +4548,11 @@ fn inline_surface_suffix_body(
                     prefix,
                     scalar::InlineNonPlaneLocalSystemPrefix::Explicit(_)
                 ));
-                if kind == SurfaceKind::Cone && unresolved_compact_cone_origin(local, prefix, cache)
-                    .is_some_and(|cursor| inline_surface_suffix(kind, local, cursor, cache).is_some()) {
+                if kind == SurfaceKind::Cone
+                    && unresolved_compact_cone_origin(local, prefix, cache).is_some_and(|cursor| {
+                        inline_surface_suffix(kind, local, cursor, cache).is_some()
+                    })
+                {
                     withheld_cone_origin_start = Some(local_start);
                     structurally_complete = true;
                     geometric_interpretation_count += 1;
@@ -4606,12 +4612,18 @@ fn inline_surface_suffix_body(
             };
             let layout = InlineSurfaceBody {
                 terminal_close: Some(terminal_close),
-                carrier: if withheld_cone_origin_start.is_some() { None } else { carrier },
+                carrier: if withheld_cone_origin_start.is_some() {
+                    None
+                } else {
+                    carrier
+                },
                 type26_minor_radius,
                 withheld_cone_origin_start,
             };
             merge_inline_layout(&mut sole_layout, &mut ambiguous_layout, layout);
-            if ambiguous_layout && kind != SurfaceKind::Cone { return Ok(None); }
+            if ambiguous_layout && kind != SurfaceKind::Cone {
+                return Ok(None);
+            }
         }
     }
     if discovery_saturated {
@@ -5596,7 +5608,9 @@ fn contour_records_for_rows(
         } else if let Some(layout) =
             inline_surface_body(ctx, row.kind, &payload[body_start..row_end], &cache)?
         {
-            let Some(contour_start) = layout.terminal_close.and_then(|close| body_start.checked_add(close))
+            let Some(contour_start) = layout
+                .terminal_close
+                .and_then(|close| body_start.checked_add(close))
                 .and_then(|close| close.checked_add(1))
             else {
                 continue;
@@ -5895,9 +5909,13 @@ fn unresolved_compact_cone_origin(
     prefix: scalar::InlineNonPlaneLocalSystemPrefix,
     cache: &scalar::ScalarCache,
 ) -> Option<usize> {
-    let scalar::InlineNonPlaneLocalSystemPrefix::Compact(frame) = prefix else { return None; };
+    let scalar::InlineNonPlaneLocalSystemPrefix::Compact(frame) = prefix else {
+        return None;
+    };
     let origin = local.get(frame.cursor..)?;
-    if !matches!(origin, [0x18, 0x19 | 0x32, ..]) { return None; }
+    if !matches!(origin, [0x18, 0x19 | 0x32, ..]) {
+        return None;
+    }
     let (value, end) = scalar::decode_in_surface_row_lane(origin, 1 + 8, cache)?;
     (value.is_finite() && end == 1 + 8 + 3).then_some(())?;
     let cursor = frame.cursor.checked_add(end)?;

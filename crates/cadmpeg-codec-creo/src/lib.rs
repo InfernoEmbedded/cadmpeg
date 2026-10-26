@@ -62,13 +62,13 @@
 
 mod axis;
 mod compress;
-mod double_xar;
 mod container;
 mod coverage;
 mod curve;
 mod datum;
 mod decode;
 mod dialect;
+mod double_xar;
 mod feature;
 mod identity;
 mod interpolation_grid;

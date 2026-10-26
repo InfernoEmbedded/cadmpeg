@@ -275,7 +275,10 @@ fn map_two_chart_endpoint_sets(
         .surfaces
         .withheld_cap_curve_ids
         .contains(&pcurve.curve_id)
-        || scan.surfaces.withheld_cone_origin_curve_ids.contains(&pcurve.curve_id)
+        || scan
+            .surfaces
+            .withheld_cone_origin_curve_ids
+            .contains(&pcurve.curve_id)
     {
         return Ok(TwoChartMapping::Withheld);
     }
@@ -1068,7 +1071,11 @@ pub(super) fn pcurve_edge_endpoint_evidence_with_carriers(
                              endpoint_carrier_proof: bool|
      -> Result<(), cadmpeg_core::CodecError> {
         if scan.surfaces.withheld_cap_curve_ids.contains(&curve_id)
-                || scan.surfaces.withheld_cone_origin_curve_ids.contains(&curve_id) {
+            || scan
+                .surfaces
+                .withheld_cone_origin_curve_ids
+                .contains(&curve_id)
+        {
             diagnostics.unmapped_records += 1;
             return Ok(());
         }
@@ -1649,7 +1656,11 @@ pub(in crate::decode) fn transfer_analytic_pcurve_carriers(
                                offset: usize|
          -> Result<(), cadmpeg_core::CodecError> {
             if scan.surfaces.withheld_cap_curve_ids.contains(&curve_id)
-                || scan.surfaces.withheld_cone_origin_curve_ids.contains(&curve_id) {
+                || scan
+                    .surfaces
+                    .withheld_cone_origin_curve_ids
+                    .contains(&curve_id)
+            {
                 return Ok(());
             }
             let Some(face_id) = face_id.map(NonZeroU32::get) else {
