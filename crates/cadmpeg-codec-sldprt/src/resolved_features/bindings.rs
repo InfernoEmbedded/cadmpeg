@@ -21,7 +21,7 @@ use super::scalars::FeatureObjectNames;
 use super::selections::{
     compact_body_selections, compact_edge_selections, compact_surface_selections,
     coordinate_marker_local_links, generated_surface_identities, marker_local_links,
-    mirror_pattern_component_path_at, unique_marker_candidate, COMPACT_EDGE_VECTOR_MARKER,
+    unique_marker_candidate,
 };
 use super::typed_relations::{legacy_terminal_indexed_profile_line, marker_curve_endpoint_markers};
 use crate::brep::feature_source::FeatureSourceId;
@@ -83,18 +83,6 @@ pub(crate) fn bind_pattern_inputs(
     let mut circular_axis_assignments = Vec::<(usize, FinitePoint3, UnitVector3)>::new();
     let mut linear_direction_assignments = Vec::<(usize, FeatureDirection3)>::new();
     let mut mirror_plane_assignments = Vec::<(usize, Point3, Vector3)>::new();
-    let mut mirror_seed_assignments = Vec::<(usize, Vec<cadmpeg_ir::features::FeatureId>)>::new();
-    let derived_cosmetic_thread_seed = |feature: &crate::records::Feature| {
-        history_features
-            .iter()
-            .filter(|candidate| {
-                candidate.parent == feature.parent
-                    && candidate.ordinal < feature.ordinal
-                    && candidate.input_class.as_deref() == Some("moCosmeticThread_c")
-            })
-            .max_by_key(|candidate| candidate.ordinal)
-            .map(|native| native.id.as_str())
-    };
 
     for lane in lanes {
         let discovered_identities;
@@ -141,89 +129,27 @@ pub(crate) fn bind_pattern_inputs(
                 let Some(&model_index) = model_by_native.get(feature.id.as_str()) else {
                     continue;
                 };
-                let (needs_plane, needs_seeds) =
-                    match model_features[model_index].evaluation.definition() {
-                        FeatureDefinition::Operation(FeatureOperation::Pattern {
-                            seeds,
-                            pattern,
-                            ..
-                        }) => (pattern.is_unresolved(), seeds.is_empty()),
-                        _ => continue,
-                    };
-                if !needs_plane && !needs_seeds {
+                let needs_plane = match model_features[model_index].evaluation.definition() {
+                    FeatureDefinition::Operation(FeatureOperation::Pattern { pattern, .. }) => {
+                        pattern.is_unresolved()
+                    }
+                    _ => continue,
+                };
+                if !needs_plane {
                     continue;
                 }
-                let start = Some(starts[start_index].0);
                 let end = pattern_object_end();
-                let Some(start) = start.filter(|start| *start < end) else {
+                let start = starts[start_index].0;
+                if start >= end {
                     continue;
-                };
+                }
                 let object = &lane.native_payload[start..end];
-                if needs_plane {
-                    if let Ok(Some((origin, normal, _))) = explicit_reference_plane_frame(object) {
-                        mirror_plane_assignments.push((model_index, origin, normal));
-                    }
+                if let Ok(Some((origin, normal, _))) = explicit_reference_plane_frame(object) {
+                    mirror_plane_assignments.push((model_index, origin, normal));
                 }
-                if !needs_seeds {
-                    continue;
-                }
-                let mut seeds = Vec::<cadmpeg_ir::features::FeatureId>::new();
-                let scan_end = if object.len() >= COMPACT_EDGE_VECTOR_MARKER.len() {
-                    object.len() - COMPACT_EDGE_VECTOR_MARKER.len()
-                } else {
-                    0
-                };
-                for offset in 0..scan_end {
-                    if object.get(offset..offset + COMPACT_EDGE_VECTOR_MARKER.len())
-                        != Some(COMPACT_EDGE_VECTOR_MARKER.as_slice())
-                    {
-                        continue;
-                    }
-                    let Some(components) = mirror_pattern_component_path_at(object, offset) else {
-                        continue;
-                    };
-                    let native = (|| {
-                        for component in components.iter().rev() {
-                            let source = View::u32_le_at(component.type_signature.as_ref(), 4)?;
-                            let mut matches = history_features
-                                .iter()
-                                .filter(|candidate| candidate.source_value() == Some(source));
-                            let Some(feature) = matches.next() else {
-                                continue;
-                            };
-                            return matches.next().is_none().then_some(feature.id.as_str());
-                        }
-                        None
-                    })();
-                    let Some(native) = native else {
-                        continue;
-                    };
-                    let Some(seed_index) = model_by_native.get(native).copied() else {
-                        continue;
-                    };
-                    if seed_index == model_index {
-                        continue;
-                    }
-                    let seed = &model_features[seed_index].id;
-                    if !seeds.contains(seed) {
-                        let seed = seed.clone();
-                        seeds.push(seed);
-                    }
-                }
-                if seeds.is_empty() {
-                    if has_derived_cosmetic_thread_output {
-                        if let Some(seed_index) = derived_cosmetic_thread_seed(feature)
-                            .and_then(|native| model_by_native.get(native).copied())
-                        {
-                            let mut seeds = Vec::new();
-                            let seed = model_features[seed_index].id.clone();
-                            seeds.push(seed);
-                            mirror_seed_assignments.push((model_index, seeds));
-                        }
-                    }
-                } else {
-                    mirror_seed_assignments.push((model_index, seeds));
-                }
+                // Persistent component paths retain provenance, not a complete
+                // authored seed roster. Neither that provenance nor a nearby
+                // cosmetic thread can supply a missing seed relation.
                 continue;
             }
             if feature.input_class.as_deref() == Some("moCirPattern_c") {
@@ -353,43 +279,21 @@ pub(crate) fn bind_pattern_inputs(
                             });
                     }
                 }
-                let (needs_seed, needs_direction) = match model_features[model_index]
-                    .evaluation
-                    .definition()
-                {
-                    FeatureDefinition::Operation(FeatureOperation::Pattern { seeds, pattern }) => {
+                let needs_direction = match model_features[model_index].evaluation.definition() {
+                    FeatureDefinition::Operation(FeatureOperation::Pattern { pattern, .. }) => {
                         let PatternTransform::Linear { direction, .. } = pattern.definition()
                         else {
                             continue;
                         };
-                        (seeds.is_empty(), direction.is_none())
+                        direction.is_none()
                     }
                     _ => continue,
                 };
-                if !needs_seed && !needs_direction {
-                    continue;
-                }
-                if needs_seed {
-                    if has_derived_cosmetic_thread_output {
-                        if let Some(seed_index) = derived_cosmetic_thread_seed(feature)
-                            .and_then(|native| model_by_native.get(native).copied())
-                        {
-                            let seed = model_features[seed_index].id.clone();
-                            pattern_seed_assignments.push((model_index, seed));
-                        }
-                    } else if let Some((_, seed)) = start_index
-                        .checked_sub(1)
-                        .and_then(|index| starts.get(index))
-                    {
-                        if let Some(&seed_index) = model_by_native.get(seed.id.as_str()) {
-                            let seed = model_features[seed_index].id.clone();
-                            pattern_seed_assignments.push((model_index, seed));
-                        }
-                    }
-                }
                 if !needs_direction {
                     continue;
                 }
+                // Source order and generated-thread adjacency do not establish
+                // which feature the pattern repeats. Keep the seed unresolved.
                 let mut declarations = Vec::new();
                 for class in &lane.classes {
                     if class.name == "moLineRef_w"
@@ -676,35 +580,6 @@ pub(crate) fn bind_pattern_inputs(
                 }
             });
         }
-    }
-    let mut mirror_seed_sets_by_pattern = HashMap::<usize, Vec<_>>::new();
-    for (index, seeds) in mirror_seed_assignments {
-        let candidates = mirror_seed_sets_by_pattern.entry(index).or_default();
-        if !candidates.contains(&seeds) {
-            candidates.push(seeds);
-        }
-    }
-    for (index, mut candidates) in mirror_seed_sets_by_pattern {
-        if candidates.len() != 1 {
-            continue;
-        }
-        let Some(seeds) = candidates.pop() else {
-            continue;
-        };
-        for seed in &seeds {
-            model_features[index].dependencies.insert(seed.clone());
-        }
-        model_features[index].evaluation.edit(|definition, _| {
-            if let FeatureDefinition::Operation(FeatureOperation::Pattern {
-                seeds: seed_slots,
-                ..
-            }) = definition
-            {
-                if seed_slots.is_empty() {
-                    seed_slots.extend(seeds.into_iter().map(PatternSeed::Feature));
-                }
-            }
-        });
     }
     let mut circular_axes_by_pattern = HashMap::<usize, Vec<(FinitePoint3, UnitVector3)>>::new();
     for (index, origin, direction) in circular_axis_assignments {

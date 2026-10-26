@@ -1961,6 +1961,7 @@ pub(super) fn is_component_vector_selector_for_role(selector: &[u8], role: u8) -
     matches!(role, 2 | 3) && selector.get(1) == Some(&role) && selector.get(2..4) == Some(&[0, 0])
 }
 
+#[cfg(test)]
 pub(super) fn mirror_pattern_component_path_at(
     payload: &[u8],
     marker: usize,

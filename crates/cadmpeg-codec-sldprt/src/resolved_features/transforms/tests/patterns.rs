@@ -90,7 +90,7 @@ fn linear_pattern_display_directions(
 }
 
 #[test]
-fn pattern_inputs_bind_adjacent_objects_and_line_reference_direction() {
+fn pattern_inputs_keep_curve_bindings_and_directions_without_guessed_seeds() {
     let native_feature = |id: &str, source_id: &str, name: &str| NativeFeature {
         id: id.into(),
         parent: "history".into(),
@@ -668,11 +668,8 @@ fn pattern_inputs_bind_adjacent_objects_and_line_reference_direction() {
     else {
         panic!("expected pattern");
     };
-    assert_eq!(seeds, &[PatternSeed::Feature(features[2].id.clone())]);
-    assert_eq!(
-        features[0].dependencies.as_slice(),
-        [features[2].id.clone()]
-    );
+    assert!(seeds.is_empty());
+    assert!(features[0].dependencies.as_slice().is_empty());
     assert!(matches!(&(features[0].evaluation.definition()),
         FeatureDefinition::Operation(FeatureOperation::Pattern {
             pattern: admitted_pattern,
@@ -711,7 +708,7 @@ fn pattern_inputs_bind_adjacent_objects_and_line_reference_direction() {
         }) if matches!(admitted_pattern.definition(), PatternTransform::Linear {
                 direction: Some(actual_direction),
                 ..
-            } if seeds == &[PatternSeed::Feature(features[2].id.clone())]
+            } if seeds.is_empty()
             && *actual_direction == Vector3::new(-1.0, 0.0, 0.0))
     ));
 
@@ -760,7 +757,7 @@ fn pattern_inputs_bind_adjacent_objects_and_line_reference_direction() {
         }) if matches!(admitted_pattern.definition(), PatternTransform::Linear {
                 direction: Some(actual_direction),
                 ..
-            } if seeds == &[PatternSeed::Feature(features[2].id.clone())]
+            } if seeds.is_empty()
             && *actual_direction == Vector3::new(-1.0, 0.0, 0.0))
     ));
     derived_history.features[2].parameters = BTreeMap::from([
@@ -808,7 +805,7 @@ fn pattern_inputs_bind_adjacent_objects_and_line_reference_direction() {
                 spacing: actual_spacing,
                 count: 3,
                 ..
-            } if (seeds == &[PatternSeed::Feature(features[2].id.clone())]
+            } if (seeds.is_empty()
             && *actual_direction == Vector3::new(-1.0, 0.0, 0.0)) && actual_spacing.get() == 19.0)
     ));
 
@@ -868,10 +865,7 @@ fn pattern_inputs_bind_adjacent_objects_and_line_reference_direction() {
         std::slice::from_ref(&mirror_lane),
     )
     .unwrap();
-    assert_eq!(
-        features[0].dependencies.as_slice(),
-        [features[2].id.clone()]
-    );
+    assert!(features[0].dependencies.as_slice().is_empty());
     assert!(matches!(&(features[0].evaluation.definition()),
         FeatureDefinition::Operation(FeatureOperation::Pattern {
             ref seeds,
@@ -879,7 +873,7 @@ fn pattern_inputs_bind_adjacent_objects_and_line_reference_direction() {
         }) if matches!(admitted_pattern.definition(), PatternTransform::Mirror {
                 plane_origin,
                 plane_normal,
-            } if seeds == &[PatternSeed::Feature(features[2].id.clone())]
+            } if seeds.is_empty()
             && *plane_origin == Point3::new(12.0, -25.0, 0.0)
             && *plane_normal == Vector3::new(0.0, 1.0, 0.0))
     ));
@@ -911,12 +905,9 @@ fn pattern_inputs_bind_adjacent_objects_and_line_reference_direction() {
         FeatureDefinition::Operation(FeatureOperation::Pattern {
             ref seeds,
             pattern: admitted_pattern,
-        }) if matches!(admitted_pattern.definition(), PatternTransform::Mirror { .. } if seeds == &[PatternSeed::Feature(features[2].id.clone())])
+        }) if matches!(admitted_pattern.definition(), PatternTransform::Mirror { .. } if seeds.is_empty())
     ));
-    assert_eq!(
-        features[0].dependencies.as_slice(),
-        [features[2].id.clone()]
-    );
+    assert!(features[0].dependencies.as_slice().is_empty());
 
     mirror_lane.native_payload[frame..frame + 97].fill(0);
     features[0].dependencies.clear();
@@ -941,13 +932,27 @@ fn pattern_inputs_bind_adjacent_objects_and_line_reference_direction() {
             PatternTransform::Unresolved {
                 form: Some(cadmpeg_ir::features::patterns::PatternForm::Mirror)
             }
-                if seeds == &[PatternSeed::Feature(features[2].id.clone())]
+                if seeds.is_empty()
         )
     ));
-    assert_eq!(
-        features[0].dependencies.as_slice(),
-        [features[2].id.clone()]
-    );
+    assert!(features[0].dependencies.as_slice().is_empty());
+
+    // An independently supplied explicit seed is not removed by either refusal.
+    let explicit_seed = PatternSeed::Feature(features[2].id.clone());
+    features[0].evaluation.edit(|definition, _| {
+        if let FeatureDefinition::Operation(FeatureOperation::Pattern { seeds, .. }) = definition {
+            seeds.push(explicit_seed.clone());
+        }
+    });
+    bind_pattern_inputs_test(
+        &mut features,
+        std::slice::from_ref(&mirror_history),
+        std::slice::from_ref(&mirror_lane),
+    )
+    .unwrap();
+    assert!(matches!(features[0].evaluation.definition(),
+        FeatureDefinition::Operation(FeatureOperation::Pattern { seeds, .. })
+            if seeds.as_slice() == [explicit_seed]));
 
     let path_sketch = SketchId::mint("synthetic:test:id#sweep-path").unwrap();
     features[2]

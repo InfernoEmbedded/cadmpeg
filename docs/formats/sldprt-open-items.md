@@ -496,19 +496,9 @@ with a neutral sketch profile.
 when its component vectors and persistent generated-surface identities do not
 resolve a seed feature?
 
-**Known.** Complete component paths and generated-surface identities can bind a
-pattern seed directly. A derived cosmetic-thread output identifies a generated
-child, not by itself the input feature that the pattern repeats. Feature order
-does not establish seed ownership.
+**Known.** Complete component paths and generated-surface identities retain provenance, but do not certify a complete selected-feature roster. Independent authored selections include a two-seed mirror whose paths mention only one seed. A derived cosmetic-thread output identifies a generated child, not its input seed. Feature order does not establish ownership. The reader withholds nearest-thread, preceding-object and mirror-provenance seed guesses while preserving explicit seed relations, dimensions, directions, mirror planes and Native records.
 
-**Need.** We must decode the seed relation before assigning a preceding history
-feature as the repeated neutral feature.
-
-**Conflict.** `bind_pattern_inputs` in `src/resolved_features/bindings.rs`
-uses the nearest preceding sibling `moCosmeticThread_c` feature when a pattern
-has a derived cosmetic-thread output and no resolved seed. Another fallback
-uses the immediately preceding feature-input object. Either rule can assign an
-unrelated preceding feature as the pattern seed.
+**Need.** Decode the complete manager/instance-holder ownership and selected-list grammar, including configuration-scoped absence and conflicts. A bounded search witness or unique provenance candidate cannot establish complete selection cardinality. Circular and curve-driven seed families require their own independent selection proofs.
 
 ## 6. Container record semantics
 
