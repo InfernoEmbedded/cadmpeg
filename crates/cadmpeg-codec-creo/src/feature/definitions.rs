@@ -5434,6 +5434,27 @@ fn positional_relation_triples(
     rows
 }
 
+fn owned_relation_operand_vectors(
+    bytes: &[u8],
+    relation_type: u32,
+) -> Option<[[Option<u32>; 4]; 3]> {
+    if let Some(vectors) = relation_operand_vectors(bytes) {
+        return Some(vectors);
+    }
+    if !matches!(relation_type, 9 | 21) {
+        return None;
+    }
+    let vectors = relation_operand_vectors(bytes.strip_suffix(&[0xf5])?)?;
+    let [a, b, c] = vectors;
+    (a[0] == a[2]
+        && a[1] == a[3]
+        && a[0].is_some()
+        && a[1].is_some()
+        && b == [Some(0), Some(1), Some(1), Some(1)]
+        && c == [Some(15), Some(16), Some(1), Some(15)])
+    .then_some(vectors)
+}
+
 fn relation_operand_vectors(bytes: &[u8]) -> Option<[[Option<u32>; 4]; 3]> {
     let mut values = [None; 14];
     let mut filled = 0;
@@ -5621,7 +5642,7 @@ fn positional_relation_rows(
         rows.push(FeatureRelation {
             relation_id,
             used,
-            operand_vectors: relation_operand_vectors(&operands),
+            operand_vectors: owned_relation_operand_vectors(&operands, relation_type),
             operands,
             sign,
             dimension_id,

@@ -3123,6 +3123,21 @@ Within the three four-slot `relat_ptr` operand vectors, `e5` expands to two
 zero slots and `e6` expands to three zero slots. `e4` is the integer value one,
 and `f6` is a null operand. Expansion is bounded independently at four slots
 for each of `a`, `b`, and `c`.
+For relation types `9` and `21`, the complete duplicated-point profile
+`a=[p,q,p,q]`, `b=[0,1,1,1]`, `c=[15,16,1,15]` can end with one `f5`
+wrapper after the twelve logical integer slots. The wrapper is not an operand.
+A complete compact integer is consumed before testing for that terminal wrapper.
+Relation operand slots are typed by their owning production. Type `26` can
+store a seven-byte positive-DICT real in `c[0]`, followed by the three integer
+slots of `c`. Such a body is not twelve compact integer operands.
+
+The relation discriminator is distinct from `ProSecdimType` and from an
+incidence `skamp_ptr.kind`. A relation type does not by itself establish an
+incidence equation. A complete incidence join supplies its own ordered entity
+references, locus senses, and activity state. Several triples can name one
+relation and distinct incidences; those incidences retain separate identities.
+The relation row remains a separate source record. A missing or ambiguous join
+does not establish a standalone equation from the discriminator or selector.
 
 The tuples have relation-type-specific roles. A slot can hold a point key,
 order-table internal identifier, radius key, selector, null, or scalar

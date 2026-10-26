@@ -310,7 +310,18 @@ must not resume at a plausible interior integer.
 
 ### SP-04. Other relation equations
 
-**Question.** What equation does each relation type outside signed type 0, type 1 angular, type 5, type 6, and type 14 encode?
+**Note.** The relation discriminator is not a universal equation opcode. Type
+`9` can join distinct incidence kinds; type `12` can join two endpoint
+tangencies. Type `22` can refer to a point whose carrier is supplied only by the
+incidence join. Types `25` and `38` do not acquire the type-14 radius equation
+from similar operand vectors. A type-26 mixed real operand does not establish
+the full bounded-curve equation. Unresolved rows retain their raw body and
+source identity.
+
+**Question.** What complete operand roles and private scalar equations apply to
+relation types `9`, `10`, `12`, `13`, `21`, `22`, `25`, `26`, `38`, and other
+unassigned types when no complete incidence interpretation supplies a neutral
+constraint?
 
 **Known.** `creo_prt.md` §5 "Build the B-rep half-edge graph from the `crv_array` suffixes. A single-loop face has an outer" through `creo_prt.md` §5 "A positive-ratio elliptical cone uses local frame coordinates" define the recognized linear, radius, incidence, and entity-geometry relations. Complete `eqtn_arr` function-0, function-2, function-3, and function-35 rows define radial endpoint, scalar equality, unsigned coordinate distance, radius binding, and point-on-line equations when their positional row grammars are complete.
 The supported type-six relation form has sign `1`,
