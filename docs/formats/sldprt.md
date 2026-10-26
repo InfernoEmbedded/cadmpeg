@@ -1397,8 +1397,10 @@ distance supplies the depth. Multiple valid sibling cylinders must agree.
 
 An omitted `GdtDistanceBetween.Nominal` with `ComputeAnswerBy` zero,
 `Direction` 4, `NormalTo` 1, and an identity `NominalTransform` uses its unit
-`DirectionVector` and exactly two applied features. A `GdtPlane` or
-`GdtIntersectPlane` contributes the projection of `NomPlane.X`, `Y`, and `Z`
+`DirectionVector` and exactly two applied features. Identity requires exact
+identity-matrix entries and zero translation. A `GdtPlane`,
+`GdtIntersectPlane`, or `GdtBestfitPlane` contributes the projection of
+`NomPlane.X`, `Y`, and `Z`
 when its unit normal is parallel to the direction. A direct `GdtCylinder` or
 `GdtCone` contributes the projection of its nominal-axis origin when its unit
 axis is perpendicular to the direction. A `GdtCompoundHole` recursively uses
