@@ -2227,6 +2227,13 @@ bounded parameter body. It has no trailing parameter-bound scalars. Multiple
 canonical counts for one feature and raw type
 make an unprefixed replay ambiguous.
 
+When a complete row admits competing topology-suffix starts, a unique complete
+counted body fixes the suffix start before any preference for materialized
+face identifiers. The suffix retains its complete compact references even
+when their surface owners are not admitted. A materialized identifier that
+matches only a reference's low byte does not change that boundary. Multiple
+complete counted-body suffix readings leave the boundary unresolved.
+
 Each chart's first coordinate uses the first tabulated-cylinder directrix
 coordinate lane. In this bounded curve grammar, `32 <tail7>` is an eight-byte
 positive sub-unit first-coordinate scalar that reconstructs IEEE-754 bytes

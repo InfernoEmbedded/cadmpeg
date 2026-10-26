@@ -621,12 +621,15 @@ fn materialized_face_evidence_precedes_namespace_face_evidence() {
             Some(&materialized_face_ids),
             Some(&namespace_face_ids),
         ),
-        Some(TopologySuffixCandidate {
-            start: 0,
-            faces: [371, 369].map(NonZeroU32::new),
-            next_edges: [331, 297],
-            reference_geometry: [0, 0],
-        })
+        Some((
+            TopologySuffixCandidate {
+                start: 0,
+                faces: [371, 369].map(NonZeroU32::new),
+                next_edges: [331, 297],
+                reference_geometry: [0, 0],
+            },
+            false
+        ))
     );
 }
 
@@ -1097,4 +1100,53 @@ fn cross_section_parameter_terminal_zero_precedes_all_pointer_fields() {
     assert_eq!(row.scalar_tokens[0].value, 0.0);
     assert_eq!(row.scalar_tokens[0].raw, [0x18]);
     assert!(row.opaque_spans.is_empty());
+}
+
+#[test]
+fn complete_count_body_precedes_materialized_face_suffix_preference() {
+    for count in [3_u8, 6, 11] {
+        let mut row = vec![7, 0, 3, 1, 0xf6, 0xfc, count];
+        for _ in 0..count {
+            row.extend_from_slice(&[0x18; 4]);
+        }
+        let suffix_start = row.len();
+        row.extend_from_slice(&[0x81, 0x2c, 0, 0x81, 0x2d, 0x81, 0x2e, 0, 7, 0xe3]);
+        let materialized = BTreeSet::from([44]);
+        let (suffix, counted_body) =
+            topology_suffix_with_face_ids(&row, Some(&materialized), Some(&materialized))
+                .expect("unique complete count body owns its exact end");
+        assert!(counted_body);
+        assert_eq!(suffix.start, suffix_start);
+        assert_eq!(suffix.faces, [300, 0].map(NonZeroU32::new));
+        assert_eq!(suffix.next_edges, [301, 302]);
+        assert_eq!(suffix.reference_geometry, [0, 7]);
+        assert!(!materialized.contains(&300));
+    }
+}
+
+#[test]
+fn count_selected_frames_keep_nonliteral_numeric_roles_opaque() {
+    let mut row = vec![7, 0, 3, 1, 0xf6, 0xfc, 2];
+    row.extend_from_slice(&[0x18, 0x77, 0x60, 0, 0, 0, 0, 0]);
+    row.extend_from_slice(&[0x18; 6]);
+    row.extend_from_slice(&[0x81, 0x2c, 0, 0x81, 0x2d, 0x81, 0x2e, 0, 7, 0xe3]);
+    let mut payload = b"topol_ref_data\0".to_vec();
+    payload.extend_from_slice(&row);
+    payload.extend_from_slice(&[0xe1, 0xe3]);
+    let faces = BTreeSet::from([44]);
+    let records = crate::decode::with_service_context(|ctx| {
+        parameter_records_with_face_ids(ctx, &payload, Some(&faces))
+    })
+    .expect("bounded counted record");
+    let [record] = records.as_slice() else {
+        panic!("one record");
+    };
+    assert_eq!(record.scalar_tokens.len(), 7);
+    assert!(record
+        .scalar_tokens
+        .iter()
+        .all(|token| token.value.to_bits() == 0.0_f64.to_bits() && token.raw == [0x18]));
+    assert_eq!(record.opaque_spans.len(), 2);
+    assert_eq!(record.opaque_spans[0].raw, [0xfc, 2]);
+    assert_eq!(record.opaque_spans[1].raw, [0x77, 0x60, 0, 0, 0, 0, 0]);
 }

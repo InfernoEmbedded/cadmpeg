@@ -171,13 +171,13 @@ length unit.
 
 **Need.** Resolve the undefined images and derive each complete signed chart from native ownership before constructing placed geometry.
 
-### GS-13. Other `fc` subtypes
+### GS-13. Incomplete counted pcurve bodies
 
-**Question.** What body grammar does each `fc 04`, `fc 07`, `fc 09`, and `fc 0a` subtype use?
+**Question.** Which remaining scalar and enclosing-row forms resolve a counted two-chart body when exact `4N` scalar consumption cannot be established?
 
-**Known.** `creo_prt.md` §4.2 "An `fc` prefix is resolved by exact body grammar." defines the common `fc <subtype>` opener and the recognized subtype families.
+**Known.** `creo_prt.md` defines `fc <count>` with four finite chart scalars per sample and no trailer. Counts `4`, `7`, `9`, and `10` do not identify separate curve families. A unique complete counted body fixes a competing topology-suffix boundary without requiring the referenced face to be materialized.
 
-**Need.** We must know each grammar to construct its curve family.
+**Need.** Define the missing scalar and enclosing-row productions before assigning values or selecting a suffix from incomplete or conflicting body readings.
 
 ### GS-16. Model-reference entity types and conic framing
 

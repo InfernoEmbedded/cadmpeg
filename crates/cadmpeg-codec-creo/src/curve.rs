@@ -6932,6 +6932,7 @@ struct FramedRow {
     suffix_start: usize,
     suffix: [u32; 4],
     reference_geometry: [u32; 2],
+    counted_body: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -7084,7 +7085,7 @@ fn framed_segment_with_face_ids(
         if !complete_curve_row_linkage(&segment[row_end..]) {
             continue;
         }
-        let Some(candidate) = topology_suffix_with_face_ids(
+        let Some((candidate, counted_body)) = topology_suffix_with_face_ids(
             &segment[..row_end],
             materialized_face_ids,
             known_face_ids,
@@ -7104,6 +7105,7 @@ fn framed_segment_with_face_ids(
                 suffix_start,
                 suffix,
                 reference_geometry,
+                counted_body,
             });
         }
         let eligible = prefixes.partition_point(|(_, prefix_end)| *prefix_end <= suffix_start);
@@ -7115,6 +7117,7 @@ fn framed_segment_with_face_ids(
                 suffix_start: suffix_start - prefixes[0].0,
                 suffix,
                 reference_geometry,
+                counted_body,
             });
         }
     }
@@ -7235,6 +7238,15 @@ fn curve_scalar_lane(
             cursor += 1;
         }
     }
+    let opaque_spans = curve_opaque_spans(body, &claimed);
+    Ok(CurveScalarLane {
+        scalar_tokens: scalars,
+        references,
+        opaque_spans,
+    })
+}
+
+fn curve_opaque_spans(body: &[u8], claimed: &[bool]) -> Vec<CurveParameterOpaqueSpan> {
     let mut opaque_spans = Vec::new();
     let mut cursor = 0;
     while cursor < body.len() {
@@ -7249,10 +7261,54 @@ fn curve_scalar_lane(
         let raw = body[start..cursor].to_vec();
         opaque_spans.push(CurveParameterOpaqueSpan { raw, offset: start });
     }
+    opaque_spans
+}
+
+fn counted_curve_scalar_lane(
+    ctx: &cadmpeg_core::decode::DecodeContext<'_>,
+    body: &[u8],
+) -> Result<CurveScalarLane, cadmpeg_core::CodecError> {
+    let mut claimed = ctx.alloc_filled(body.len(), false, "creo counted curve scalar claims")?;
+    let mut scalars = Vec::new();
+    let layout = (|| {
+        (body.first() == Some(&0xfc)).then_some(())?;
+        let (count, start) = compact_int(body, 1);
+        (start > 1).then_some(())?;
+        let count = bounded_len(u64::from(count), 4, body.len().checked_sub(start)?)?;
+        (count >= 2).then_some(())?;
+        Some((start, count.checked_mul(4)?))
+    })();
+    let mut complete = false;
+    if let Some((mut cursor, slot_count)) = layout {
+        let cache = scalar::ScalarCache::default();
+        let mut slots = 0;
+        for slot in 0..slot_count {
+            let Some((_, next)) = decode_two_chart_scalar(body, cursor, slot % 2 == 0, &cache)
+                .filter(|(value, next)| value.is_finite() && *next > cursor && *next <= body.len())
+            else {
+                break;
+            };
+            if body[cursor] == 0x18 {
+                scalars.push(CurveParameterScalar {
+                    value: 0.0,
+                    raw: vec![0x18],
+                    offset: cursor,
+                });
+                claimed[cursor..next].fill(true);
+            }
+            cursor = next;
+            slots += 1;
+        }
+        complete = slots == slot_count && cursor == body.len();
+    }
+    if !complete {
+        scalars.clear();
+        claimed.fill(false);
+    }
     Ok(CurveScalarLane {
         scalar_tokens: scalars,
-        references,
-        opaque_spans,
+        references: Vec::new(),
+        opaque_spans: curve_opaque_spans(body, &claimed),
     })
 }
 
@@ -7297,7 +7353,11 @@ pub(crate) fn parameter_records_with_face_ids(
             scalar_tokens,
             references,
             opaque_spans,
-        } = curve_scalar_lane(ctx, &body, type_byte, &cache)?;
+        } = if framed.counted_body {
+            counted_curve_scalar_lane(ctx, &body)?
+        } else {
+            curve_scalar_lane(ctx, &body, type_byte, &cache)?
+        };
         records.push(CurveParameterRecord {
             curve_id,
             type_byte,
@@ -8167,12 +8227,38 @@ fn topology_suffix_with_face_ids(
     row: &[u8],
     materialized_face_ids: Option<&BTreeSet<u32>>,
     known_face_ids: Option<&BTreeSet<u32>>,
-) -> Option<TopologySuffixCandidate> {
+) -> Option<(TopologySuffixCandidate, bool)> {
     let candidates = topology_suffix_candidates(row)?;
     let mut initial = candidates.iter().flatten().copied();
     if let (Some(candidate), None) = (initial.next(), initial.next()) {
-        return Some(candidate);
+        return Some((candidate, false));
     }
+    let legacy = topology_suffix_by_face_ids(&candidates, materialized_face_ids, known_face_ids);
+    let cache = scalar::ScalarCache::default();
+    let mut complete_counts = candidates.iter().flatten().filter(|candidate| {
+        let Some(prefix) = topology_prefix(row, 0, candidate.start) else {
+            return false;
+        };
+        let body = &row[prefix.end..candidate.start];
+        if body.first() != Some(&0xfc) {
+            return false;
+        }
+        let (count, start) = compact_int(body, 1);
+        start > 1 && complete_two_chart_samples(body, start, count, &cache).is_some()
+    });
+    match (complete_counts.next(), complete_counts.next()) {
+        (Some(candidate), None) => return Some((*candidate, legacy != Some(*candidate))),
+        (Some(_), Some(_)) => return None,
+        _ => {}
+    }
+    legacy.map(|candidate| (candidate, false))
+}
+
+fn topology_suffix_by_face_ids(
+    candidates: &[Option<TopologySuffixCandidate>],
+    materialized_face_ids: Option<&BTreeSet<u32>>,
+    known_face_ids: Option<&BTreeSet<u32>>,
+) -> Option<TopologySuffixCandidate> {
     if let Some(ids) = materialized_face_ids.filter(|ids| !ids.is_empty()) {
         let mut role_matches = candidates
             .iter()
@@ -8192,7 +8278,7 @@ fn topology_suffix_with_face_ids(
         }
     }
     let ids = known_face_ids.filter(|ids| !ids.is_empty())?;
-    let mut role_matches = candidates.into_iter().flatten().filter(|candidate| {
+    let mut role_matches = candidates.iter().flatten().copied().filter(|candidate| {
         candidate
             .faces
             .iter()
