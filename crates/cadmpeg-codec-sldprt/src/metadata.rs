@@ -50,7 +50,7 @@ pub(crate) fn attributes(
             annotations,
         )?;
         scan_part(section, &mut out, annotations, losses)?;
-        scan_configuration_manager(section, &mut out, annotations)?;
+        note_configuration_manager(section, losses);
         scan_transformed_reference_plane(section, &mut out, annotations)?;
         scan_units_xml(ctx, section, &mut out, annotations)?;
         scan_length_user_units(ctx, section, &mut out, annotations)?;
@@ -309,43 +309,17 @@ fn scan_part(
     Ok(())
 }
 
-fn scan_configuration_manager(
+fn note_configuration_manager(
     section: Section<'_>,
-    out: &mut Vec<SourceAttribute>,
-    annotations: &mut Annotations,
-) -> Result<(), CodecError> {
-    const TOKEN: &[u8] = b"moConfigurationMgr_c";
-    let payload = section.payload();
-    for offset in payload
-        .windows(TOKEN.len())
-        .enumerate()
-        .filter_map(|(at, bytes)| (bytes == TOKEN).then_some(at))
+    losses: &mut Vec<cadmpeg_ir::report::loss::LossNote>,
+) {
+    if part::declaration(section.payload(), 0)
+        .is_some_and(|(_, name, _)| name == b"moConfigurationMgr_c")
     {
-        let start = offset + TOKEN.len();
-        let (Some(minor), Some(states), Some(filetime)) = (
-            View::u32_le_at(payload, start + 66),
-            payload.get(start + 107),
-            View::u64_le_at(payload, start + 117),
-        ) else {
-            continue;
-        };
-        let Ok(filetime) = i64::try_from(filetime) else {
-            continue;
-        };
-        out.push(attribute(
-            section,
-            offset,
-            &cadmpeg_ir::identity_component!("configuration_manager"),
-            TOKEN,
-            vec![
-                AttributeValue::Integer(i64::from(minor)),
-                AttributeValue::Integer(i64::from(*states)),
-                AttributeValue::Integer(filetime),
-            ],
-            annotations,
-        )?);
+        losses.push(crate::loss::SldprtLossCode::MetadataConfigurationManagerOpaque.note(
+            "Configuration-manager fields and serializer bounds are unresolved; retained bytes are preserved without editable scalar metadata.",
+        ));
     }
-    Ok(())
 }
 
 /// Source lengths in metres as a millimetre vector, or `None` when a value

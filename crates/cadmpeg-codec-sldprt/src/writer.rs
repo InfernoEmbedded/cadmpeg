@@ -1434,16 +1434,6 @@ fn patch_retained_swobjects_metadata(
                     )?;
                 }
             }
-            Some(MetadataRecord::ConfigurationManager {
-                minor,
-                states,
-                filetime,
-            }) => {
-                let start = offset + CONFIGURATION_MANAGER_TOKEN.len();
-                overwrite_bytes(payload, start + 66, &minor.to_le_bytes())?;
-                overwrite_bytes(payload, start + 107, &[states])?;
-                overwrite_bytes(payload, start + 117, &filetime.to_le_bytes())?;
-            }
             Some(MetadataRecord::SourceLinearUnitName { units, byte_len }) => {
                 let marker = offset + UNIT_NAME_TOKEN.len();
                 let old_len = resident_unit_name_len(payload, marker)?;
@@ -1858,7 +1848,6 @@ const BOUNDING_ENVELOPE_TOKEN: &[u8] = b"moBBoxCenterData_c";
 const DEFAULT_REFERENCE_PLANE_TOKEN: &[u8] = b"moDefaultRefPlnData_c";
 const TRANSFORMED_REFERENCE_PLANE_TOKEN: &[u8] = b"moTransRefPlaneData_c";
 const PART_RECORD_TOKEN: &[u8] = b"moPart_c";
-const CONFIGURATION_MANAGER_TOKEN: &[u8] = b"moConfigurationMgr_c";
 const UNIT_NAME_TOKEN: &[u8] = b"moLengthUserUnits_c";
 
 /// One `SWObjects` metadata attribute admitted for writing. Its values have
@@ -1879,12 +1868,6 @@ enum MetadataRecord {
     PartRecord {
         first_word: u32,
         trailing_word: Option<u32>,
-    },
-    /// Configuration-manager version, state count and timestamp.
-    ConfigurationManager {
-        minor: u32,
-        states: u8,
-        filetime: u64,
     },
     /// Source linear unit code.
     SourceLinearUnitCode(i64),
@@ -1977,20 +1960,9 @@ impl MetadataRecord {
                 }
             }
             "configuration_manager" => {
-                let [AttributeValue::Integer(minor), AttributeValue::Integer(states), AttributeValue::Integer(filetime)] =
-                    values
-                else {
-                    return Err(invalid("configuration manager"));
-                };
-                retained(CONFIGURATION_MANAGER_TOKEN)?;
-                Self::ConfigurationManager {
-                    minor: u32::try_from(*minor)
-                        .map_err(|_| invalid("configuration minor version"))?,
-                    states: u8::try_from(*states)
-                        .map_err(|_| invalid("configuration state count"))?,
-                    filetime: u64::try_from(*filetime)
-                        .map_err(|_| invalid("configuration timestamp"))?,
-                }
+                return Err(CodecError::NotImplemented(
+                    "SLDPRT configuration-manager edits and generation require an owned version-specific serializer and proven scalar roles".into(),
+                ));
             }
             "source_linear_unit_code" => {
                 let [AttributeValue::Integer(code)] = values else {
@@ -2097,18 +2069,6 @@ fn metadata_payloads(
                 return Err(CodecError::NotImplemented(
                     "SLDPRT Part generation requires a retained supported root serializer".into(),
                 ));
-            }
-            Some(MetadataRecord::ConfigurationManager {
-                minor,
-                states,
-                filetime,
-            }) => {
-                let mut record = [0u8; 125];
-                record[66..70].copy_from_slice(&minor.to_le_bytes());
-                record[107] = states;
-                record[117..125].copy_from_slice(&filetime.to_le_bytes());
-                objects.extend_from_slice(CONFIGURATION_MANAGER_TOKEN);
-                objects.extend_from_slice(&record);
             }
             Some(MetadataRecord::SourceLinearUnitCode(code)) => unit_code = Some(code),
             Some(MetadataRecord::SourceLinearUnitName { units, byte_len }) => {

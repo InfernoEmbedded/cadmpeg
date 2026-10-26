@@ -26,6 +26,8 @@ use cadmpeg_ir::report::{
 pub(crate) enum SldprtLossCode {
     /// Part root scalar prefix has no supported class-specific reading.
     MetadataPartRootUnsupported,
+    /// Configuration-manager class has no proven scalar roles or serializer.
+    MetadataConfigurationManagerOpaque,
     /// Default-property carrier has no complete supported reading.
     MetadataDefaultCarrierUnsupported,
     /// Default properties have multiple physical namespace owners.
@@ -194,6 +196,7 @@ impl SldprtLossCode {
     #[cfg(test)]
     const ALL: &'static [SldprtLossCode] = &[
         Self::MetadataPartRootUnsupported,
+        Self::MetadataConfigurationManagerOpaque,
         Self::MetadataDefaultCarrierUnsupported,
         Self::MetadataDefaultOwnerAmbiguous,
         Self::MetadataDefaultAliasAmbiguous,
@@ -345,6 +348,7 @@ impl SldprtLossCode {
             Self::SourceDialectDisplaced => "target.source-dialect-displaced",
             Self::SourcePropertyKeyBlank => "source.property-key-blank",
             Self::MetadataPartRootUnsupported => "metadata.part-root-unsupported",
+            Self::MetadataConfigurationManagerOpaque => "metadata.configuration-manager-opaque",
             Self::MetadataDefaultCarrierUnsupported => "metadata.default-carrier-unsupported",
             Self::MetadataDefaultOwnerAmbiguous => "metadata.default-owner-ambiguous",
             Self::MetadataDefaultAliasAmbiguous => "metadata.default-alias-ambiguous",
@@ -426,6 +430,7 @@ impl SldprtLossCode {
             | Self::SourceDialectDisplaced
             | Self::SourcePropertyKeyBlank
             | Self::MetadataPartRootUnsupported
+            | Self::MetadataConfigurationManagerOpaque
             | Self::MetadataDefaultCarrierUnsupported
             | Self::MetadataDefaultOwnerAmbiguous
             | Self::MetadataDefaultAliasAmbiguous
@@ -452,6 +457,7 @@ impl SldprtLossCode {
             Self::SourceDialectDisplaced => LossTaxonomy::SourceDialectDisplaced,
             Self::SourcePropertyKeyBlank
             | Self::MetadataPartRootUnsupported
+            | Self::MetadataConfigurationManagerOpaque
             | Self::MetadataDefaultCarrierUnsupported
             | Self::MetadataDefaultOwnerAmbiguous
             | Self::MetadataDefaultAliasAmbiguous
@@ -655,6 +661,7 @@ mod tests {
             codes,
             [
                 "metadata.part-root-unsupported",
+                "metadata.configuration-manager-opaque",
                 "metadata.default-carrier-unsupported",
                 "metadata.default-owner-ambiguous",
                 "metadata.default-alias-ambiguous",

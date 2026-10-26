@@ -22,7 +22,7 @@ pub(crate) enum Root {
     Supported(Prefix),
 }
 
-fn declaration(bytes: &[u8], at: usize) -> Option<(u16, &[u8], usize)> {
+pub(super) fn declaration(bytes: &[u8], at: usize) -> Option<(u16, &[u8], usize)> {
     (View::u16_le_at(bytes, at + class::TAG)? == u16::MAX).then_some(())?;
     let schema = View::u16_le_at(bytes, at + class::SCHEMA)?;
     let count = usize::from(View::u16_le_at(bytes, at + class::NAME_LENGTH)?);

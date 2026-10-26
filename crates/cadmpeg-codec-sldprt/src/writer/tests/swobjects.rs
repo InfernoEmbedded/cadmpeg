@@ -1081,20 +1081,35 @@ fn a_retained_part_record_is_refused_for_its_token_before_its_identity() {
     );
 }
 
-/// A configuration state count outside `u8`, in a record whose token does
-/// not match, is refused for the token first.
+/// Neither retained edits nor fresh generation may assign unsupported manager fields.
 #[test]
-fn a_retained_configuration_is_refused_for_its_token_before_its_state_count() {
+fn configuration_manager_metadata_cannot_be_patched_or_generated() {
+    use cadmpeg_ir::attributes::{AttributeTarget, AttributeValue, SourceAttribute};
+    let message = "SLDPRT configuration-manager edits and generation require an owned version-specific serializer and proven scalar roles";
+    let values = vec![
+        AttributeValue::Integer(1),
+        AttributeValue::Integer(3),
+        AttributeValue::Integer(0),
+    ];
     assert_patch_refusal(
         "configuration_manager",
-        vec![
-            cadmpeg_ir::attributes::AttributeValue::Integer(1),
-            cadmpeg_ir::attributes::AttributeValue::Integer(256),
-            cadmpeg_ir::attributes::AttributeValue::Integer(0),
-        ],
-        &[b"moConfigurationMgrXc".as_slice(), &[0; 125]].concat(),
-        "malformed container: retained SLDPRT metadata token does not match its provenance",
+        values.clone(),
+        &[b"moConfigurationMgr_c".as_slice(), &[0; 125]].concat(),
+        &cadmpeg_core::CodecError::NotImplemented(message.into()).to_string(),
     );
+    let attribute = SourceAttribute {
+        id: cadmpeg_ir::ids::AttributeId::mint("sldprt:metadata:configuration_manager#0:0")
+            .unwrap(),
+        target: AttributeTarget::Document,
+        name: "configuration_manager".into(),
+        values,
+    };
+    assert!(matches!(
+        crate::writer::MetadataRecord::project(&attribute, 0.001, |_| {
+            panic!("unsupported scalar roles cannot reach a retained-byte patch")
+        }),
+        Err(cadmpeg_core::CodecError::NotImplemented(_))
+    ));
 }
 
 #[test]

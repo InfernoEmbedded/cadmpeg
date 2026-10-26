@@ -258,14 +258,12 @@ fn decode_extracts_document_envelope() {
         part.values,
         vec![AttributeValue::Integer(42), AttributeValue::Integer(2026)]
     );
-    let configuration = result
+    assert!(!result
         .ir()
         .model
         .attributes
         .iter()
-        .find(|attribute| attribute.name == "configuration_manager")
-        .unwrap();
-    assert_eq!(configuration.values[1], AttributeValue::Integer(3));
+        .any(|attribute| attribute.name == "configuration_manager"));
     let units = result
         .ir()
         .model
@@ -620,5 +618,60 @@ fn retained_part_roots_preserve_scalar_form_and_all_other_owned_bytes() {
             .values;
         assert_eq!(values[0], AttributeValue::Integer(73));
         assert_eq!(values.len(), if words.len() == 1 { 1 } else { 2 });
+    }
+}
+
+#[test]
+fn configuration_manager_roots_are_retained_without_invented_scalar_roles() {
+    for width in [113, 139] {
+        let mut payload = vec![255, 255, 1, 0, 20, 0];
+        payload.extend(b"moConfigurationMgr_c");
+        payload.extend(vec![0x35; width]);
+        payload.extend([255, 255, 1, 0, 21, 0]);
+        payload.extend(b"moPartConfiguration_c");
+        payload.extend([0xde, 0xad, 0xbe, 0xef]);
+        let mut source = outer_header();
+        source.extend(make_block(0x43, "Contents/CMgr", &payload));
+        let scan = crate::test_support::container::scan(&source);
+        let arena = DecodeArena::new();
+        let (ctx, _) =
+            DecodeContext::from_root_bytes(&source, &arena, &DecodePolicy::service()).unwrap();
+        let mut annotations = cadmpeg_ir::annotations::Annotations::default();
+        let mut losses = Vec::new();
+        let attributes = super::attributes(&ctx, &scan, &mut annotations, &mut losses).unwrap();
+        assert!(!attributes.iter().any(|a| a.name == "configuration_manager"));
+        assert_eq!(losses.len(), 1);
+        assert_eq!(
+            losses[0].code,
+            crate::loss::SldprtLossCode::MetadataConfigurationManagerOpaque
+                .note("")
+                .code
+        );
+        assert!(!annotations
+            .provenance
+            .keys()
+            .any(|id| id.contains(":configuration_manager#")));
+        assert_eq!(scan.sections().next().unwrap().payload(), payload);
+    }
+}
+
+#[test]
+fn embedded_or_truncated_manager_tokens_do_not_establish_an_mfc_root() {
+    for payload in [
+        b"unqlite\xa5class\xb4moConfigurationMgr_c".to_vec(),
+        b"moConfigurationMgr_c".to_vec(),
+        b"\xff\xff\x01\x00\x14\x00moConfigurationMgr".to_vec(),
+    ] {
+        let mut source = outer_header();
+        source.extend(make_block(0x43, "Opaque", &payload));
+        let scan = crate::test_support::container::scan(&source);
+        let arena = DecodeArena::new();
+        let (ctx, _) =
+            DecodeContext::from_root_bytes(&source, &arena, &DecodePolicy::service()).unwrap();
+        let mut annotations = cadmpeg_ir::annotations::Annotations::default();
+        let mut losses = Vec::new();
+        let attributes = super::attributes(&ctx, &scan, &mut annotations, &mut losses).unwrap();
+        assert!(!attributes.iter().any(|a| a.name == "configuration_manager"));
+        assert!(losses.is_empty());
     }
 }

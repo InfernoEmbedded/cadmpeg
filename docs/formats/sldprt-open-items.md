@@ -506,6 +506,6 @@ resolve a seed feature?
 
 **Question.** What fields and relations occupy the unresolved bytes of each `SWObjects` metadata record?
 
-**Known.** Configuration-manager values occur at offsets `+66`, `+107`, and `+117`; `moPart_c` has two defined fields; and `moVisualProperties_c` defines colour and name fields. The remaining bytes, the complete record lengths, and the role of `0x00c0_c0c0` in material records are undefined.
+**Known.** The supported section-root Part scalar forms are four or twelve bytes with an exact class-specific continuation; a class string in opaque data does not establish a Part. Configuration-manager prefixes are versioned and own child graphs, so the former fixed offsets do not establish scalar meanings or a record end. The reader retains these manager bytes without editable fields, and both writer paths refuse the unsupported scalar attribute. Appearance tails remain versioned; public color APIs alone do not prove the serialized nonprimary color or material-field assignments.
 
 **Need.** We must know what the undecoded bytes hold before the writer can edit a retained record or claim that a generated record is complete.

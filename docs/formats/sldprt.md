@@ -2197,15 +2197,13 @@ The offset surface retains the support parameterization. Nested offset carriers 
 | | +49 | f64[3] | axis-aligned upper xyz, metres; present branch |
 | | +73 | f64[3] | axis-aligned lower xyz, metres; present branch |
 | | +97 | f64 | stored enclosing-sphere radius, metres; present branch |
-| `moConfigurationMgr_c`  | +66    | u32       | configuration-manager minor version |
-|                         | +107   | u8        | configuration state count           |
-|                         | +117   | u64       | FILETIME timestamp                  |
-|                         | +125   | —         | record end                          |
 | `moLengthUserUnits_c`   | +0     | bytes[3]  | `ff fe ff`                          |
 |                         | +3     | u8        | UTF-16 code-unit count `n`          |
 |                         | +4     | bytes[2n] | linear-unit name, UTF-16LE          |
 
 An MFC new-class declaration starts with `u16 LE 0xffff`, a `u16 LE` schema, a `u16 LE` ASCII class-name byte count, and that counted class name. The section-root `moPart_c` declaration uses schema 1. Its short direct scalar prefix is one u32 LE word and is followed by a schema-1 `moHeader_c` declaration. Its long direct scalar prefix is three u32 LE words, with the middle word zero, followed by a schema-1 `moNodeName_c` declaration. The short prefix has no third word. The next class declaration belongs to the continuation and is not a scalar terminator. A class-name string inside another serialized object does not establish this section-root object. These prefix rules do not define the complete class-specific object graph.
+
+A section-root `moConfigurationMgr_c` is a versioned MFC object with a nested configuration graph. Its scalar prefix is not a universal 125-byte record. Observed complete prefixes of 113 and 139 bytes end at a configuration child declaration; fixed reads at `+66`, `+107`, or `+117` do not establish portable minor-version, state-count or timestamp fields. The reader preserves the bytes without exposing editable scalar attributes and reports the unresolved serializer. Retained edits and fresh generation through the former `configuration_manager` attribute are refused until complete version-specific ownership, field roles and serializer bounds are established.
 
 The direct `moTransRefPlaneData_c` declaration has the six-byte prefix `ff ff 01 00 15 00` before its 21-byte ASCII token. The body has a 25-byte fixed prologue. Presence zero omits all ten enclosure doubles; presence one includes exactly 80 bytes at body +25. The 24 opaque bytes precede the presence byte without a fixed `ff` gap. Stored center and radius are independent fields; they are not derived from the two corners. The following class continuation is separate from this optional enclosure.
 
