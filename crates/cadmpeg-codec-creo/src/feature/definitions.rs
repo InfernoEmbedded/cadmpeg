@@ -4243,12 +4243,14 @@ fn positional_section_3d(payload: &[u8], start: usize, end: usize) -> Option<Fea
     };
     result.orientation.section_flip = BinaryFlag::decode(section_flip);
     cursor += 1;
-    for _ in 0..3 {
-        let (_, next) = segment_int(payload, cursor);
-        if next <= cursor {
-            return Some(result);
-        }
-        cursor = next;
+    if next_nullable_segment_int(payload, &mut cursor).is_err()
+        || payload.get(cursor) != Some(&0xe1)
+    {
+        return Some(result);
+    }
+    cursor += 1;
+    if next_nullable_segment_int(payload, &mut cursor).is_err() {
+        return Some(result);
     }
     let (sketch_plane_entity_id, next) = segment_int(payload, cursor);
     if next <= cursor {
@@ -7601,6 +7603,9 @@ pub(crate) mod test_support;
 
 #[cfg(test)]
 mod owners_tests;
+
+#[cfg(test)]
+mod section_pointer_tests;
 
 #[cfg(test)]
 mod saved_tests;

@@ -4857,7 +4857,12 @@ the preceding template class.
 
 A positional `gsec3d_ptr` record begins with `07 S2D<N> 00`, followed by
 `flip`, `own_ref_id`, `first_chain_ptr`, `quilt_id`, `plane_id`, and
-`plane_flip`. Its reference-plane array then stores an `f8` extent, table-class
+`plane_flip`. The null prefix for `own_ref_id`, `first_chain_ptr`, and
+`quilt_id` is `f6 e1 f6`. An inline first-chain object has its own complete
+extent before the outer quilt and plane fields. A class reference after a
+pointer close belongs to that pointer production; its class identifier is not
+the outer plane identifier. Pointer-body bytes do not form positional integers.
+Its reference-plane array then stores an `f8` extent, table-class
 reference, `fb e2`, and row-class reference. Each row replays `plane_id`,
 `ref_type`, `ext_ref_id`, `seg_id`, `sub_index`, and `flip_flag`; rows after the
 first follow `f2 f7 <table-class> e2` and their nested row payload.

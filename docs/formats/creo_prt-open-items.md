@@ -289,13 +289,24 @@ witnesses; it does not by itself define the remaining carrier equation.
 
 **Note.** Preserve an unsolved block and invalidate its preceding unknown values until the complete source semantics supplies a unique transfer.
 
-### SP-03. Section-to-datum joins
+### SP-03. Typed section-plane identity and pointer ownership
 
-**Question.** Which additional fields join a section definition to its sketch datum when no unique bounded-source owner chain or generated-datum parent remains?
+**Question.** What complete typed pointer grammar and representation preserve a
+section's direct model-plane identity independently of its owner and placement?
 
-**Known.** `creo_prt.md` §6 "`DEPDB_DATA` and each complete bounded `AllFeatur` feature row store an" defines the recipe, consecutive datum, and `gsec3d_ptr.sketch_plane` join. The definition is eligible only inside its complete source range. The same section-plane entity used by multiple definitions remains ambiguous. `creo_prt.md` §6 "`dtm_id_tab [f1|f2] f8 <count> f7 <class> fb e2` is followed by exactly" through `creo_prt.md` §6 "When the sketch plane resolves to a placed plane carrier" define the unique generated-datum parent-table join and the `ActDatums` geometric identifiers.
+**Known.** A positional `gsec3d_ptr` stores its outer plane after the complete
+owner, first-chain, and quilt fields. Inline chain data and a pointer's class
+reference do not supply that plane ID. Five independently bounded residual
+sections join one typed nonvisible model-plane row despite zero or four
+complete generated-datum tables. Their incomplete plane parameters and absent
+saved location leave placement unresolved. A same-integer non-plane row and
+multiple typed-plane candidates do not define a unique binding.
 
-**Need.** We must define a transfer for definitions that have no unique bounded-source chain and no unique generated-datum parent without inferring a feature owner or model-space frame.
+**Need.** Establish complete inline and class-qualified pointer ownership before
+reading their outer fields. Preserve a unique typed model-item identity in an
+explicit representation without choosing a table owner, inferring an origin,
+or converting that identity into a placement frame. A partial pointer parse
+must not resume at a plausible interior integer.
 
 ### SP-04. Other relation equations
 
