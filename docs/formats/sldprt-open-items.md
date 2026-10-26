@@ -274,13 +274,19 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 **Need.** We must select one entity to bind the reference operand.
 
-### DI-12. Omitted dimensioned circles
+### DI-12. Auxiliary radial framing and diameter ownership
 
-**Question.** Which native field marks dimensioned circular geometry as construction geometry when absent from the selected profile stream?
+**Question.** What complete auxiliary-record discriminator and source relation bind a radial reference, its center, diameter and construction state?
 
 **Known.** The exact compact legacy and extended radial layouts, their native code and role fields, the `sgSlot` relation, and the current-prefix geometry-locus `sgArcHandle` point carrier identify supported dimensioned-circle records. A declared `sgEntHandle` operand that references the exact point carrier supplies its center even when no radial record is present. Tags `d4 80` and `d5 80` directly carry a finite same-feature point or constrained-point center whose local identifier equals the operand address; their explicit identity takes precedence over pair and radius searches. Other native `sgCircleDim` tags use that same explicit point identity only after no declared pair, child, geometry-locus, or unique circular-witness carrier resolves. The reference must resolve in the unique declaring `sgEntHandle` lane to a finite same-feature point or constrained-point marker whose local identifier equals the operand address. A point that is the radial member of a declared pair cannot supply this fallback center; an invalid or ambiguous identity remains native. A declared `sgEntHandle` operand also accepts an adjacent center/radial point pair when the center local identifier equals the radial object index; the radial local identifier is either absent or zero in the ordinary form, or nonzero in the indexed point form. Tag `6e 83` uses an unreferenced lane-local `sgEntHandle` to select an indexed adjacent point pair from an even coordinate-bearing roster; every pair must carry the center-local-to-radial-object join and a nonzero radial local identifier. A declared `sgEntHandle` operand with an explicit `sgSlot_c` marker accepts one unique scoped `sgSlotHandle` class with exactly two current `e7 88` cells: the first cell identifies the slot and the second identifies one of the slot's selected center points. That form carries a construction circle centered at the selected point. A coordinate-less `line_or_circle` marker before the operand with exactly two identical links to one earlier same-feature `Arc` marker is also an arc carrier when both local identifiers match and the arc passes its endpoint or unique-later-radial-witness validation. Multiple, mismatched, or invalid linked carriers remain native. The selected profile stream can omit construction circles.
 
-**Need.** We must know the discriminator for dimensioned-circle operands that have no radial record, do not reference the exact geometry-locus `sgArcHandle` carrier, and do not use the settled point, pair, slot, or duplicate-link arc identities.
+Two omitted owner-qualified construction circles have separate current/extended auxiliary envelopes with repeated words that match feature-local point object indices. One matched object index is `7` while its coordinate-roster ordinal is `5`. These address spaces cannot be interchanged. The API circle and stored diameter agree numerically, but that agreement does not establish the auxiliary-to-diameter/center ownership graph.
+
+**Need.** Independently established framing with opaque header words left opaque, the repeated field's address domain, and an explicit owned diameter/center association or a separately qualified owner rule. Preserve unique raw records and refuse ambiguous center, radial or diameter joins.
+
+**Conflict.** A whole copied auxiliary header fixes an unassigned word as a discriminator. A specimen-supplied diameter followed by a unique radius match does not prove that the record names that diameter or center. The current Native marker collector and circle projection omit the two auxiliary records and owner circles; this remains an implementation gap.
+
+**Note.** A construction observation does not establish a generic byte discriminator. Missing supported radial records do not imply construction. The reported historical construction/absence census remains outside the bounded evidence.
 
 ### DI-13. Marker-only profile placement
 
