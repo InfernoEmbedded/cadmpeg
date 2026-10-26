@@ -3089,3 +3089,25 @@ pub(crate) mod weldment_xt_entry_prefix {
     /// Offset of `stream_len` (`u32`, little-endian). Spec §3.1.1.
     pub(crate) const STREAM_LEN: usize = 4;
 }
+
+/// Byte offsets for the `draft_declared_neutral_frame` record.
+///
+/// Spec §2. Record length 120 B.
+pub(crate) mod draft_declared_neutral_frame {
+    /// Record length in bytes. Spec §2.
+    pub(crate) const LEN: usize = 120;
+    /// Offset of `zero_at_8` (`u32`, little-endian). Spec §2.
+    pub(crate) const ZERO_AT_8: usize = 8;
+    /// Offset of `address` (`u32`, little-endian). Spec §2.
+    pub(crate) const ADDRESS: usize = 12;
+    /// Offset of `prefix_zero` (`bytes[8]`). Spec §2.
+    pub(crate) const PREFIX_ZERO: usize = 16;
+    /// Offset of `bounds` (`f64[4]`, little-endian). Spec §2.
+    pub(crate) const BOUNDS: usize = 24;
+    /// Offset of `origin` (`f64[3]`, little-endian). Spec §2.
+    pub(crate) const ORIGIN: usize = 56;
+    /// Offset of `pull_direction` (`f64[3]`, little-endian). Spec §2.
+    pub(crate) const PULL_DIRECTION: usize = 80;
+    /// Offset of `zero_tail` (`bytes[16]`). Spec §2.
+    pub(crate) const ZERO_TAIL: usize = 104;
+}

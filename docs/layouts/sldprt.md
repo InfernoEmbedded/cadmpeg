@@ -3328,6 +3328,21 @@ Starts at the parsed post-relation settings boundary H, not at a fixed displacem
 | 25 | 3 | `settings_before_mode` | `bytes[3]` | little | spec | \| +25 \| bytes[3] \| settings_before_mode \| |
 | 28 | 1 | `equation_angular_mode` | `u8` | little | spec | \| +28 \| u8 \| equation_angular_mode \| |
 
+## `draft_declared_neutral_frame`
+
+Spec §2 · layout: byte offsets · size: 120 B
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 8 | `handles` | `bytes[8]` | little | spec | handle pair `c7 cf ff ff c7 cf ff ff` at +0 |
+| 8 | 4 | `zero_at_8` | `u32` | little | spec | u32 zero at +8 |
+| 12 | 4 | `address` | `u32` | little | spec | nonzero u32 address at +12 |
+| 16 | 8 | `prefix_zero` | `bytes[8]` | little | spec | eight zero bytes at +16 |
+| 24 | 32 | `bounds` | `f64[4]` | little | spec | four f64 bounds `[-1,+1,+1,-1]` at +24 |
+| 56 | 24 | `origin` | `f64[3]` | little | spec | finite plane origin in metres at +56 |
+| 80 | 24 | `pull_direction` | `f64[3]` | little | spec | signed unit pull vector at +80 |
+| 104 | 16 | `zero_tail` | `bytes[16]` | little | spec | sixteen zero bytes at +104 |
+
 ## Not tabulated
 
 | Area | Spec | Reason |

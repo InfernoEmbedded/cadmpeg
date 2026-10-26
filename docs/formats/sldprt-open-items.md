@@ -432,7 +432,7 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Known.** `sldprt.md` §2 "A Draft feature-input interval uses the lane-scoped `moPlaneRef_w` token" defines neutral-plane Draft operands. `sldprt.md` §2 "A compact parting-line Draft uses direct duplicated component-vector records" defines the parting-line form, which has no outward operand. Keywords independently retains an explicit `Outward` Boolean for a neutral-plane Draft.
 
-**Need.** We must recover the native outward flag of a neutral-plane Draft when Keywords omits it.
+**Need.** We must recover the native outward flag of a neutral-plane Draft when Keywords omits it. The signed declared pull vector does not establish an unflipped neutral-plane orientation or the outward Boolean. Compact parting-line frame direction semantics require separate Source controls; they do not share the declared +80 field.
 
 ### DI-32. Compact line-reference width
 
