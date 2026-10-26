@@ -127,9 +127,9 @@ length unit.
 
 **Question.** What does each parameter in a prototype-adjacent `tab_cyl` instance row control?
 
-**Known.** `creo_prt.md` §3.2 "A `tab_cyl`" defines the bounded `params` field and its relationship to the prototype.
+**Known.** `creo_prt.md` §3.2 defines the complete type-19, degree-three, four-control-point knot production and the separate interpolation-point parameter production. The knot production fixes the directrix domain `[0, 1]`. It does not establish the roles of other instance parameters.
 
-**Need.** We must know the parameter roles to define the surface chart and domain.
+**Need.** Establish the remaining instance parameter roles and their ownership before deriving a surface chart or placement.
 
 ### GS-07. Ambiguous `tab_cyl` placement
 

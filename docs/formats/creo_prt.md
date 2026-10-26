@@ -472,8 +472,7 @@ The seven-byte scalar `5e b2 b3 b4 b5 b6 b7` reconstructs IEEE-754 bytes `3f d3 
 namespace and its identifiers do not join the visible namespace. A physical
 `DEPDB_DATA` section does not supply a fallback visible namespace or its census
 when `VisibGeom` is absent or sparse. Geometry-looking labels in that physical
-section do not establish row ownership. A refused fallback retains the complete
-physical section with byte-exact provenance and reports an untyped owner.
+section do not establish row ownership.
 An identified DEPDB layout does not grant a physical section this namespace.
 
 | Item                  | Rule                                                                                |
@@ -1383,6 +1382,16 @@ Within their bounded body, `f9 00` between coordinate tuples is a continuation
 marker and occupies no coordinate slot. When that form leaves the final tuple
 one coordinate short at the field boundary, the omitted terminal coordinate is
 zero. A terminal `18` occupies one explicit zero slot.
+
+A `tab_cyl` prototype with one `type` field equal to 19, one `degree` field
+equal to 3, and one `c_pnts` field containing four consecutive control-point
+identifiers has a cubic B-spline directrix. Its unique `params` field with
+complete body `f8 08 18 e6 0f e6` stores the knot vector
+`[0, 0, 0, 0, 1, 1, 1, 1]`. The knot count equals the control-point count plus
+the degree plus one. Both endpoint knots have multiplicity four and the
+parameter domain is `[0, 1]`. This owned knot production is separate from the
+interpolation-point parameter production. It does not specify weights,
+placement, trimming, or a surface chart.
 
 The `tab_cyl` prototype's `local_sys f9 04 03` supplies a chart-origin vector.
 In the complete form, all twelve slots are finite and slots 9 through 11 are
@@ -5578,18 +5587,18 @@ after an ASCII display body is established.
 
 Expanded `SolidPersistTable` contains a PGL display-object table. Its
 `pgl_persist_table` names `table_id`; a handle names `ref_objtype` and
-`num_objrefs`. In the established handle forms, a zero count has no object
+`num_objrefs`. A zero count has no object
 array and a positive count agrees with its array's declared count. The named
 prototype counts as row zero. `H`-suffixed and suffixless handle names do not
 change those class roles. The optional `srf_prim_data_refs` wrapper is a
-container, separate from the class-157 handle. `pgl_linestyle_Harr` is an
-observed line-style array name.
+container, separate from the class-157 handle. `pgl_linestyle_Harr` names a
+line-style array.
 
 A named `pgl_persist_ref` stores `obj_type=112`, `type_of_reference`,
 `table_id`, and `ref_id`. The reference selects the named table, the handle
 class given by `type_of_reference`, and the zero-based object-array ordinal
 `ref_id`. The reference's class 112 is not the target class. A handle class
-need not equal its concrete row's `obj_type`: the established class-140 shader
+need not equal its concrete row's `obj_type`: a class-140 shader
 handle includes a reference to a concrete class-141 row. Preserve array order
 and repeated stored object identifiers. A missing or ambiguous table or class,
 or an out-of-range ordinal, leaves the target unresolved; table zero and

@@ -900,7 +900,7 @@ pub(super) fn feature_entity_table_records(
 #[cfg(test)]
 mod feature_entity_table_record_tests {
     use super::feature_entity_table_records;
-    use crate::feature::entity::{dummy_table_entry, FeatureEntityTable};
+    use crate::feature::entity::{FeatureEntityTable, dummy_table_entry};
     use std::collections::BTreeSet;
 
     fn scan_with_table() -> crate::container::ContainerScan<'static> {
@@ -1134,7 +1134,7 @@ pub(super) fn depdb_recipe_row_records<'a>(
 mod feature_projection_tests {
     use super::{feature_geometry_table_records, feature_loop_history_entry_records};
     use crate::feature::rows::{
-        dummy_loop_history_entry, FeatureGeometryTable, FeatureGeometryTableKind,
+        FeatureGeometryTable, FeatureGeometryTableKind, dummy_loop_history_entry,
     };
 
     fn scan() -> crate::container::ContainerScan<'static> {
@@ -1864,11 +1864,39 @@ pub(super) struct CreoSurfacePrototypeRecord<'a> {
 #[derive(Serialize)]
 pub(super) struct CreoSurfaceNamedParameterRecord<'a> {
     pub(super) name: &'a str,
-    #[serde(flatten, serialize_with = "serialize_surface_named_value")]
-    pub(super) value: &'a crate::surface::SurfaceNamedValue,
+    #[serde(flatten, serialize_with = "serialize_projected_surface_named_value")]
+    value: SurfaceNamedValueProjection<'a>,
     pub(super) body: NativeBytes<&'a [u8]>,
     pub(super) offset: usize,
     pub(super) value_offset: usize,
+}
+
+enum SurfaceNamedValueProjection<'a> {
+    Generic(&'a crate::surface::SurfaceNamedValue),
+    CubicKnots([f64; 8]),
+}
+
+fn serialize_projected_surface_named_value<S: serde::Serializer>(
+    value: &SurfaceNamedValueProjection<'_>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    use serde::ser::SerializeMap;
+    match value {
+        SurfaceNamedValueProjection::Generic(value) => {
+            serialize_surface_named_value(value, serializer)
+        }
+        SurfaceNamedValueProjection::CubicKnots(knots) => {
+            let mut map = serializer.serialize_map(Some(7))?;
+            map.serialize_entry("value_kind", "cubic_knots")?;
+            map.serialize_entry("compact_values", &CompactValues::Empty)?;
+            map.serialize_entry("scalar_dimensions", &Option::<u32>::None)?;
+            map.serialize_entry("scalar_count", &Some(8_u32))?;
+            map.serialize_entry("scalar_values", &ScalarValues::Sequence(knots))?;
+            map.serialize_entry("scalar_tokens", &ScalarTokens::Empty)?;
+            map.serialize_entry("opaque", &NativeBytes::from(&[][..]))?;
+            map.end()
+        }
+    }
 }
 
 enum CompactValues<'a> {
@@ -2208,6 +2236,17 @@ pub(super) fn surface_prototype_records<'a>(
     id_namespace: &str,
 ) -> Vec<CreoSurfacePrototypeRecord<'a>> {
     use crate::surface::SurfacePrototypeFamily;
+    let mut unique_knots = BTreeMap::new();
+    for record in prototypes {
+        match unique_knots.entry(record.offset) {
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                entry.insert(record.tabulated_cylinder_cubic_knots());
+            }
+            std::collections::btree_map::Entry::Occupied(mut entry) => {
+                entry.insert(None);
+            }
+        }
+    }
     let mut records = Vec::new();
     for record in prototypes {
         let id = format!("creo:{id_namespace}:surface_prototype#{}", record.offset);
@@ -2221,11 +2260,20 @@ pub(super) fn surface_prototype_records<'a>(
             SurfacePrototypeFamily::Extrusion(_) => std::borrow::Cow::Borrowed("extrusion"),
             SurfacePrototypeFamily::Other(name) => std::borrow::Cow::Owned(format!("other:{name}")),
         };
+        let knots = unique_knots.get(&record.offset).copied().flatten();
         let mut parameters = Vec::new();
         for parameter in &record.parameters {
+            let value = if parameter.name == "params" {
+                knots.map_or(
+                    SurfaceNamedValueProjection::Generic(&parameter.value),
+                    SurfaceNamedValueProjection::CubicKnots,
+                )
+            } else {
+                SurfaceNamedValueProjection::Generic(&parameter.value)
+            };
             parameters.push(CreoSurfaceNamedParameterRecord {
                 name: &parameter.name,
-                value: &parameter.value,
+                value,
                 body: (&parameter.body).into(),
                 offset: parameter.offset,
                 value_offset: parameter.value_offset,
@@ -2336,6 +2384,132 @@ mod surface_projection_tests {
                 offset: 11,
             });
         scan
+    }
+
+    fn owned_cubic_prototype() -> SurfacePrototypeRecord {
+        let values = [
+            ("type", SurfaceNamedValue::CompactInt(19), vec![19]),
+            ("degree", SurfaceNamedValue::CompactInt(3), vec![3]),
+            (
+                "params",
+                SurfaceNamedValue::CountedScalarArray(
+                    CountedScalars::empty(8).expect("generic diagnostic slots"),
+                ),
+                vec![0xf8, 8, 0x18, 0xe6, 0x0f, 0xe6],
+            ),
+            (
+                "c_pnts",
+                SurfaceNamedValue::ContiguousEntityReferences(vec![1, 2, 3, 4]),
+                vec![0xf8, 4, 0xf7, 1, 0xfb, 0xe2],
+            ),
+        ];
+        SurfacePrototypeRecord {
+            family: SurfacePrototypeFamily::Extrusion(
+                crate::surface::ExtrusionLabel::TabulatedCylinder,
+            ),
+            parameters: values
+                .into_iter()
+                .enumerate()
+                .map(|(offset, (name, value, body))| SurfaceNamedParameter {
+                    name: name.into(),
+                    value,
+                    body,
+                    offset,
+                    value_offset: offset + 1,
+                })
+                .collect(),
+            offset: 11,
+        }
+    }
+
+    #[test]
+    fn owned_cubic_params_project_knots_without_mutating_generic_diagnostics() {
+        let scan = crate::test_support::empty_container_scan();
+        let prototype = owned_cubic_prototype();
+        let unchanged = prototype.clone();
+        let records =
+            surface_prototype_records(&scan, std::slice::from_ref(&prototype), "visibgeom");
+        let value = serde_json::to_value(&records[0]).expect("owned parameter serializes");
+        let params = &value["parameters"][2];
+        assert_eq!(params["value_kind"], "cubic_knots");
+        assert_eq!(
+            params["scalar_values"],
+            serde_json::json!([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0])
+        );
+        assert_eq!(params["scalar_count"], 8);
+        assert_eq!(params["scalar_tokens"], serde_json::json!([]));
+        assert_eq!(
+            crate::test_support::native_bytes(&params["body"]),
+            [0xf8, 8, 0x18, 0xe6, 0x0f, 0xe6]
+        );
+        assert_eq!(prototype, unchanged);
+        let SurfaceNamedValue::CountedScalarArray(generic) = &prototype.parameters[2].value else {
+            panic!("generic representation retained")
+        };
+        assert_eq!(generic.values(), &[None; 8]);
+    }
+
+    #[test]
+    fn owned_cubic_params_abstain_on_incomplete_or_conflicting_owners() {
+        let scan = crate::test_support::empty_container_scan();
+        let original = owned_cubic_prototype();
+        let mut cases = Vec::new();
+        let mut other = original.clone();
+        other.family = SurfacePrototypeFamily::Plane;
+        cases.push(other);
+        let mut other = original.clone();
+        other.parameters[0].value = SurfaceNamedValue::CompactInt(12);
+        cases.push(other);
+        let mut other = original.clone();
+        other.parameters[1].value = SurfaceNamedValue::CompactInt(2);
+        cases.push(other);
+        let mut other = original.clone();
+        other.parameters.remove(2);
+        cases.push(other);
+        let mut other = original.clone();
+        other.parameters.push(other.parameters[2].clone());
+        cases.push(other);
+        let mut other = original.clone();
+        other.parameters.push(other.parameters[0].clone());
+        cases.push(other);
+        let mut other = original.clone();
+        other.parameters[3].value = SurfaceNamedValue::ContiguousEntityReferences(vec![1, 2, 3]);
+        cases.push(other);
+        let mut other = original.clone();
+        other.parameters[3].value = SurfaceNamedValue::ContiguousEntityReferences(vec![1, 2, 2, 3]);
+        cases.push(other);
+        let mut other = original.clone();
+        other.parameters[3].value = SurfaceNamedValue::ContiguousEntityReferences(vec![1, 2, 4, 5]);
+        cases.push(other);
+        for body in [
+            vec![0xf8, 7, 0x18, 0xe6, 0x0f, 0xe6],
+            vec![0xf8, 8, 0x18, 0xe6, 0x18, 0xe6],
+            vec![0xf8, 8, 0x18, 0xe6, 0x0f, 0xe6, 0xe3],
+            vec![0xf8, 8, 0x18, 0xe6, 0x0f],
+        ] {
+            let mut other = original.clone();
+            other.parameters[2].body = body;
+            cases.push(other);
+        }
+        for prototype in cases {
+            assert!(prototype.tabulated_cylinder_cubic_knots().is_none());
+            let records =
+                surface_prototype_records(&scan, std::slice::from_ref(&prototype), "visibgeom");
+            let value =
+                serde_json::to_value(&records[0]).expect("unqualified parameter serializes");
+            assert!(
+                value["parameters"]
+                    .as_array()
+                    .expect("parameters")
+                    .iter()
+                    .all(|p| p["value_kind"] != "cubic_knots")
+            );
+        }
+        let duplicates = [original.clone(), original];
+        for record in surface_prototype_records(&scan, &duplicates, "visibgeom") {
+            let value = serde_json::to_value(record).expect("duplicate diagnostic record");
+            assert_eq!(value["parameters"][2]["value_kind"], "counted_scalar_array");
+        }
     }
 
     #[test]

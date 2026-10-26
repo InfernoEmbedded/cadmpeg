@@ -8,9 +8,9 @@
 pub(crate) mod arrays;
 pub(crate) mod cylinder_frame_readers;
 
-use cadmpeg_core::bytes::{find_from as find, find_in};
-use cadmpeg_core::decode::{bounded_len, DecodeContext};
 use cadmpeg_core::CodecError;
+use cadmpeg_core::bytes::{find_from as find, find_in};
+use cadmpeg_core::decode::{DecodeContext, bounded_len};
 use cadmpeg_ir::features::FinitePoint3;
 use cadmpeg_ir::math::{Point3, Vector3};
 use cadmpeg_ir::scalar::{NonNegativeLength, PositiveAngle, PositiveLength};
@@ -313,6 +313,21 @@ impl SurfacePrototypeRecord {
         let mut fields = self.parameters.iter().filter(|field| field.name == name);
         let field = fields.next()?;
         fields.next().is_none().then_some(field)
+    }
+
+    /// Project the knot vector from its complete named cubic curve owner.
+    pub(crate) fn tabulated_cylinder_cubic_knots(&self) -> Option<[f64; 8]> {
+        let controls = self.tabulated_cylinder_control_point_ids()?;
+        if controls
+            .windows(2)
+            .any(|pair| pair[0].checked_add(1) != Some(pair[1]))
+            || self.field("type")?.value != SurfaceNamedValue::CompactInt(19)
+            || self.field("degree")?.value != SurfaceNamedValue::CompactInt(3)
+            || self.field("params")?.body.as_slice() != [0xf8, 8, 0x18, 0xe6, 0x0f, 0xe6]
+        {
+            return None;
+        }
+        Some([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0])
     }
 
     /// Return the chart-origin vector carried by a `tab_cyl` local system.
@@ -1510,7 +1525,15 @@ impl SurfaceParameterRecord {
                     .last()
                     .and_then(|slot| slot.offset.checked_add(slot.raw.len()));
                 if let (
-                    Ok([coordinate0, coordinate1, coordinate2, coordinate3, coordinate4]),
+                    Ok(
+                        [
+                            coordinate0,
+                            coordinate1,
+                            coordinate2,
+                            coordinate3,
+                            coordinate4,
+                        ],
+                    ),
                     true,
                 ) = (
                     <&[SurfaceParameterScalar; 5]>::try_from(frame.slots.as_slice()),
@@ -2028,7 +2051,17 @@ impl SurfaceParameterRecord {
                     radial_end.value?,
                 ]
             }
-            ([control], [auxiliary, axial_start, radial_start, held, axial_end, radial_end]) => {
+            (
+                [control],
+                [
+                    auxiliary,
+                    axial_start,
+                    radial_start,
+                    held,
+                    axial_end,
+                    radial_end,
+                ],
+            ) => {
                 let controls_end = contiguous_end(controls)?;
                 let terminal_end = contiguous_end(terminal)?;
                 (control.value?.is_finite()
