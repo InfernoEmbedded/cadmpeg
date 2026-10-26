@@ -234,6 +234,25 @@ fn parse_bridge(buf: &[u8], off: usize) -> Option<Bridge> {
     })
 }
 
+/// Retain complete FACE bytes for duplicate comparison.
+fn bridge_frame_bytes(buf: &[u8], off: usize) -> Option<Vec<u8>> {
+    let p = body_start(buf, off, 0x0e)?;
+    let end = if buf.get(p + face_delta::TOLERANCE..p + face_delta::REFS) == Some(MAGIC.as_slice())
+        && buf.get(p + face_delta::TOLERANCE - 1) == Some(&1)
+    {
+        refs_tripled::<5>(buf, p + face_delta::SURFACE_FRONT_REFS)?;
+        p.checked_add(face_delta::LEN)?
+    } else if buf.get(p + face_body::TOLERANCE..p + face_body::REFS) == Some(MAGIC.as_slice())
+        && refs_tripled::<5>(buf, p + face_body::REFS).is_none()
+    {
+        refs_be::<5>(buf, p + face_body::SURFACE_FRONT_REFS)?;
+        p.checked_add(face_body::LEN)?
+    } else {
+        return None;
+    };
+    Some(buf.get(off..end)?.to_vec())
+}
+
 fn parse_loop_candidates(buf: &[u8], off: usize) -> Vec<(Loop, usize)> {
     let Some(p) = body_start(buf, off, 0x0f) else {
         return Vec::new();
@@ -832,6 +851,7 @@ fn merge_framed_records<T>(
 #[derive(Default)]
 pub(crate) struct Tables {
     bridges: HashMap<u16, Bridge>,
+    bridge_frames: HashMap<u16, RecordFrame>,
     loops: HashMap<u16, Loop>,
     loop_frames: HashMap<u16, RecordFrame>,
     edge_uses: HashMap<u16, EdgeUse>,
@@ -854,6 +874,17 @@ impl Tables {
     #[cfg(test)]
     pub(super) fn insert_bridge(&mut self, record: Bridge) {
         self.bridges.insert(record.attr, record);
+    }
+
+    fn merge_bridge_frame(&mut self, record: Bridge, frame: RecordFrame) {
+        let attr = record.attr;
+        merge_record_frame(
+            &mut self.bridges,
+            &mut self.bridge_frames,
+            attr,
+            frame,
+            Some(record),
+        );
     }
 
     pub(super) fn loops(&self) -> &HashMap<u16, Loop> {
@@ -963,15 +994,24 @@ impl Tables {
         mut deltas: Self,
         selected_bridge_attrs: Option<&HashSet<u16>>,
     ) {
-        if self.bridges.is_empty() {
-            if let Some(selected_bridge_attrs) = selected_bridge_attrs {
-                retain_selected_bridges(&mut deltas.bridges, selected_bridge_attrs);
-            }
-            self.bridges = deltas.bridges;
-        } else if let Some(selected_bridge_attrs) = selected_bridge_attrs {
-            retain_selected_bridges(&mut deltas.bridges, selected_bridge_attrs);
-            merge_missing(&mut self.bridges, deltas.bridges);
-        }
+        let initially_empty = self.bridges.is_empty() && self.bridge_frames.is_empty();
+        let may_add = |attr: &u16| {
+            selected_bridge_attrs.map_or(initially_empty, |selected| selected.contains(attr))
+        };
+        deltas.bridge_frames.retain(|attr, _| {
+            self.bridge_frames.contains_key(attr)
+                || (!self.bridges.contains_key(attr) && may_add(attr))
+        });
+        deltas.bridges.retain(|attr, _| {
+            deltas.bridge_frames.contains_key(attr)
+                || (!self.bridges.contains_key(attr) && may_add(attr))
+        });
+        merge_framed_records(
+            &mut self.bridges,
+            &mut self.bridge_frames,
+            deltas.bridges,
+            deltas.bridge_frames,
+        );
         merge_framed_records(
             &mut self.loops,
             &mut self.loop_frames,
@@ -1009,13 +1049,6 @@ impl Tables {
             deltas.point_frames,
         );
     }
-}
-
-fn retain_selected_bridges(
-    bridges: &mut HashMap<u16, Bridge>,
-    selected_bridge_attrs: &HashSet<u16>,
-) {
-    bridges.retain(|attr, _| selected_bridge_attrs.contains(attr));
 }
 
 fn merge_missing<T>(target: &mut HashMap<u16, T>, source: HashMap<u16, T>) {
@@ -1398,7 +1431,11 @@ fn scan_records(
                         excluded_bridge_offsets.is_some_and(|offsets| offsets.contains(&i));
                     let carries_loop = record.refs[2] > 1;
                     if !excluded || carries_loop {
-                        t.bridges.insert(record.attr, record);
+                        let frame = RecordFrame {
+                            partition: !deltas,
+                            bytes: bridge_frame_bytes(body, i),
+                        };
+                        t.merge_bridge_frame(record, frame);
                     }
                 }
             }
@@ -3419,5 +3456,125 @@ mod tests {
         assert!(tables.vertex_uses.is_empty());
         assert!(tables.coedges.is_empty());
         assert!(super::super::typed::scan(&enclosed).bodies.is_empty());
+    }
+
+    fn face_conflict_tripled(attr: u16) -> Vec<u8> {
+        let mut bytes = vec![0, 0x0e];
+        bytes.extend(attr.to_be_bytes());
+        bytes.extend(7_u32.to_be_bytes());
+        bytes.extend(0_u16.to_be_bytes());
+        bytes.push(1);
+        bytes.extend(MAGIC);
+        for reference in [0_u16, 0, 20, 0, 100] {
+            bytes.extend(reference.to_be_bytes());
+            bytes.push(1);
+        }
+        bytes.push(0x2b);
+        for _ in 0..5 {
+            bytes.extend(0_u16.to_be_bytes());
+            bytes.push(1);
+        }
+        bytes
+    }
+
+    fn face_conflict_scan(bytes: &[u8], deltas: bool) -> super::Tables {
+        super::scan_records(bytes, deltas, None, None, None, None)
+    }
+
+    #[test]
+    fn face_conflict_identical_complete_frames_coalesce() {
+        for frame in [topology_bridge(10, 20), face_conflict_tripled(10)] {
+            assert!(super::bridge_frame_bytes(&frame, 0).is_some());
+            let repeated = [frame.clone(), frame].concat();
+            let tables = face_conflict_scan(&repeated, true);
+            assert_eq!(tables.bridges().len(), 1);
+            assert!(tables.bridges().contains_key(&10));
+        }
+    }
+
+    #[test]
+    fn face_conflict_distinct_trailing_fields_do_not_coalesce_a_matching_prefix() {
+        for (frame, stride) in [(topology_bridge(10, 20), 2), (face_conflict_tripled(10), 3)] {
+            let mut changed = frame.clone();
+            let at = changed.len() - stride;
+            changed[at..at + 2].copy_from_slice(&2_u16.to_be_bytes());
+            assert_eq!(
+                parse_bridge(&frame, 0).unwrap().refs,
+                parse_bridge(&changed, 0).unwrap().refs
+            );
+            for frames in [
+                [frame.clone(), changed.clone()],
+                [changed.clone(), frame.clone()],
+            ] {
+                let tables = face_conflict_scan(&frames.concat(), true);
+                assert!(!tables.bridges().contains_key(&10));
+            }
+        }
+    }
+
+    #[test]
+    fn face_conflict_partition_presence_wins_over_history() {
+        let original = topology_bridge(10, 20);
+        let mut partition = face_conflict_scan(&original, false);
+        let history = face_conflict_scan(&face_conflict_tripled(10), true);
+        partition.merge_deltas(history, Some(&HashSet::from([10])));
+        assert_eq!(partition.bridges()[&10].sequence, 0);
+        assert!(partition.bridge_frames[&10].partition);
+    }
+
+    #[test]
+    fn face_conflict_across_deltas_stays_withheld_after_later_repetition() {
+        let frame = topology_bridge(10, 20);
+        let mut changed = frame.clone();
+        let at = changed.len() - 2;
+        changed[at..].copy_from_slice(&2_u16.to_be_bytes());
+        let mut current = super::Tables::default();
+        current.merge_deltas(face_conflict_scan(&frame, true), None);
+        assert!(current.bridges().contains_key(&10));
+        current.merge_deltas(face_conflict_scan(&changed, true), None);
+        assert!(!current.bridges().contains_key(&10));
+        current.merge_deltas(face_conflict_scan(&frame, true), None);
+        assert!(!current.bridges().contains_key(&10));
+    }
+
+    #[test]
+    fn face_conflict_partition_ambiguity_does_not_resurrect_from_deltas() {
+        let frame = topology_bridge(10, 20);
+        let changed = topology_bridge(10, 21);
+        let mut partition = face_conflict_scan(&[frame.clone(), changed].concat(), false);
+        assert!(!partition.bridges().contains_key(&10));
+        partition.merge_deltas(face_conflict_scan(&frame, true), Some(&HashSet::from([10])));
+        assert!(!partition.bridges().contains_key(&10));
+        assert!(partition.bridge_frames[&10].partition);
+    }
+
+    #[test]
+    fn face_conflict_unknown_frame_completeness_cannot_prove_duplicate_equality() {
+        let frame = face_conflict_tripled(10);
+        let p = super::body_start(&frame, 0, 0x0e).unwrap();
+        let prefix = frame[..p + crate::layout::face_tripled::SENSE + 1].to_vec();
+        assert!(parse_bridge(&prefix, 0).is_some());
+        assert!(super::bridge_frame_bytes(&prefix, 0).is_none());
+        assert!(face_conflict_scan(&prefix, true)
+            .bridges()
+            .contains_key(&10));
+        assert!(
+            !face_conflict_scan(&[prefix.clone(), prefix].concat(), true)
+                .bridges()
+                .contains_key(&10)
+        );
+    }
+
+    #[test]
+    fn face_conflict_new_history_bridge_requires_existing_typed_selection() {
+        let mut partition = face_conflict_scan(&topology_bridge(10, 20), false);
+        partition.merge_deltas(face_conflict_scan(&face_conflict_tripled(11), true), None);
+        assert!(!partition.bridges().contains_key(&11));
+        partition.merge_deltas(
+            face_conflict_scan(&face_conflict_tripled(11), true),
+            Some(&HashSet::from([11])),
+        );
+        assert!(partition.bridges().contains_key(&10));
+        assert!(partition.bridges().contains_key(&11));
     }
 }
