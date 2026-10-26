@@ -853,13 +853,13 @@ neutral loop ownership or face admission.
 
 **Need.** Establish complete field-tree grammars for the object classes and host-prefix variants, including nested reference ownership. Preserve ordered rows and duplicate stored IDs. Missing or ambiguous table/class selection, absent GPU membership, and unresolved model/occurrence/display placement must remain explicit. Original nonzero or multiple-table cases and the historical population totals remain unverified; a private bounded selector is not a production parser.
 
-### PP-05. Other `DEPDB_DATA` bodies
+### PP-05. Physical `DEPDB_DATA` semantic ownership
 
-**Question.** What grammar does each `DEPDB_DATA` body outside the defined surface rows, section definitions, and feature recipes use?
+**Question.** Which complete physical persistence bodies, beyond the observed empty roots, establish feature, section, unit or model-metadata ownership?
 
-**Known.** `creo_prt.md` §7 "`Sld_Xsections.xsec_geom.crv_array` rows store one-sided section contours with six-reference `[0, P, 0, N, S, 0]` tails. They" defines fixed-prefix surface rows in `DEPDB_DATA`. `creo_prt.md` §6 "Within one current-state record, `protextrude` identifies an additive linear" through `creo_prt.md` §6 "Classes 913" define section and feature-definition boundaries.
+**Known.** Three independently indexed originals contain complete empty physical `DEPDB_DATA` roots. Their surface, curve, section and recipe labels belong to other indexed sections. This establishes those three boundaries, not a population-wide absence result or a replacement owner for every implemented value grammar. The visible-geometry and namespace-census readers do not borrow physical `DEPDB_DATA` when `VisibGeom` is absent or sparse; newly refused geometry-looking sections retain their complete physical bytes with an explicit untyped-owner warning. Failed expansion retains its existing precedence.
 
-**Need.** We must know the other grammars to transfer their design data.
+**Need.** Establish source-owned complete grammars and audit the remaining physical feature/operation, section, model-name and unit readers before further semantic admission or quarantine. Preserve unknown physical variants and original offsets. Authored composition fixtures and an encoding-family name are not native ownership evidence; fixture relocation requires a proved producer grammar.
 
 ### PP-06. Compressed `DispDataTable` substrate
 

@@ -27,6 +27,11 @@ pub(crate) fn section_namespace(name: &str) -> Option<IdentityNamespace> {
             "ActDatums",
             "section"
         )),
+        "DEPDB_DATA" => Some(cadmpeg_ir::identity_namespace!(
+            "creo",
+            "DEPDB_DATA",
+            "section"
+        )),
         "NeuPrtSld" => Some(cadmpeg_ir::identity_namespace!(
             "creo",
             "NeuPrtSld",

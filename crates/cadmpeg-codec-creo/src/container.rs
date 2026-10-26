@@ -382,6 +382,8 @@ pub(crate) struct FramingScan<'a> {
     /// Local work-cap skips recorded while framing and decoding plane support
     /// frames.
     pub(crate) local_work_cap_losses: Vec<cadmpeg_ir::report::loss::LossNote>,
+    /// Readable physical sections whose labels do not establish a visible-geometry owner.
+    pub(crate) unowned_physical_geometry: BTreeSet<usize>,
     /// Identified layout family.
     pub(crate) layout: Layout,
     /// Visible-geometry namespace census, when a `VisibGeom` section was found.
@@ -1329,11 +1331,7 @@ fn read_array_count(region: &[u8], label: &[u8]) -> Result<Option<u32>, CodecErr
 
 /// Read the visible-geometry namespace census from the `VisibGeom` section body.
 fn geom_census(sections: &[ScannedSection<'_>]) -> Result<GeomCensus, CodecError> {
-    let Some(vg) = sections
-        .iter()
-        .find(|s| s.section.name() == VISIBGEOM)
-        .or_else(|| sections.iter().find(|s| s.section.name() == "DEPDB_DATA"))
-    else {
+    let Some(vg) = sections.iter().find(|s| s.section.name() == VISIBGEOM) else {
         return Ok(GeomCensus::default());
     };
     let region = vg.region;
@@ -1477,7 +1475,10 @@ fn family_table(data: &[u8], sections: &[ScannedSection<'_>]) -> Option<FamilyTa
     Some(FamilyTableRecord { pointer, offset })
 }
 
-fn model_geometry_sections<'a>(sections: &[ScannedSection<'a>]) -> Vec<ScannedSection<'a>> {
+fn model_geometry_sections<'a>(
+    sections: &[ScannedSection<'a>],
+    unowned_physical_geometry: &mut BTreeSet<usize>,
+) -> Vec<ScannedSection<'a>> {
     let mut visible_namespace_present = false;
     for candidate in sections
         .iter()
@@ -1494,10 +1495,15 @@ fn model_geometry_sections<'a>(sections: &[ScannedSection<'a>]) -> Vec<ScannedSe
     for section in sections {
         let keep = if visible_namespace_present {
             section.section.name() == VISIBGEOM
-        } else if section.section.name() == "DEPDB_DATA" {
-            let payload = section.region;
-            find(payload, b"srf_array\0", 0).is_some() || find(payload, b"crv_array\0", 0).is_some()
         } else {
+            if section.section.name() == "DEPDB_DATA" {
+                let payload = section.region;
+                if find(payload, b"srf_array\0", 0).is_some()
+                    || find(payload, b"crv_array\0", 0).is_some()
+                {
+                    unowned_physical_geometry.insert(section.section.offset());
+                }
+            }
             false
         };
         if keep {
@@ -2710,7 +2716,8 @@ pub(crate) fn scan_bytes<'a>(
             crate::legacy_feature::scan(&framing.persistence, &legacy_geometry.topology_rows)
         })
         .unwrap_or_default();
-    let model_geometry_sections = model_geometry_sections(sections);
+    let mut unowned_physical_geometry = BTreeSet::new();
+    let model_geometry_sections = model_geometry_sections(sections, &mut unowned_physical_geometry);
     let census = geom_census(sections)?;
     let principal_unit = match binary_principal_unit(&data) {
         BinaryUnitSelection::Selected(unit) => Some(unit),
@@ -2985,6 +2992,7 @@ pub(crate) fn scan_bytes<'a>(
             expanded_sections,
             expansion_losses,
             local_work_cap_losses,
+            unowned_physical_geometry,
             layout,
             census,
             principal_unit,

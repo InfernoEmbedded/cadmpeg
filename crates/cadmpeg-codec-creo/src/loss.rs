@@ -45,6 +45,8 @@ pub(crate) enum CreoLossCode {
     ContainerCensus,
     /// A byte-bounded compressed section has invalid or incomplete LZW data.
     CompressedSectionUnexpanded,
+    /// Geometry-looking bytes in a physical section have no visible-namespace ownership.
+    PhysicalGeometryOwnerUnresolved,
     /// No persistence-layout discriminant matched, so no layout-specific
     /// decode strategy was applied.
     SourceDialectUnverified,
@@ -210,6 +212,7 @@ impl CreoLossCode {
         match self {
             Self::ContainerCensus => "container.census",
             Self::CompressedSectionUnexpanded => "container.compressed-section-unexpanded",
+            Self::PhysicalGeometryOwnerUnresolved => "container.physical-geometry-owner-unresolved",
             Self::SourceDialectUnverified => "source.dialect-unverified",
             Self::LegacyRealValueUnresolved => "legacy.real-value-unresolved",
             Self::LegacyIntegerValueUnresolved => "legacy.integer-value-unresolved",
@@ -324,6 +327,7 @@ impl CreoLossCode {
             | Self::ExtrusionBodyRejected => Severity::Blocking,
             Self::SectionSplineUnresolved
             | Self::CompressedSectionUnexpanded
+            | Self::PhysicalGeometryOwnerUnresolved
             | Self::SurfacePrototypeFieldRetained
             | Self::SourceDialectUnverified
             | Self::LegacyRealValueUnresolved
@@ -400,6 +404,7 @@ impl CreoLossCode {
             | Self::CarrierTorusParameterRetention => LossTaxonomy::CarrierSummary,
             Self::LegacyRealValueUnresolved
             | Self::CompressedSectionUnexpanded
+            | Self::PhysicalGeometryOwnerUnresolved
             | Self::TocScanCapped
             | Self::LegacyIntegerValueUnresolved
             | Self::LegacyContinuationFormUndefined
@@ -496,6 +501,7 @@ mod tests {
             [
                 "container.census",
                 "container.compressed-section-unexpanded",
+                "container.physical-geometry-owner-unresolved",
                 "source.dialect-unverified",
                 "legacy.real-value-unresolved",
                 "legacy.integer-value-unresolved",

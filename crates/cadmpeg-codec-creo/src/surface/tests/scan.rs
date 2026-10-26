@@ -538,13 +538,20 @@ fn scan_derives_named_surface_plane_from_outline_corners() {
         outline\0\xf9\x02\x03"
         .to_vec();
     payload.extend_from_slice(&[0xe4, 0x0f, 0x2f, 0, 0, 0x0d, 0x0f, 0x48, 0, 0]);
-    let scan = container::scan_bytes_ok(build_prt("c", &[("DEPDB_DATA", payload)]));
+    let scan = container::scan_bytes_ok(build_prt("c", &[("DEPDB_DATA", payload.clone())]));
+    assert!(scan.planes.envelopes.is_empty());
+    assert!(scan.planes.outlines.is_empty());
 
-    assert_eq!(scan.planes.envelopes.len(), 1);
-    assert_eq!(scan.planes.outlines.len(), 1);
-    assert_eq!(scan.planes.outlines[0].surface_id, 5);
-    assert_eq!(scan.planes.outlines[0].origin, [0.0, 0.0, 0.0]);
-    assert_eq!(scan.planes.outlines[0].normal(), [0.0, 1.0, 0.0]);
+    // Preserve the original value-grammar assertions without claiming a physical owner.
+    let envelopes =
+        crate::decode::with_service_context(|ctx| crate::surface::plane_envelopes(ctx, &payload))
+            .expect("bounded outline value grammar");
+    let outlines = crate::surface::placed_outline_planes(&envelopes, &[]);
+    assert_eq!(envelopes.len(), 1);
+    assert_eq!(outlines.len(), 1);
+    assert_eq!(outlines[0].surface_id, 5);
+    assert_eq!(outlines[0].origin, [0.0, 0.0, 0.0]);
+    assert_eq!(outlines[0].normal(), [0.0, 1.0, 0.0]);
 }
 
 #[test]

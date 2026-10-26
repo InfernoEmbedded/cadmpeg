@@ -34,6 +34,11 @@ pub(super) fn preserve_passthrough_sections(
         section.role() == SectionRole::PsbGeometry
             || section.role() == SectionRole::Thumbnail
             || matches!(section.name(), "MdlStatus" | "NeuPrtSld")
+            || (section.name() == "DEPDB_DATA"
+                && scan
+                    .framing
+                    .unowned_physical_geometry
+                    .contains(&section.offset()))
             || scan
                 .framing
                 .expansion_losses
@@ -68,6 +73,18 @@ pub(super) fn preserve_passthrough_sections(
                 section.offset(),
                 "unexpanded_compressed_section",
                 Exactness::Unknown,
+            )
+        } else if section.name() == "DEPDB_DATA"
+            && scan
+                .framing
+                .unowned_physical_geometry
+                .contains(&section.offset())
+        {
+            (
+                section_bytes,
+                section.offset(),
+                "unowned_physical_geometry_section",
+                Exactness::ByteExact,
             )
         } else if section.name() == "MdlStatus" {
             (

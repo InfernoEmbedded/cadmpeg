@@ -283,7 +283,7 @@ layout. Section cardinality is descriptive and does not select a layout.
 | `Geomlists`                      | Body-count and quilt-discriminator fields.                                                                           |
 | Legacy ASCII `Sld_GeomDepend`    | The `first_quilt_ptr` quilt-discriminator field in the persistence object tree.                                      |
 | `ActDatums`                      | Active datum-plane and datum-cylinder geometry under `act_datum_geoms → srf_array`.                                  |
-| `DEPDB_DATA`                     | Persistence data used by DEPDB-layout parts, including embedded geometry namespaces and feature-definition records.  |
+| `DEPDB_DATA`                     | Physical persistence root. Geometry-looking labels do not establish visible-namespace ownership. |
 | `FamilyInf`                      | Family-table driver pointer for configurations.                                                                      |
 | `MdlRefInfo`                     | Model-space reference entities, including finite line endpoints.                                                     |
 | `NeuPrtSld` and display sections | Material, appearance, display, and tessellation data.                                                                |
@@ -469,10 +469,12 @@ The seven-byte scalar `5e b2 b3 b4 b5 b6 b7` reconstructs IEEE-754 bytes `3f d3 
 
 `VisibGeom` is the material model-geometry namespace when it contains
 `srf_array` or `crv_array`. `NovisGeom` is a separate invisible and construction
-namespace and its identifiers do not join the visible namespace. `DEPDB_DATA`
-supplies the model-geometry namespace only when no visible geometry namespace
-is present and the DEPDB payload contains an `srf_array` or `crv_array` label.
-An unlabeled persistence payload does not define geometry rows.
+namespace and its identifiers do not join the visible namespace. A physical
+`DEPDB_DATA` section does not supply a fallback visible namespace or its census
+when `VisibGeom` is absent or sparse. Geometry-looking labels in that physical
+section do not establish row ownership. A refused fallback retains the complete
+physical section with byte-exact provenance and reports an untyped owner.
+An identified DEPDB layout does not grant a physical section this namespace.
 
 | Item                  | Rule                                                                                |
 | --------------------- | ----------------------------------------------------------------------------------- |
@@ -4536,10 +4538,10 @@ Parallel plane references and set flip fields do not use this transform case.
 ## 7. DEPDB layout
 
 `Sld_Xsections.xsec_geom.crv_array` rows store one-sided section contours with six-reference `[0, P, 0, N, S, 0]` tails. They do not encode final-solid loops or trim topology. Reconstruct the final B-rep by evaluating the profile and its `protextrude` or `protrevolve` operation. Embedded `1f 9d 10` streams use Unix-compress LZW with header flag `10` and block mode `0`; they contain display, XML, color, and shader data.
-`DEPDB_DATA` carries the same fixed-prefix `srf_array` rows and bounded surface
-parameter records as visible-geometry namespaces. Row acceptance uses the
-stored family, feature, orientation, boundary, and next-surface fields; the
-DEPDB section boundary supplies the namespace bound.
+The fixed-prefix surface and parameter grammars do not by themselves establish
+physical section ownership. A matching `srf_array` spelling inside physical
+`DEPDB_DATA` does not make its bytes a visible-geometry namespace. The indexed
+owner and the admitted record grammar are separate requirements.
 
 The DEPDB `Xsections` section contains an independent
 `Sld_Xsections > xsec_geom > srf_array` namespace. Its rows use the same fixed
