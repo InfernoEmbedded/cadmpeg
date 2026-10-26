@@ -5430,6 +5430,21 @@ vertex, edge, and parity state; a shared persistent segment does not join
 strips across records. Missing, non-increasing, out-of-range, or incomplete
 cumulative arrays do not define a strip set.
 
+A complete `pgl_segref` row contains its own `p_seg_persistref` and the
+following `primdata_container`. Primitive records in that container inherit
+the enclosing display reference. Their coordinates and their positions in an
+array do not select another owner. The named `pgl_primdata_group` stores its
+rows in `segref_array`.
+
+The `p_seg_persistref` fields are `obj_type = 112`, `type_of_reference`,
+`table_id`, and `ref_id`. They select a persistent display object by the table,
+class-handle, and zero-based ordinal rules in §8.8. For class 7, the selected
+`pgl_segment.id` is separate from the reference ordinal and from
+`pgl_segmentref.segment_id`. A resolved display reference does not establish
+an analytical face. A model association requires an independent unique join
+in the same owning model; equal identifiers alone do not establish ownership,
+currentness, occurrence, or placement.
+
 ### 8.5 Model reference geometry
 
 `MdlRefInfo` stores finite model-space reference lines under an

@@ -837,13 +837,13 @@ neutral loop ownership or face admission.
 
 **Need.** Complete physical framing must establish each positional cumulative-array extent and position count, including multiple-strip forms, before numeric geometry admission. Unresolved primitive scalar values and display placement require independent definitions.
 
-### PP-03. `SolidPrimdata` persistent-segment binding
+### PP-03. Complete positional primitive-owner framing
 
-**Question.** Which fields bind a `SolidPrimdata` triangle-strip segment to its persistent model entity?
+**Question.** Which complete nested field trees delimit positional `pgl_segref` rows and their primitive containers, and which independent ownership rule associates a resolved display object with analytical geometry?
 
-**Known.** The primitive stream defines tessellation coordinates and topology but does not assign a model face by position alone.
+**Known.** `creo_prt.md` §8.4 defines the named row's display reference and its table/class/ordinal domain. The primitive decoder has no typed persistent-reference resolver or owner attachment. The bounded raw reference permutation and identifier correspondences do not prove complete nested row boundaries or a general face join.
 
-**Need.** We must know the binding to attach tessellation to the correct entity.
+**Need.** Establish complete positional row and nested-array boundaries before primitives inherit display references. Resolve missing or ambiguous tables, handles and row ownership conservatively. Prove a unique same-model geometry association separately; reference-like bytes inside opaque primitive payloads and equal numeric identifiers do not supply it.
 
 ### PP-04. Expanded `SolidPersistTable` row bodies
 
