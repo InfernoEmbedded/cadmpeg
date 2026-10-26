@@ -1333,9 +1333,10 @@ pcurve whose mapped endpoints lie on the incident analytic carrier selects a
 branch only when exactly one candidate satisfies both endpoints.
 
 Family-26 and family-29 rows may omit the inline envelope and local-system
-body. When the header is followed immediately by a contour chain, their
-carriers come from the owning class-913 round replay and generated-entity
-binding. A family-29 row that carries a body instead uses the named
+body. A contour chain and generated-entity binding establish ownership;
+they do not supply missing carrier geometry. An analytic round carrier
+requires its complete typed construction. A family-29 row that carries a body
+uses the named
 `fillet_srf` prototype roster (`srf_prim_ptr`, `pnt_spline`, `id`, `type`,
 `gen_info`, `flip`, `tan_cond`, and `i_pnts`); its spline fields are not an
 inline analytic carrier.
@@ -1783,10 +1784,24 @@ coordinate lane. `u_params` and the seven-byte `v_params` forms use the
 positive DICT lattice. `v_params` also uses the eight-byte `28` positive
 sub-unit form.
 
-In a `fillet_srf` prototype, `i_pnts` and `i_points` use the positive DICT
-lattice and the `a4..df` negative members of the signed second
-directrix-coordinate lane. `tangts` uses the complete signed second
-directrix-coordinate lane.
+A curved-edge fillet carrier has three splines. `pnt_spline` defines `P(v)`,
+the `u = 0` boundary; `ctr_spline` defines `C(v)`, the locus of arc centers;
+and `tan_spline` defines `T(v)`, the unit tangents along the fillet axis.
+With `R(v) = P(v) - C(v)`, the carrier equation is
+`S(u,v) = C(v) + R(v)*cos(u) + (T(v) cross R(v))*sin(u)`.
+A straight-edge fillet uses a cylinder carrier.
+
+The direct `fillet_srf` form has the three spline fields and `par_v_0` and
+`par_v_1`. A complete placed carrier requires all three evaluable splines,
+their parameter domain, and a unique instance chart. The axis tangent has
+unit length and is perpendicular to the radius vector over the domain.
+The `shrsrf_data` field identifies a separate serialization form; its name
+alone does not define an inline spline triplet or a shared-object target.
+
+Surface contours define trims independently of the carrier equation. Each
+contour has an external or internal traversal role and an ordered boundary
+cycle. Feature affected-geometry, affected-edge, contour-ID and generated-entity
+arrays do not substitute for spline coefficients or ordered trims.
 
 A complete `splsrf` interpolation surface contains `i_points`,
 `end_u_tangts`, `end_v_tangts`, `end_uv_deriv`, `u_params`, and `v_params`.

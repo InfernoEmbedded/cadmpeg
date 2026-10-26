@@ -256,13 +256,13 @@ witnesses; it does not by itself define the remaining carrier equation.
 
 **Need.** A native instance with independently known element-tree values must establish set-array boundaries, the shape-option selector, radius-entry order, governing-point references, and the two leg grammars.
 
-### GS-22. Round flank geometry
+### GS-22. Native fillet spline values and instance chart
 
-**Question.** Which fields define the flank geometry of a round or fillet?
+**Question.** Which complete direct and shared field trees define numeric fillet spline values, parameter domains and instance charts?
 
-**Known.** The feature recipe retains affected geometry, affected edges, contours, and generated entities as separate identifier arrays.
+**Known.** `creo_prt.md` §3.2 defines the published three-spline carrier equation and independent contour roles. The direct headset body bounds three arrays of 25 interpolation points, two endpoint tangents per spline, and byte-identical strictly increasing parameter arrays. The center and tangent bodies have no complete numeric projection. Both the signed-coordinate and sign-cleared rivals violate unit-tangent and perpendicular-radius invariants. Five checked shared-form prefixes start with `shrsrf_data`; they do not prove a complete shared-reference join or the absence of later fields. Current native faces 374 and 468 both have closed four-edge cycles and unknown carriers.
 
-**Need.** We must know the fields to construct the blend surface and its trims.
+**Need.** Establish the complete positional scalar lanes and direct/shared ownership from native numeric evidence or a controlled asymmetric Toolkit oracle. Resolve the unique instance chart, reflection and domain before constructing the fillet. Do not select signs from continuity or a mirror-symmetric STEP fit.
 
 ### GS-23. Round carrier ownership and generated-entry extents
 
