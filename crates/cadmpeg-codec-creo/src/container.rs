@@ -1358,7 +1358,7 @@ fn binary_principal_unit(data: &[u8]) -> BinaryUnitSelection {
     let mut from = 0;
     while let Some(found) = find(data, PRINCIPAL_UNIT_ID, from) {
         let start = found + PRINCIPAL_UNIT_ID.len();
-        let Some(&value) = data.get(start) else {
+        let Some((value, end)) = psb::complete_compact_int(data, start) else {
             return BinaryUnitSelection::Unsupported;
         };
         if let Some(previous) = selector {
@@ -1366,13 +1366,16 @@ fn binary_principal_unit(data: &[u8]) -> BinaryUnitSelection {
         } else {
             selector = Some(value);
         }
-        from = start;
+        from = end;
     }
     if conflicting {
         BinaryUnitSelection::Conflicting
     } else {
         match selector {
             None => BinaryUnitSelection::Absent,
+            Some(50) => {
+                BinaryUnitSelection::Selected(legacy::PrincipalUnitSystem::CentimeterGramSecond)
+            }
             Some(51) => {
                 BinaryUnitSelection::Selected(legacy::PrincipalUnitSystem::MillimeterNewtonSecond)
             }

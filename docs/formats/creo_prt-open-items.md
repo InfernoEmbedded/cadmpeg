@@ -91,19 +91,21 @@ surface, or pcurve transition semantics apply.
 
 ### SE-14. Other principal unit selectors
 
-**Question.** Which coordinate unit system does each `_principal_sys_units_id`
-value outside `51`, `54`, and `55` select?
+**Question.** Which coordinate unit systems do unassigned compact selectors,
+including `49`, `52`, and `53`, identify, and what complete model-local unit
+records resolve a custom-system length reference?
 
-**Known.** `creo_prt.md` §1.3 "`_principal_sys_units_id` identifies the active
-coordinate unit system." gives `51` for millimeter-Newton-Second, `54` for
-inch-pound-mass-second, and `55` for millimeter-Kilogram-Second. Binary
-selector `54` stores lengths in inches and the neutral model multiplies every
-length-bearing value by `25.4` to produce canonical millimeters. `creo_prt.md`
-§1.3 "In legacy ASCII persistence, the unique type-10
-`principal_sys_units` scalar" gives the same inch system and conversion.
+**Known.** Selectors `50`, `51`, `54`, and `55` select CGS, mmNs, inLbmS, and
+mmKs. CGS lengths scale by `10` and inch lengths by `25.4` to canonical
+millimeters. A custom selector can reference a model-local system `_id`;
+`a7 10` is the compact integer `10000`. The system's unit names and object
+references are distinct from public API unit-enum ordinals. A configuration
+option list does not define the integer serialization of its entries.
 
-**Need.** We must know each selector to give model coordinates their canonical
-length unit.
+**Need.** We must resolve each active selector and its length definition before
+converting coordinate lengths. Unassigned selectors and incomplete custom-unit
+references must not select a scale from configuration-list order, a principal
+display name, or an API-enum cast.
 
 ## 2. Curves and surfaces
 

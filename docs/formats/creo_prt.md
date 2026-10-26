@@ -308,13 +308,24 @@ token even when it emits more than one channel.
 
 ### 1.3 Units
 
-`_principal_sys_units_id` identifies the active coordinate unit system.
+`_principal_sys_units_id` is a complete compact integer that identifies the
+active coordinate unit system. All declarations must agree on the complete
+integer value. A two-byte selector is not identified by its first byte alone.
 
 | Value | Unit system                         |
 | ----: | ----------------------------------- |
+|  `50` | centimeter-gram-second (`CGS`)      |
 |  `51` | millimeter-Newton-Second (`mmNs`)   |
 |  `54` | inch-pound-mass-second (`inLbmS`)   |
 |  `55` | millimeter-Kilogram-Second (`mmKs`) |
+
+Binary selector `50` stores model lengths in centimeters. Multiply stored
+lengths by `10` to obtain canonical millimeters.
+
+A model-local custom system has an `_id` which the active selector can reference.
+Its `unit_names` and `_unit_ids` arrays identify the component unit names and
+model-local object references. These references are not public API unit-enum
+ordinals. A custom system's display name does not establish its length scale.
 
 Binary selector `54` stores model lengths in inches. The neutral model
 converts every stored length, coordinate, distance, radius, linear tolerance,
