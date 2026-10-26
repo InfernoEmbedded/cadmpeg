@@ -3339,6 +3339,14 @@ decoded components remain construction geometry. For `arcorient=0`, profile
 traversal reverses the analytic arc when it runs from the first `pointid` to
 the second.
 
+A neutral face requires closed loops that cover every original incident
+curve side exactly once. A closed ring beside an unresolved incident fragment
+does not establish the whole face. Repeated curve identifiers invalidate every
+face named by any occurrence; repeated use of one side across retained loops
+also prevents face admission. The raw graph and its valid closed rings remain
+available independently of neutral face admission. Complete incidence alone
+does not establish a carrier, chart, endpoint geometry, or face-surface sense.
+
 For a native planar face with multiple closed loops, exactly one loop must
 strictly contain every other loop. That containing loop is the outer boundary;
 every contained loop is an inner boundary. A planar face with one closed loop,

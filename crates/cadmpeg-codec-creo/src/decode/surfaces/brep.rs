@@ -73,7 +73,7 @@ pub(in super::super) enum FaceAdmissionRejection {
     MissingOrientation,
     /// More than one typed model surface claims the candidate face identity.
     AmbiguousSurfaceCarrier,
-    /// The topology component names the face but no closed native loop decoded.
+    /// No eligible closed boundary covers every original incident face side.
     MissingLoops,
     /// At least one boundary curve lacks a solved endpoint vertex pair.
     UnresolvedBoundaryVertices,
@@ -1163,6 +1163,11 @@ impl<'a> BrepFaceCandidateIndexes<'a> {
                 loops.push(lp);
             }
         }
+        let complete_faces = crate::topology::completely_covered_faces(
+            &scan.curves.topology_rows,
+            &scan.topology.loops,
+        );
+        loops_by_face.retain(|face_id, _| complete_faces.contains(face_id));
         let mut topology_face_reference_ids = BTreeSet::new();
         for face_id in scan
             .topology

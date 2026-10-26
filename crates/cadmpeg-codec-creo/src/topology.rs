@@ -169,6 +169,47 @@ impl FaceComponent {
     }
 }
 
+/// Faces whose closed loops cover every original incident side exactly once.
+/// A closed subset is insufficient, and repeated curve identities invalidate
+/// every face named by any occurrence. Native graph records stay unchanged.
+pub(crate) fn completely_covered_faces(rows: &[CurveTopologyRow], loops: &[Loop]) -> BTreeSet<u32> {
+    let mut counts = BTreeMap::<u32, usize>::new();
+    for row in rows {
+        *counts.entry(row.id).or_default() += 1;
+    }
+    let mut expected = BTreeMap::<u32, BTreeSet<HalfEdgeId>>::new();
+    let mut invalid = BTreeSet::new();
+    for row in rows {
+        for side in [Side::Zero, Side::One] {
+            if let Some(face) = row.faces[side.index()] {
+                expected.entry(face.get()).or_default().insert(HalfEdgeId {
+                    curve_id: row.id,
+                    side,
+                });
+                if counts.get(&row.id) != Some(&1) {
+                    invalid.insert(face.get());
+                }
+            }
+        }
+    }
+    let mut actual = BTreeMap::<u32, BTreeSet<HalfEdgeId>>::new();
+    for lp in loops {
+        if let Some(face) = lp.face_id() {
+            for side in lp.half_edges() {
+                if !actual.entry(face.get()).or_default().insert(*side) {
+                    invalid.insert(face.get());
+                }
+            }
+        }
+    }
+    expected
+        .into_iter()
+        .filter_map(|(face, sides)| {
+            (!invalid.contains(&face) && actual.get(&face) == Some(&sides)).then_some(face)
+        })
+        .collect()
+}
+
 /// One topological vertex represented by its incident half-edge orbit.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TopologicalVertex {

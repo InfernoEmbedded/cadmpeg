@@ -687,7 +687,11 @@ place an orbit whose existing evidence does not select one point.
 
 **Known.** `creo_prt.md` §6 "Classes 913" through `creo_prt.md` §6 "For a class-913 cylindrical slot fillet, the first two `geoms_affected`" define the round-feature rowless-cylinder special case.
 
-**Need.** We must know the general binding to construct those face uses.
+**Need.** Establish that general binding with complete incidence, a unique
+carrier, directed endpoint geometry, and independent face-surface sense.
+Every original incident side must occur exactly once in the closed boundary;
+a closed subset does not establish the whole face. Preserved Native loops do
+not imply that the corresponding neutral face is admissible.
 
 ### TP-06. Shared-surface face partition
 
