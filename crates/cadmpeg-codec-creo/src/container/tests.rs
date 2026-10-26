@@ -51,7 +51,7 @@ fn feature_affected_id_aggregation_collects_one_record() {
 }
 
 #[test]
-fn revolution_extent_aggregation_collects_one_extent() {
+fn mode_only_extent_aggregation_retains_raw_definition() {
     use crate::feature::definitions::{DefinitionIdentity, FeatureDefinition};
     use crate::feature::operations::{
         FeatureOperation, FeatureRecipe, OperationKind, OperationName, RecipeResolution,
@@ -95,7 +95,8 @@ fn revolution_extent_aggregation_collects_one_extent() {
         std::slice::from_ref(&definition),
         std::slice::from_ref(&operation),
     );
-    assert_eq!(records.len(), 1);
+    assert!(records.is_empty());
+    assert_eq!(definition.body, body);
 }
 
 #[test]

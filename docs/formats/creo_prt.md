@@ -3915,16 +3915,18 @@ body for subsequent Boolean classification.
 In a class-916 or class-917 positional feature row, feature form `2` selects a
 rotational section sweep. Its `param_choice_ptr` body begins after
 `83 df f6 e3` and stores the choices in the labelled prototype order. The
-choice sequence
-`00 00 ea 44 00 00 f6 f6 f6 00 00 00 00` places
-`ea 44 00 00` in `angle_choice` and defines a complete 360-degree revolution.
-The preceding zero is the inactive `depth_choice`; it is not a zero angular
-extent. The same complete `83 df ...` choice sequence inside the bounded
-section definition applies to its owning DEPDB rotational recipe. Repeated
-identical sequences are distinct stored regeneration states with the same
-full-turn extent. A neutral angular extent exists only when every decoded
-termination state for the feature selects the same extent; state order does not
-select one termination over another.
+`angle_choice` lane contains a termination-mode bit mask. For this lane,
+`ea` introduces three big-endian mask bytes and `eb` introduces four.
+`ea 44 00 00` is `FROM_NONE | TO_ANGLE`; `eb 20 04 00 00` is
+`FROM_NONE | SYMMETRIC`. Neither mode states an angle magnitude. The inactive
+`depth_choice` zero is not an angular extent. A one-sided angle requires its
+independently owned angle value; a symmetric angle has half that value on each
+side. Two-sided angles require both side values. A reference mode requires its
+typed reference and placement. Standard direction is separate from the mode.
+The same mode inside a bounded DEPDB rotational definition does not gain a
+magnitude from its recipe or repetition. A neutral angular extent requires
+complete, agreeing owned magnitude/reference and direction states. State order
+does not select one termination over another.
 For a complete full-turn revolution, every `srf_array` row whose `feat_id`
 selects the feature must transfer to one carrier before generated carriers can
 define the revolution axis. Cylinder, cone, and torus carriers contribute their

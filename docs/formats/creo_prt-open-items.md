@@ -553,13 +553,20 @@ retain native geometry instead of selecting a same-valued datum or class ID.
 
 **Need.** We must know the values to construct nonzero datum offsets and extents.
 
-### SP-25. Other revolution termination selectors
+### SP-25. Owned revolution angle values and references
 
-**Question.** How does each rotational-sweep selector other than the full-turn `angle_choice` form define its angular interval?
+**Question.** Which complete owner join binds an `angle_choice` mode to its
+numeric side values or selected references and standard direction?
 
-**Known.** `creo_prt.md` §6 "In a class-916 or class-917 positional feature row, feature form `2` selects a" defines `ea 44 00 00` as a complete 360-degree revolution. Linear sweep extents include one-sided, symmetric, and two-sided spans.
+**Known.** `ea 44 00 00` selects `FROM_NONE | TO_ANGLE`; it does not state
+360 degrees. `eb 20 04 00 00` selects a symmetric angle mode. A symmetric
+mode uses half its separate angle value on each side. A recipe, repeated mode,
+or matching full-turn carrier geometry does not supply the trim magnitude.
 
-**Need.** We must know the selector semantics to trim a one-sided, symmetric, or two-sided revolution.
+**Need.** Resolve each numeric side value or typed reference under its complete
+owner and reconcile direction and all termination states before constructing an
+angular interval. Missing values do not imply zero, a partial turn, or a full
+turn. Preserve the complete raw choice vectors.
 
 ### SP-38. Current recipe ownership across creation events
 

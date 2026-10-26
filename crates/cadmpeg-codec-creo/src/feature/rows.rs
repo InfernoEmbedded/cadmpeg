@@ -342,7 +342,7 @@ pub(crate) enum FeatureLoopHistoryBoundary {
 
 /// One resolved rotational extent from an `AllFeatur` feature row.
 ///
-/// The stored choice is a full turn; native CADIR still emits `kind: "full_turn"`.
+/// The angular magnitude is independently resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FeatureRevolutionExtent {
     /// Owning feature identifier.
@@ -1621,58 +1621,9 @@ struct ParsedLoopHistoryEntry {
     pub(super) end_offset: usize,
 }
 
-/// Decode full-turn rotational termination from the positional
-/// `param_choice_ptr` body of section-sweep feature rows.
-pub(crate) fn revolution_extents(rows: &[FeatureRow]) -> Vec<FeatureRevolutionExtent> {
-    const PARAMETER_CHOICE_PREFIX: &[u8] = &[0x83, 0xdf, 0xf6, 0xe3];
-    const FULL_TURN_CHOICES: &[u8] = &[
-        0x00, 0x00, 0xea, 0x44, 0x00, 0x00, 0xf6, 0xf6, 0xf6, 0x00, 0x00, 0x00, 0x00,
-    ];
-    let mut result = Vec::new();
-    for row in rows {
-        if !matches!(
-            row.root_schema_class,
-            Some(SchemaClass::Cut | SchemaClass::Protrusion)
-        ) {
-            continue;
-        }
-        let Some(schema_end) = (0..row.body.len().min(20)).find_map(|offset| {
-            if row.body.get(offset..offset + 2) != Some(&[0xe3, 0xf6]) {
-                return None;
-            }
-            let (schema_class, after) = psb::compact_int(&row.body, offset + 2);
-            (Some(SchemaClass::from(schema_class)) == row.root_schema_class
-                && row.body.get(after) == Some(&0xe1))
-            .then_some(after + 1)
-        }) else {
-            continue;
-        };
-        if row.body.get(schema_end) != Some(&2) {
-            continue;
-        }
-        let Some(choice_start) = find_in(
-            &row.body,
-            PARAMETER_CHOICE_PREFIX,
-            schema_end + 1,
-            row.body.len().min(64),
-        )
-        .map(|at| at + PARAMETER_CHOICE_PREFIX.len()) else {
-            continue;
-        };
-        if row
-            .body
-            .get(choice_start..choice_start + FULL_TURN_CHOICES.len())
-            != Some(FULL_TURN_CHOICES)
-        {
-            continue;
-        }
-        result.push(FeatureRevolutionExtent {
-            feature_id: row.feature_id,
-            offset: row.body_offset + choice_start + 2,
-        });
-    }
-    result.as_mut_slice().sort_by_key(|left| left.offset);
-    result
+/// A positional angle-choice mode does not supply an angular magnitude.
+pub(crate) fn revolution_extents(_rows: &[FeatureRow]) -> Vec<FeatureRevolutionExtent> {
+    Vec::new()
 }
 
 #[cfg(test)]

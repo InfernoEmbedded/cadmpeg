@@ -140,7 +140,7 @@ fn loop_restore_directions_decode_one_direction() {
 }
 
 #[test]
-fn revolution_extents_decode_one_extent() {
+fn mode_only_positional_choice_does_not_define_an_extent() {
     let body = b"\xe3\xf6\x83\x95\xe1\x02\x83\xdf\xf6\xe3\
         \x00\x00\xea\x44\x00\x00\xf6\xf6\xf6\x00\x00\x00\x00";
     let row = FeatureRow {
@@ -151,10 +151,8 @@ fn revolution_extents_decode_one_extent() {
         body_offset: 0,
         offset: 0,
     };
-    assert_eq!(
-        super::super::revolution_extents(std::slice::from_ref(&row)).len(),
-        1
-    );
+    assert!(super::super::revolution_extents(std::slice::from_ref(&row)).is_empty());
+    assert_eq!(&row.body[..], body);
 }
 
 #[test]

@@ -18,8 +18,6 @@ use cadmpeg_ir::codec::{Codec, DecodeOptions};
 use crate::container::{self};
 use crate::CreoCodec;
 
-const EPS_FULL_TURN_REVOLUTION: f64 = 1.0e-12;
-
 #[test]
 fn decode_types_class_911_as_unresolved_hole() {
     let mut geometry = visibgeom_payload(1, 0);
@@ -1254,52 +1252,61 @@ fn decode_types_round_with_labeled_edge_selection() {
 }
 
 #[test]
-fn decode_types_full_turn_revolution_from_positional_angle_choice() {
-    let mut geometry = visibgeom_payload(1, 0);
-    geometry.extend_from_slice(&[7, 0x22, 40, 0x01, 0, 0]);
-    let allfeatur = vec![
-        40, 0xeb, 0x04, 0xe3, 0xf6, 0x83, 0x95, 0xe1, 0x02, 0x83, 0xdf, 0xf6, 0xe3, 0x00, 0x00,
-        0xea, 0x44, 0x00, 0x00, 0xf6, 0xf6, 0xf6, 0x00, 0x00, 0x00, 0x00,
-    ];
-    let mdlstatus = b"\xe3icon\0protrevolve\0Revolve id 40\0".to_vec();
-    let data = build_prt(
-        "c",
-        &[
-            ("VisibGeom", geometry),
-            ("AllFeatur", allfeatur),
-            ("DEPDB_DATA", mdlstatus),
-        ],
-    );
-    let scan = container::scan_bytes_ok(data.clone());
-
-    assert_eq!(scan.features.revolution_extents.len(), 1);
-    assert_eq!(scan.features.revolution_extents[0].feature_id, 40);
-    let result = CreoCodec
-        .decode(&mut Cursor::new(data), &DecodeOptions::default())
-        .expect("decode");
-    let feature = result
-        .ir()
-        .model
-        .features
-        .iter()
-        .find(|feature| feature.id.as_str() == "creo:model:feature#40")
-        .expect("revolution feature");
-    assert!(matches!(
-        feature.evaluation.definition(),
-        cadmpeg_ir::features::FeatureDefinition::Operation(cadmpeg_ir::features::FeatureOperation::Revolve {
-            construction,
-            op: cadmpeg_ir::features::BooleanOp::NewBody,
-        }) if construction.profile().is_none()
-            && construction.axis().is_none()
-            && matches!(construction.extent(), Some(cadmpeg_ir::features::RevolveExtent::OneSided {
-                    termination: cadmpeg_ir::features::AngularTermination::Angle {
-                        angle
-                    }
-                }) if (angle.get() - std::f64::consts::TAU).abs() < EPS_FULL_TURN_REVOLUTION)
-    ));
-    let records =
-        &result.ir().native.namespace("creo").unwrap().arenas()["feature_revolution_extents"];
-    assert_eq!(records[0].fields().unwrap()["kind"], "full_turn");
+fn mode_only_revolution_decode_retains_source_without_extent() {
+    for choices in [
+        b"\x00\x00\xea\x44\x00\x00\xf6\xf6\xf6\x00\x00\x00\x00".as_slice(),
+        b"\x00\x00\xeb\x20\x04\x00\x00\x83\xcf\xf6\xf6\x00\x00\x00\x00".as_slice(),
+    ] {
+        let mut geometry = visibgeom_payload(1, 0);
+        geometry.extend_from_slice(&[7, 0x22, 40, 0x01, 0, 0]);
+        let mut allfeatur = b"\x28\xeb\x04\xe3\xf6\x83\x95\xe1\x02\x83\xdf\xf6\xe3".to_vec();
+        allfeatur.extend_from_slice(choices);
+        let mut expected_raw_body = allfeatur[1..].to_vec();
+        expected_raw_body.extend_from_slice(b"#\n");
+        let data = build_prt(
+            "c",
+            &[
+                ("VisibGeom", geometry),
+                ("AllFeatur", allfeatur),
+                (
+                    "DEPDB_DATA",
+                    b"\xe3icon\0protrevolve\0Revolve id 40\0".to_vec(),
+                ),
+            ],
+        );
+        let scan = container::scan_bytes_ok(data.clone());
+        assert!(scan.features.revolution_extents.is_empty());
+        let result = CreoCodec
+            .decode(&mut Cursor::new(data), &DecodeOptions::default())
+            .expect("decode");
+        let feature = result
+            .ir()
+            .model
+            .features
+            .iter()
+            .find(|feature| feature.id.as_str() == "creo:model:feature#40")
+            .expect("revolve feature");
+        assert!(matches!(feature.evaluation.definition(),
+            cadmpeg_ir::features::FeatureDefinition::Operation(cadmpeg_ir::features::FeatureOperation::Revolve {
+                construction, op: cadmpeg_ir::features::BooleanOp::NewBody,
+            }) if construction.profile().is_none() && construction.axis().is_none() && construction.extent().is_none()
+        ));
+        let arenas = result
+            .ir()
+            .native
+            .namespace("creo")
+            .expect("Native namespace")
+            .arenas();
+        assert!(arenas
+            .get("feature_revolution_extents")
+            .is_none_or(|records| records.is_empty()));
+        let rows = &arenas["feature_rows"];
+        assert_eq!(rows.len(), 1);
+        assert_eq!(
+            crate::test_support::native_bytes(&rows[0].fields().unwrap()["body"]),
+            expected_raw_body
+        );
+    }
 }
 
 #[test]

@@ -12,7 +12,7 @@ use crate::scalar;
 
 use super::entity::{generated_class_200_source_entity_ids, FeatureEntityTable};
 use super::helpers::find_bytes;
-use super::operations::{FeatureOperation, FeatureRecipeKind};
+use super::operations::FeatureOperation;
 use super::rows::{FeatureGeometryTable, FeatureRevolutionExtent};
 use super::segment_rows::{SegmentRow, SegmentRows};
 
@@ -6702,43 +6702,12 @@ fn positional_saved_section(
     Some(FeatureSavedSection { entities, offset })
 }
 
-/// Decode full-turn termination stored inside an owned DEPDB section
-/// definition. The owning current-state recipe must independently select a
-/// rotational sweep.
+/// A rotational recipe and angle-choice mode do not supply an angular magnitude.
 pub(crate) fn definition_revolution_extents(
-    definitions: &[FeatureDefinition],
-    operations: &[FeatureOperation],
+    _definitions: &[FeatureDefinition],
+    _operations: &[FeatureOperation],
 ) -> Vec<FeatureRevolutionExtent> {
-    const FULL_TURN: &[u8] = &[
-        0x83, 0xdf, 0xf6, 0xe3, 0x00, 0x00, 0xea, 0x44, 0x00, 0x00, 0xf6, 0xf6, 0xf6, 0x00, 0x00,
-        0x00, 0x00,
-    ];
-    let mut result = Vec::new();
-    for definition in definitions {
-        let Some(feature_id) = definition.identity.owner_feature_id() else {
-            continue;
-        };
-        let recipe_matches = operations.iter().any(|operation| {
-            operation.feature_id == feature_id
-                && operation
-                    .recipe
-                    .resolved()
-                    .is_some_and(|recipe| recipe.kind() == FeatureRecipeKind::Revolve)
-        });
-        if !recipe_matches {
-            continue;
-        }
-        for (offset, window) in definition.body.windows(FULL_TURN.len()).enumerate() {
-            if window == FULL_TURN {
-                result.push(FeatureRevolutionExtent {
-                    feature_id,
-                    offset: definition.offset + offset + 6,
-                });
-            }
-        }
-    }
-    result.as_mut_slice().sort_by_key(|left| left.offset);
-    result
+    Vec::new()
 }
 
 fn definitions_in_ranges(
