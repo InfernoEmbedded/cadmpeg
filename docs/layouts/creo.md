@@ -125,6 +125,41 @@ Cross-checked against code:
 
 - `crates/cadmpeg-codec-creo/src/scalar.rs` — The parser expands the local-system support frame as twelve finite `f64` slots.
 
+## `model_double_xar_metric_scale`
+
+Spec §Constants and cache references · layout: byte offsets · size: 4 B
+
+Parsed by:
+- `crates/cadmpeg-codec-creo/src/double_xar.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `image` | `bytes[4]` | — | spec | The metric model-scale image is `07 23 11 2e`. · value `[7, 35, 17, 46]` |
+
+## `model_double_xar_imperial_scale`
+
+Spec §Constants and cache references · layout: byte offsets · size: 11 B
+
+Parsed by:
+- `crates/cadmpeg-codec-creo/src/double_xar.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `opener` | `u8` | — | spec | The imperial model-scale image is `28 <tail7> 23 11 2e`. · value `40` |
+| 1 | 7 | `tail` | `bytes[7]` | — | spec | The imperial model-scale image is `28 <tail7> 23 11 2e`. |
+| 8 | 3 | `trailer` | `bytes[3]` | — | spec | The imperial model-scale image is `28 <tail7> 23 11 2e`. · value `[35, 17, 46]` |
+
+## `model_double_xar_control`
+
+Spec §Constants and cache references · layout: byte offsets · size: 4 B
+
+Parsed by:
+- `crates/cadmpeg-codec-creo/src/double_xar.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `image` | `bytes[4]` | — | spec | The following fixed control `e8 26 d6 95` supplies no slot. · value `[232, 38, 214, 149]` |
+
 ## `section_full_width_scalar`
 
 Spec §5 · layout: byte offsets · size: 9 B

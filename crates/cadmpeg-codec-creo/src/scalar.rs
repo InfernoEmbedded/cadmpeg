@@ -3,8 +3,8 @@
 
 use std::collections::{BTreeMap, HashSet};
 
-use cadmpeg_core::bytes::{assemble_f32_be, assemble_f64_be, find_from};
-use cadmpeg_core::decode::{index_from_u32, DecodeContext, View};
+use cadmpeg_core::bytes::{assemble_f32_be, assemble_f64_be};
+use cadmpeg_core::decode::{DecodeContext, View};
 use cadmpeg_core::CodecError;
 use cadmpeg_ir::units::FiniteVector;
 
@@ -85,133 +85,6 @@ pub(crate) const fn be_f64(bytes: [u8; 8]) -> f64 {
 
 pub(crate) const fn be_f32(bytes: [u8; 4]) -> f32 {
     assemble_f32_be(bytes)
-}
-
-/// Counted `double_xar` dictionary stored in a model-level scalar section.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct DoubleXarTable {
-    /// Offset of the `double_xar` label in the expanded section.
-    pub(crate) offset: usize,
-    /// Entries in stored order, including an explicit terminal null slot.
-    pub(crate) entries: Vec<DoubleXarSlot>,
-}
-
-/// Defined value forms of a dictionary slot.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum DoubleXarSlot {
-    StockZero,
-    StockOne,
-    /// A decoded scalar and its source token.
-    Literal {
-        /// Decoded scalar value.
-        value: f64,
-        /// Exact source token bytes.
-        raw: Vec<u8>,
-    },
-    TerminalNull,
-    RecursivePlaceholder1,
-    RecursivePlaceholder3,
-}
-
-impl DoubleXarSlot {
-    /// Exact bytes occupying this slot.
-    pub(crate) fn raw(&self) -> &[u8] {
-        match self {
-            Self::StockZero => &[0x0b],
-            Self::StockOne => &[0x10],
-            Self::Literal { raw, .. } => raw,
-            Self::TerminalNull => &[0xe0],
-            Self::RecursivePlaceholder1 => &[0xe5, 0x07, 0x23, 0x11, 0x2e],
-            Self::RecursivePlaceholder3 => &[0xe8, 0x26, 0xd6, 0x95],
-        }
-    }
-
-    pub(crate) fn value(&self) -> Option<f64> {
-        match self {
-            Self::StockZero => Some(0.0),
-            Self::StockOne => Some(1.0),
-            Self::Literal { value, .. } => Some(*value),
-            Self::TerminalNull | Self::RecursivePlaceholder1 | Self::RecursivePlaceholder3 => None,
-        }
-    }
-
-    pub(crate) fn kind(&self) -> &'static str {
-        match self {
-            Self::StockZero => "stock_zero",
-            Self::StockOne => "stock_one",
-            Self::Literal { .. } => "literal",
-            Self::TerminalNull => "terminal_null",
-            Self::RecursivePlaceholder1 => "recursive_placeholder_1",
-            Self::RecursivePlaceholder3 => "recursive_placeholder_3",
-        }
-    }
-}
-
-/// Decode every complete counted `double_xar` dictionary in one expanded section.
-pub(crate) fn double_xar_tables(data: &[u8]) -> Vec<DoubleXarTable> {
-    const LABEL: &[u8] = b"double_xar\0";
-    let mut tables = Vec::new();
-    let mut search = 0;
-    while let Some(offset) = find_from(data, LABEL, search) {
-        let count_offset = offset + LABEL.len();
-        if data.get(count_offset) != Some(&0xf8) {
-            search = count_offset;
-            continue;
-        }
-        let (count, mut cursor) = compact_int(data, count_offset + 1);
-        if cursor == count_offset + 1 {
-            search = count_offset + 1;
-            continue;
-        }
-        let mut entries = Vec::new();
-        for _ in 0..count {
-            let Some(head) = data.get(cursor).copied() else {
-                entries.clear();
-                break;
-            };
-            let (slot, end) = match head {
-                0x0b => (DoubleXarSlot::StockZero, cursor + 1),
-                0x10 => (DoubleXarSlot::StockOne, cursor + 1),
-                0xe0 => (DoubleXarSlot::TerminalNull, cursor + 1),
-                0xe5 if data.get(cursor..cursor + 5) == Some(&[0xe5, 0x07, 0x23, 0x11, 0x2e]) => {
-                    (DoubleXarSlot::RecursivePlaceholder1, cursor + 5)
-                }
-                0xe8 if data.get(cursor..cursor + 4) == Some(&[0xe8, 0x26, 0xd6, 0x95]) => {
-                    (DoubleXarSlot::RecursivePlaceholder3, cursor + 4)
-                }
-                _ => match decode(data, cursor) {
-                    Some((value, end)) => {
-                        let Some(raw) = data.get(cursor..end) else {
-                            entries.clear();
-                            break;
-                        };
-                        (
-                            DoubleXarSlot::Literal {
-                                value,
-                                raw: raw.to_vec(),
-                            },
-                            end,
-                        )
-                    }
-                    None => {
-                        entries.clear();
-                        break;
-                    }
-                },
-            };
-            entries.push(slot);
-            cursor = end;
-        }
-        if entries.len() == index_from_u32(count)
-            && entries
-                .last()
-                .is_some_and(|entry| matches!(entry, DoubleXarSlot::TerminalNull))
-        {
-            tables.push(DoubleXarTable { offset, entries });
-        }
-        search = count_offset + 1;
-    }
-    tables
 }
 
 /// Section-local dictionary formed by distinct raw `0x46` token images.
@@ -2419,9 +2292,9 @@ mod tests {
         decode_tabulated_cylinder_first_coordinate,
         decode_tabulated_cylinder_first_frame_coordinate,
         decode_tabulated_cylinder_frame_coordinate, decode_tabulated_cylinder_second_coordinate,
-        decode_two_chart_first_coordinate, decode_two_chart_second_coordinate, double_xar_tables,
+        decode_two_chart_first_coordinate, decode_two_chart_second_coordinate,
         plane_support_layout, valid_equal_scale_orthogonal_directions, CompactFrameAxes,
-        DoubleXarSlot, InlineNonPlaneLocalSystemPrefix, PlaneSupportFrameLayout, ScalarCache,
+        InlineNonPlaneLocalSystemPrefix, PlaneSupportFrameLayout, ScalarCache,
         NORMAL_X_PLANE_SUPPORT_PREFIXES, POSITIONAL_SLOT_TABLE_WIDTH,
     };
     use cadmpeg_ir::units::FiniteVector;
@@ -2446,13 +2319,6 @@ mod tests {
         let images = [0x46, 0x08, 0, 0, 0, 0, 0, 0, 0x46, 0x08, 0, 0, 0, 0, 0, 0];
         let cache = ScalarCache::from_section_checked(&images);
         assert_eq!(cache.entries.len(), 1, "equal images remain deduplicated");
-    }
-
-    #[test]
-    fn double_xar_tables_parse_one_complete_table() {
-        let bytes = b"double_xar\0\xf8\x02\x10\xe0";
-        let tables = double_xar_tables(bytes);
-        assert_eq!(tables.len(), 1);
     }
 
     #[test]
@@ -3521,44 +3387,6 @@ mod tests {
                 8
             ))
         );
-    }
-
-    #[test]
-    fn decodes_counted_double_xar_dictionary() {
-        let mut data = b"prefix double_xar\0".to_vec();
-        data.extend_from_slice(&[
-            0xf8, 0x07, 0x10, 0xe5, 0x07, 0x23, 0x11, 0x2e, 0x0b, 0xe8, 0x26, 0xd6, 0x95, 0x46,
-            0x08, 0, 0, 0, 0, 0, 0, 0x0b, 0xe0,
-        ]);
-        let tables = double_xar_tables(&data);
-        let [table] = tables.as_slice() else {
-            panic!("complete dictionary");
-        };
-        assert_eq!(table.entries.len(), 7);
-        assert_eq!(
-            table
-                .entries
-                .iter()
-                .flat_map(DoubleXarSlot::raw)
-                .copied()
-                .collect::<Vec<_>>(),
-            data[b"prefix double_xar\0".len() + 2..],
-        );
-        assert_eq!(table.entries[0].value(), Some(1.0));
-        assert_eq!(table.entries[1].kind(), "recursive_placeholder_1");
-        assert_eq!(table.entries[2].value(), Some(0.0));
-        assert_eq!(table.entries[3].kind(), "recursive_placeholder_3");
-        assert_eq!(table.entries[4].value(), Some(3.0));
-        assert_eq!(table.entries[5].value(), Some(0.0));
-        assert_eq!(table.entries[6].kind(), "terminal_null");
-    }
-
-    #[test]
-    fn withholds_incomplete_double_xar_dictionary() {
-        let first = b"double_xar\0\xf8\x02\x10";
-        assert!(double_xar_tables(first).is_empty());
-        let second = b"double_xar\0\xf8\x02\x10\x0b";
-        assert!(double_xar_tables(second).is_empty());
     }
 
     #[test]

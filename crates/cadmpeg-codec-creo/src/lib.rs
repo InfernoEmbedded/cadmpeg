@@ -62,6 +62,7 @@
 
 mod axis;
 mod compress;
+mod double_xar;
 mod container;
 mod coverage;
 mod curve;

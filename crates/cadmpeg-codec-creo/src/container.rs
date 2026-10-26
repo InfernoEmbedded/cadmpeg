@@ -285,7 +285,7 @@ pub(crate) struct ExpandedSection {
     pub(crate) data: Vec<u8>,
 }
 
-/// One counted model-level `double_xar` dictionary from an expanded section.
+/// One owned scalar heap from an expanded model or unit section.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ModelDoubleXarTable {
     /// Normalized owning section name.
@@ -294,8 +294,10 @@ pub(crate) struct ModelDoubleXarTable {
     pub(crate) section_source_offset: usize,
     /// Offset of the table label in the expanded section.
     pub(crate) expanded_offset: usize,
-    /// Entries in stored order.
-    pub(crate) entries: Vec<crate::scalar::DoubleXarSlot>,
+    /// First physical scalar byte in the expanded section.
+    pub(crate) body_offset: usize,
+    pub(crate) logical_count: usize,
+    pub(crate) entries: Vec<crate::double_xar::DoubleXarSlot>,
 }
 
 /// The byte-backed count headers read from the visible-geometry section.
@@ -2703,7 +2705,7 @@ pub(crate) fn scan_bytes<'a>(
     } else {
         readable_sections.as_slice()
     };
-    let primitives = scan_primitives(&expanded_sections)?;
+    let primitives = scan_primitives(ctx, &expanded_sections)?;
     let references = reference_scan(sections)?;
     let layout = identify_layout(&data, &all_sections, legacy_ascii);
     if model_name.is_none() && !matches!(layout, Layout::LegacyAscii(_)) {
@@ -3096,19 +3098,24 @@ pub(crate) fn scan_bytes<'a>(
     })
 }
 
-fn scan_primitives(expanded_sections: &[ExpandedSection]) -> Result<PrimitiveScan, CodecError> {
+fn scan_primitives(
+    ctx: &DecodeContext<'_>,
+    expanded_sections: &[ExpandedSection],
+) -> Result<PrimitiveScan, CodecError> {
     let mut double_xar_tables = Vec::new();
     let mut primitive_scalar_arrays = Vec::new();
     let mut primitive_triangle_strips = Vec::new();
     let mut conflicting_triangle_strip_representation_count = 0usize;
     let mut primitive_namespace_seen = false;
     for section in expanded_sections {
-        let tables = crate::scalar::double_xar_tables(&section.data);
+        let tables = crate::double_xar::tables(ctx, &section.name, &section.data)?;
         for table in tables {
             double_xar_tables.push(ModelDoubleXarTable {
                 section_name: section.name.clone(),
                 section_source_offset: section.source_offset,
                 expanded_offset: table.offset,
+                body_offset: table.body_offset,
+                logical_count: table.logical_count,
                 entries: table.entries,
             });
         }

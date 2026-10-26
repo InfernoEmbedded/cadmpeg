@@ -261,9 +261,11 @@ fn duplicate_primitive_section_namespace_is_refused() {
             compressed_length: 0,
             data: Vec::new(),
         };
-        let error = super::scan_primitives(&[section(1), section(2)])
-            .map(|scan| scan.scalar_arrays.len())
-            .expect_err("distinct sections cannot share primitive identity");
+        let error = crate::decode::with_service_context(|ctx| {
+            super::scan_primitives(ctx, &[section(1), section(2)])
+                .map(|scan| scan.scalar_arrays.len())
+        })
+        .expect_err("distinct sections cannot share primitive identity");
         assert!(matches!(error, cadmpeg_core::CodecError::Malformed { .. }));
     };
 }

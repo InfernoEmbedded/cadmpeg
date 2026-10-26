@@ -84,6 +84,40 @@ pub(crate) mod type24_segmented_first_coordinate_bounded_round {
     pub(crate) const TRAILER: usize = 54;
 }
 
+/// Byte offsets for the `model_double_xar_metric_scale` record.
+///
+/// Spec §Constants and cache references. Record length 4 B.
+pub(crate) mod model_double_xar_metric_scale {
+    /// Record length in bytes. Spec §Constants and cache references.
+    pub(crate) const LEN: usize = 4;
+    /// Stated value of `image` (`bytes[4]`). Spec §Constants and cache references.
+    pub(crate) const IMAGE_VALUE: [u8; 4] = [0x07, 0x23, 0x11, 0x2e];
+}
+
+/// Byte offsets for the `model_double_xar_imperial_scale` record.
+///
+/// Spec §Constants and cache references. Record length 11 B.
+pub(crate) mod model_double_xar_imperial_scale {
+    /// Record length in bytes. Spec §Constants and cache references.
+    pub(crate) const LEN: usize = 11;
+    /// Stated value of `opener` (`u8`). Spec §Constants and cache references.
+    pub(crate) const OPENER_VALUE: u8 = 40;
+    /// Offset of `trailer` (`bytes[3]`). Spec §Constants and cache references.
+    pub(crate) const TRAILER: usize = 8;
+    /// Stated value of `trailer` (`bytes[3]`). Spec §Constants and cache references.
+    pub(crate) const TRAILER_VALUE: [u8; 3] = [0x23, 0x11, 0x2e];
+}
+
+/// Byte offsets for the `model_double_xar_control` record.
+///
+/// Spec §Constants and cache references. Record length 4 B.
+pub(crate) mod model_double_xar_control {
+    /// Record length in bytes. Spec §Constants and cache references.
+    pub(crate) const LEN: usize = 4;
+    /// Stated value of `image` (`bytes[4]`). Spec §Constants and cache references.
+    pub(crate) const IMAGE_VALUE: [u8; 4] = [0xe8, 0x26, 0xd6, 0x95];
+}
+
 /// Byte offsets for the `section_full_width_scalar` record.
 ///
 /// Spec §5. Record length 9 B.

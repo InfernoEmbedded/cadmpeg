@@ -466,7 +466,46 @@ World-coordinate tokens normally occupy eight bytes. Their final seven bytes hol
 
 `0d` encodes negative one, `0f` and `e6` encode zero, and `e4` encodes one. In row and `f9` scalar lanes, `e8 00` encodes standalone `1.0`; other contexts use a different selector grammar. `18 <index>` indexes a raw section-local `46` cache. Build that cache by scanning the raw section bytes, including `46` values that occur within other token tails. The standalone-zero test is local to the enclosing scalar lane: `18` followed by the first byte of a scalar form defined in that lane encodes zero, and the following byte begins a new token. A prefix defined only by another lane remains a compact cache index. The positional row lane additionally defines `0e` as negative one half; the positional surface-row lane additionally defines `73`, `92`, `a0`, `bb`, and `da`. In a saved-line coordinate row, `18` immediately before the row close or trailing entity reference is a standalone zero. At the byte-bounded end of a positional scalar-slot array, terminal `18` is a standalone zero.
 
-An expanded model scalar section stores `double_xar\0 f8 <count>` followed by exactly `count` ordered slots. `10` is the literal-one slot and `0b` is the literal-zero slot. The exact recursive placeholder images `e5 07 23 11 2e` and `e8 26 d6 95` each occupy one unresolved slot. Other slots use their defined scalar token widths. The final counted slot is `e0`, an explicit terminal null. Literal slots retain their decoded values; recursive placeholders retain their exact bytes.
+An expanded `Model_L05P` or `Model_L05_PX` heap owns a count-bounded
+`double_xar` array of logical slots. Its physical token sequence starts with
+literal one `10`, an optional one-byte `e5` repeat, one model-scale slot, and
+literal zero `0b`. The metric model-scale image is `07 23 11 2e`. The imperial
+model-scale image is `28 <tail7> 23 11 2e`. Each complete scale image supplies
+one logical slot. The following fixed control `e8 26 d6 95` supplies no slot.
+An optional `10` after the control supplies one further logical slot.
+
+Exactly six logical bounding fields follow this model prefix. Eight-byte
+openers `2d`, `41`, and `46` bound one field. Seven-byte openers `54`, `6d`,
+`73`, `8c`, `93`, `9a`, `9c`, `a3`, `bb`, and `df` bound one field. An
+unlisted opener leaves the table unresolved; seven bytes is not a default.
+The `46` and `2d` fields reconstruct `40 <tail7>` and `c0 <tail7>`. Other
+bounded field images retain their numeric value as unresolved.
+
+In the model prefix or bounding lane, `e5` consumes exactly one source byte
+and emits two copies of the immediately preceding logical value. It has no
+suffix. A bounding repeat requires a preceding bounding field. The repeat
+preserves an unresolved preceding value as unresolved. The model-scale slot
+following a prefix repeat has its own complete source extent.
+
+An expanded `UnitSystemDef_L03` heap owns a separate ten-scalar `double_xar`
+grammar. The five ordered scale-offset pairs describe length, time, mass,
+temperature, and angle. Its one-byte forms are `07` for `0.001`, `0f` for one,
+and `18` for zero. Its three-byte `2f XX YY` form reconstructs
+`40 XX YY 00 00 00 00 00`. Its eight-byte `28 <tail7>` and `2d <tail7>` forms
+reconstruct positive `3f <tail7>` and `40 <tail7>`. Its seven-byte
+`68 <tail6>` and `6c <tail6>` forms reconstruct `3f dd <tail6>` and
+`3f e1 <tail6>`. A generic scalar lane does not select these values.
+
+The owning `type_har` contains one `H` per logical `double_xar` slot. Its
+character-heap runs `e4`, `e5`, and `e6`, each following an explicit `C`, emit
+one, two, and three `C` characters. The run-expanded character count must equal
+its declared count. A complete scalar heap reaches exactly its declared
+logical count and stops before the next named-record header
+`e0 03 string_xar\0`; that header supplies no terminal slot. Physical token
+bytes remain in source order. Each token records its expanded-section offset,
+logical start index, and logical width, including width two for `e5` and width
+zero for the model control. Their concatenation is exactly the scalar body.
+
 
 The following token may itself begin with `18`. In a positional surface row,
 the surface-only `73`, `a0`, and `bb` openers also terminate the preceding

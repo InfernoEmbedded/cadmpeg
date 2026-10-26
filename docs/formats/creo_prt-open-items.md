@@ -65,21 +65,22 @@ surface, or pcurve transition semantics apply.
 
 **Need.** We must know the other transitions to decode all pcurve endpoint arrays.
 
-### SE-07. Other `double_xar` slots
+### SE-07. Additional model scalar-heap forms
 
-**Question.** What grammar does each `double_xar` slot use when it is not a defined literal, scalar, placeholder, or terminal slot?
+**Question.** Which additional bounded model-heap prefixes and bounding-field
+openers extend the defined `Model_L05P` and `Model_L05_PX` slot grammar, and
+which numeric images do the unresolved model-scale and bounding fields use?
 
-**Known.** `creo_prt.md` §2.3 "An expanded" defines the counted array, literal-one slot, literal-zero slot, two recursive placeholder images, scalar slots, and terminal null slot.
+**Known.** `creo_prt.md` §2.3 defines the owning model and unit-system heaps,
+logical counts, physical widths, two-value `e5` repetition, zero-slot model
+control, and following `string_xar` boundary. The model-scale image is one
+slot and is independent of a preceding repeat. A following named-record
+header is not a null entry. The unit-system heap has its own ten-scalar lane.
 
-**Need.** We must know the other grammars to keep the counted slot boundary aligned.
-
-### SE-08. Variable-length `e5` slots
-
-**Question.** What bounds and semantics apply to a variable-length `e5` slot in `double_xar`?
-
-**Known.** `creo_prt.md` §2.3 "An expanded" defines `e5 07 23 11 2e` as one exact recursive placeholder image.
-
-**Need.** We must know the bounds to distinguish one slot from following slots.
+**Need.** We must know the complete source extent, logical width, and numeric
+role of each additional form before extending the model grammar. An absent
+width rule must leave the table unresolved; generic scalar widths and values
+do not apply by prefix alone.
 
 ### SE-11–SE-13. Short unresolved solver-body tails
 
