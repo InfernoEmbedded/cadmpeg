@@ -845,13 +845,13 @@ neutral loop ownership or face admission.
 
 **Need.** We must know the binding to attach tessellation to the correct entity.
 
-### PP-04. Expanded `SolidPersistTable`
+### PP-04. Expanded `SolidPersistTable` row bodies
 
-**Question.** What row grammar and reference semantics does expanded `SolidPersistTable` use?
+**Question.** Which complete named-prototype field trees bound each persistent object row and its nested arrays, including polymorphic shader bodies?
 
-**Known.** The decoder retains the expanded table boundary and its exact row data.
+**Known.** `creo_prt.md` §8.8 defines the bounded table/class/ordinal reference domain, named row zero, handle-name variants, and separate segment identifiers. Handle class differs from concrete row type. The container expansion retains the payload; the decoder has no typed PGL object graph or persistent-reference resolver. Recognized common headers alone do not prove full row boundaries.
 
-**Need.** We must know the semantics to resolve persistent geometry identities.
+**Need.** Establish complete field-tree grammars for the object classes and host-prefix variants, including nested reference ownership. Preserve ordered rows and duplicate stored IDs. Missing or ambiguous table/class selection, absent GPU membership, and unresolved model/occurrence/display placement must remain explicit. Original nonzero or multiple-table cases and the historical population totals remain unverified; a private bounded selector is not a production parser.
 
 ### PP-05. Other `DEPDB_DATA` bodies
 

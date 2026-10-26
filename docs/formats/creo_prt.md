@@ -5557,3 +5557,34 @@ model do not establish an occurrence-qualified join.
 
 Stored compressed bytes are not ASCII records. This grammar applies only
 after an ASCII display body is established.
+
+
+### 8.8 PGL persistent-reference domains
+
+Expanded `SolidPersistTable` contains a PGL display-object table. Its
+`pgl_persist_table` names `table_id`; a handle names `ref_objtype` and
+`num_objrefs`. In the established handle forms, a zero count has no object
+array and a positive count agrees with its array's declared count. The named
+prototype counts as row zero. `H`-suffixed and suffixless handle names do not
+change those class roles. The optional `srf_prim_data_refs` wrapper is a
+container, separate from the class-157 handle. `pgl_linestyle_Harr` is an
+observed line-style array name.
+
+A named `pgl_persist_ref` stores `obj_type=112`, `type_of_reference`,
+`table_id`, and `ref_id`. The reference selects the named table, the handle
+class given by `type_of_reference`, and the zero-based object-array ordinal
+`ref_id`. The reference's class 112 is not the target class. A handle class
+need not equal its concrete row's `obj_type`: the established class-140 shader
+handle includes a reference to a concrete class-141 row. Preserve array order
+and repeated stored object identifiers. A missing or ambiguous table or class,
+or an out-of-range ordinal, leaves the target unresolved; table zero and
+class seven are not fallback targets. Stream-local `f7` schema references
+belong to a separate namespace.
+
+A class-seven target's `pgl_segment.id` is separate from its array ordinal
+and from `pgl_segmentref.segment_id`. Any proposed surface join must be checked
+against the independent surface-reference namespace in the same owning model;
+equal integers alone do not establish a bounded face, an occurrence, or a
+display-to-model placement. Unmatched objects remain in the display namespace.
+PGL display data does not replace analytical body topology or establish its
+absence ([PTC, Introduction to pgl2pv](https://support.ptc.com/help/creo/view/r13.0/it/creo_view/adapter_install_config_guide/Config-PGL-Files/CVAdapterPGLIntro/Introduction_to_pgl2pv.html)).
