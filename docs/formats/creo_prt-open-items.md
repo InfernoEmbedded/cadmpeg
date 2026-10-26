@@ -385,7 +385,10 @@ selects the point locus. The type-35 role does not prove the missing entity is
 a point. Mixed sense-zero and sense-four incidence roles do not by themselves
 establish a unique point-versus-circular carrier family.
 
-**Need.** We must know the referent to evaluate the relation.
+**Need.** Establish the referent family independently. A centered line's point
+locus also needs a compatible center representation. A resolved line does not
+accept `Center`; a native line can retain that symbolic locus without numerical
+coordinates. Neither case permits an endpoint substitution or an invented point.
 
 ### SP-07. Non-coordinate full-width solver roles
 
