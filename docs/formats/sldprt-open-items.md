@@ -292,7 +292,7 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Question.** How is a marker-only profile placed in model space when it has no local, contextual, or unique lane-wide compact reference-plane record?
 
-**Known.** `sldprt.md` §2 "Point-reference cells address feature-local object indices within the owning feature object" defines model-space recovery from a planar sketch placement. `sldprt.md` §2 "An `moLPattern_c` feature-input object is immediately preceded by its seed feature object. That" through `sldprt.md` §2 "Among classless, parameterless, propertyless history records, `Feature` source ID `1` is the" define the supported reference-plane frames.
+**Known.** `sldprt.md` §2 "Point-reference cells address feature-local object indices within the owning feature object" defines model-space recovery from a planar sketch placement. `sldprt.md` §2 "When no data-class anchor selects a reference-plane frame layout, every structurally valid encoding" define the supported reference-plane frames.
 
 **Need.** We must know the placement to transfer the profile from planar coordinates to model coordinates.
 

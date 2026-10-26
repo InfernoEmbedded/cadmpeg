@@ -82,11 +82,27 @@ role of each additional form before extending the model grammar. An absent
 width rule must leave the table unresolved; generic scalar widths and values
 do not apply by prefix alone.
 
-### SE-11–SE-13. Short unresolved solver-body tails
+### SE-11. Unresolved `00 <tail2>` solver-body tail
 
-**Question.** What solver identities or state do the tails of the bounded `00 <tail2>`, `01 <tail3>`, and `34 <tail2>` variable bodies retain?
+**Question.** Which solver identity or state does the tail of the bounded `00 <tail2>` variable body retain?
 
-**Known.** `creo_prt.md` §5 defines their exact widths, independent value and guess lanes, and unresolved inline state. A complete enabled section graph can resolve a row value separately; equal short bodies do not establish equal numerical values across sections.
+**Known.** `creo_prt.md` §5 defines its exact width, independent value and guess lanes, and unresolved inline state. A complete enabled section graph can resolve a row value separately; equal short bodies do not establish equal numerical values across sections.
+
+**Need.** Define the owned tail fields and their joins before assigning additional solver semantics or replacing the unresolved lane state.
+
+### SE-12. Unresolved `01 <tail3>` solver-body tail
+
+**Question.** Which solver identity or state does the tail of the bounded `01 <tail3>` variable body retain?
+
+**Known.** `creo_prt.md` §5 defines its exact width, independent value and guess lanes, and unresolved inline state. A complete enabled section graph can resolve a row value separately; equal short bodies do not establish equal numerical values across sections.
+
+**Need.** Define the owned tail fields and their joins before assigning additional solver semantics or replacing the unresolved lane state.
+
+### SE-13. Unresolved `34 <tail2>` solver-body tail
+
+**Question.** Which solver identity or state does the tail of the bounded `34 <tail2>` variable body retain?
+
+**Known.** `creo_prt.md` §5 defines its exact width, independent value and guess lanes, and unresolved inline state. A complete enabled section graph can resolve a row value separately; equal short bodies do not establish equal numerical values across sections.
 
 **Need.** Define the owned tail fields and their joins before assigning additional solver semantics or replacing the unresolved lane state.
 
@@ -114,7 +130,7 @@ display name, or an API-enum cast.
 
 **Question.** What grammar and value rule apply to a per-instance cone half-angle that is not the terminal positive-DICT form?
 
-**Known.** `creo_prt.md` §3.2 "A positional cone suffix consists of exactly one complete nine-slot support" defines the terminal positive-DICT half-angle form and the support-frame construction.
+**Known.** `creo_prt.md` §3.2 defines the terminal positive-DICT half-angle form and the support-frame construction.
 
 **Need.** We must know the override to construct the cone carrier.
 
