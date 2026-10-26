@@ -450,13 +450,13 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Need.** The empty-pattern history join is settled by `sldprt.md` §2.1. We must still define nonidentity `NominalTransform` semantics and the other `ComputeAnswerBy`, `Direction`, and `NormalTo` modes before those forms can supply a nominal. A zero direct-cylinder `ThreadDepth` does not establish an evaluated thread depth. Recovering that form requires a source-owned association between the annotation and its rendered depth, and a rule that distinguishes an omitted thread depth from an authored zero. A file-wide matching hole-depth literal and ordinary cylindrical extent do not establish that association.
 
-### DI-35. Endpoint-less variable-fillet edge groups
+### DI-35. Variable-fillet endpoint grouping and control ownership
 
-**Question.** How does a selected-edge reference-list vector without `8083` endpoint references select its radius profile when the same `VarFillet_c` object contains more than one ordered endpoint-radius pair?
+**Question.** Which complete repeated dimension-object grammar separates the selected-edge roster from radius controls, and how do intermediate controls bind to the full radius law?
 
-**Known.** `sldprt.md` §2 defines the reference-list grammar, including count-framed adjacent references, the variable-fillet input-edge boundary, the vertex-control join, and grouping of endpoint-bearing selected edges by their ordered endpoint radii. A legacy three-edge control vector with `D0`/`D1` supplies one feature-wide ordered pair, which applies to endpoint-less selected-edge vectors. A single ordered pair is likewise the feature-wide profile when all endpoint-bearing selected edges agree.
+**Known.** Within one owned variable-fillet object, two proper reference subsets associate the final two selected references with their retained-endpoint radii. The full ordered component identity distinguishes references. A control equal to the whole selected vector does not identify an endpoint. Endpoint associations and complete radius-law controls are separate relations.
 
-**Need.** We must identify the native association between an endpoint-less selected-edge vector and one of several distinct radius profiles.
+**Need.** Prove the complete counted and typed repeated-object boundary in every selected/control caller. A marker sequence alone does not establish that boundary. Bind each scalar through its owned named dimension record, preserve intermediate and exact-equal controls, and establish their parameter positions before constructing the full law. Preserve the existing explicit-endpoint and legacy contracts without inventing endpoint knots or a final B-rep mapping.
 
 ### DI-36. SurfaceCut discarded side
 
