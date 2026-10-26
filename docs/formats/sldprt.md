@@ -1099,6 +1099,10 @@ A bare integer Keywords dimension bound to a unique driving angular scalar denot
 
 A bare `0` or `1` Keywords dimension bound to a unique driving angular scalar denotes milliradians rather than a Boolean. The scalar supplies its evaluated angle in radians and native identity while the original expression remains unchanged.
 
+An offset-edge marker relation retains native handles and a selector. Native relation code `16` alone does not establish a complete neutral offset constraint. Its state and sentinel fields are not the offset magnitude. A repeated handle does not establish a zero-distance self-offset.
+
+A resolved line-offset pair has parallel supporting lines and one positive perpendicular separation. The finite source and result segments can have different lengths and endpoints. A chain requires every resolved source/result pair to share one positive magnitude and a known source orientation. A native marker, a nearby driving distance, or a final STEP support alone does not establish the complete source/result/driver/chain join. Unresolved relations remain Native.
+
 The equation angular-unit mode is the byte in the `moRelMgr_c` post-relation settings prefix. Let `H` be the first packed settings scalar after the complete variable-length relation list and any preceding drafting-standard text. The prefix through the mode byte is 29 bytes. `H` has no fixed displacement from the manager class declaration.
 
 | Offset from H | Type | Field |

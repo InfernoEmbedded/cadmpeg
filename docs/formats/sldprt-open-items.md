@@ -214,13 +214,17 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 **Note.** Modern name/ID evidence does not establish a legacy singleton fallback, property-cache freshness, or complete evaluator execution.
 
-### DI-05. Offset-edge relation invariant
+### DI-05. Compact offset framing and complete operand ownership
 
-**Question.** What neutral geometric invariant does an offset-edge marker relation impose?
+**Question.** What complete compact/current marker framing and source/result/driver/orientation graph admits an offset-edge relation?
 
-**Known.** `sldprt.md` §2 "A `Config-N-ResolvedFeatures` lane supplies the evaluated parameter state for configuration slot" through `sldprt.md` §2 "A primary line-or-circle geometry handle on a transformed line segment identifies that line" define operand resolution and the neutral invariants of the supported dimensional and geometric relations.
+**Known.** `sldprt.md` §2 "An offset-edge marker relation retains native handles" distinguishes raw marker operands from a complete offset constraint. Line supports can be parallel at one positive separation while their bounded lengths differ. Repeated handles, state and sentinel values do not supply a positive offset magnitude or a complete owner join.
 
-**Need.** We must know the invariant to project the native relation as a neutral sketch constraint.
+**Need.** An independently established compact discriminator and record boundary, shape-specific local-ID handling, all source/result curve pairs, one shared positive driving magnitude, source direction and chain membership. General-curve offsets and nonlocal source projection require independent ownership and regularization evidence.
+
+**Conflict.** The current link parser uses the current marker layout and misses the compact pair. Its local-ID caller assumes the current record extent when links parse successfully; adding a shorter link form without changing that caller can read the following record. A whole copied compact header does not establish the role or allowed domain of each header word.
+
+**Note.** Retain raw markers and do not infer a compact local ID, a generic fixed header word, or a neutral offset from geometric coincidence.
 
 ### DI-06. Arc-cardinal relation invariants
 
