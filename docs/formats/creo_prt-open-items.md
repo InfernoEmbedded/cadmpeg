@@ -594,21 +594,27 @@ turn. Preserve the complete raw choice vectors.
 
 ### SP-43. Structural `e3` separator
 
-**Question.** What separates a structural `e3` that starts an `ent_tab` replay
-row from an `e3` that is the tail byte of a two-byte compact identifier?
+**Question.** Which enclosing table and row grammar distinguishes a structural
+`e3` from the tail of a compact identifier or scalar payload?
 
-**Known.** `creo_prt.md` §8.2 "`segtab` and `ent_tab` compact identifiers may
-use `e3` as the tail byte" gives both uses. It gives that the tail is data and
-not a row delimiter, and that an `ent_tab` replay row begins after a structural
-`e3`.
+**Known.** A compact integer head from `80` through `bf` owns the following
+byte, including `e3`. A locally complete `ent_tab` replay entry has five
+nullable compact fields followed by literal `00`; only `f6` spells an absent
+field. A positional saved scalar body can begin immediately after `e2`, or
+after `f7`, one complete compact reference, and `e2`. A nearby `e2` after an
+unrelated field is not a saved header. Raw saved bytes remain available when
+local scalar admission is refused.
 
-**Need.** We must separate the two uses to frame `ent_tab` replay rows without
-a byte scan.
+**Need.** Prove the enclosing bucket, table, and entry boundaries before
+admitting row starts. Establish any counted-reference header from a complete
+owned production. Keep saved arc parameter roles separate from independently
+resolved center, radius, and endpoints.
 
-**Conflict.** `saved_positional_generated_entities` in
-`src/feature/definitions.rs:5449-5471` accepts each `e3` byte as a row start
-when the following identifier joins a generated segment and an `e2` byte occurs
-in the next 24 bytes. The specification does not give this window.
+**Conflict.** The current saved-row candidate scanner still searches for `e3`
+and a nearby `e2` before testing the exact local header. Its candidate set also
+bounds retained row bodies. The trim scanner likewise considers separator-like
+bytes without a complete enclosing state machine. Local header validation and
+identifier joins do not establish those boundaries or positive ownership.
 
 ## 4. Topology and appearance
 

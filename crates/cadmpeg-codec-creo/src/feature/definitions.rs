@@ -6112,6 +6112,20 @@ fn saved_arc_scalar(
     decoded
 }
 
+/// Start the scalar body only after a complete supported saved-row header.
+/// Local validation does not establish the enclosing candidate boundary.
+fn saved_generated_scalar_start(payload: &[u8], start: usize, end: usize) -> Option<usize> {
+    let payload = payload.get(..end)?;
+    match payload.get(start)? {
+        0xe2 => start.checked_add(1),
+        0xf7 => {
+            let (_, after_reference) = psb::reference_id(payload, start.checked_add(1)?).ok()?;
+            (payload.get(after_reference) == Some(&0xe2)).then_some(after_reference.checked_add(1)?)
+        }
+        _ => None,
+    }
+}
+
 fn saved_positional_generated_entities(
     payload: &[u8],
     start: usize,
@@ -6183,13 +6197,9 @@ fn saved_positional_generated_entities(
         if after_id > row_end {
             continue;
         }
-        let Some(header_size) = payload[after_id..row_end]
-            .iter()
-            .position(|byte| *byte == 0xe2)
-        else {
+        let Some(mut cursor) = saved_generated_scalar_start(payload, after_id, row_end) else {
             continue;
         };
-        let mut cursor = after_id + header_size + 1;
         let mut values = [None; 14];
         let mut filled = 0;
         while cursor < row_end && filled < value_count {

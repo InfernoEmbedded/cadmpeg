@@ -5162,11 +5162,15 @@ branched, self-incident, and incomplete components remain construction
 geometry. Traversal reversal is recorded independently for each entity.
 
 The named `entity(arc)` record is followed by positional generated-entity
-rows. Each row begins after `e3` with its saved entity identifier and a header
-ending at `e2`. The identifier joins `order_table.int_id`, and the joined
+rows. A locally supported row header follows the saved entity identifier with
+`e2`, or with `f7`, one complete compact reference, and `e2`. An `e2` found
+after unrelated bytes does not complete the header. This local grammar does
+not establish the enclosing row boundary. The identifier joins
+`order_table.int_id`, and the joined
 `order_table.ext_id` supplies the entity kind from `segtab`. An arc row's
-scalar body stores `center(3)`, `radius`, `end1(3)`, `end2(3)`, `t0`, and `t1`
-in that order. A line row stores `end1(3)` and `end2(3)`; a horizontal or
+scalar body stores `center(3)`, `radius`, `end1(3)`, `end2(3)`, and two
+trailing parameter slots in that order. The trailing slots alone do not
+establish angular units or a trim interval. A line row stores `end1(3)` and `end2(3)`; a horizontal or
 vertical line is valid only when the corresponding endpoint coordinate is
 equal. A complete saved entity supplies section-space geometry when its
 `var_arr` carrier is relation-backed. For an arc row with complete center and

@@ -1240,3 +1240,82 @@ fn model_reference_entry_joins_feature_name_to_feature_id() {
 }
 
 mod variable_coordinates;
+
+fn generated_header_row(
+    kind: FeatureSegmentKind,
+    vertical_horizontal: Option<u32>,
+    header: &[u8],
+) -> Vec<FeatureSavedEntity> {
+    let mut payload = vec![0xe3, 7];
+    payload.extend(header);
+    payload.extend([0x0f; 12]);
+    payload.push(0xe3);
+    let order = FeatureOrderTable {
+        declared_count: 1,
+        has_prototype: false,
+        entity_ref: None,
+        rows: vec![FeatureOrderRow {
+            external_id: 42,
+            internal_id: 7,
+            bitmask: 0,
+            offset: 0,
+        }],
+        offset: 0,
+    };
+    let segments = FeatureSegmentTable {
+        declared_count: 1,
+        has_elided_prototype: false,
+        entity_ref: None,
+        rows: vec![FeatureSegment {
+            kind,
+            directions: [None; 3],
+            center_id: Some(3),
+            arc_orientation: Some(0),
+            vertical_horizontal,
+            radius_ref: None,
+            radius2_ref: None,
+            external_id: 42,
+            body: Vec::new(),
+            offset: 0,
+        }]
+        .into_iter()
+        .map(crate::feature::segment_rows::SegmentRow::Ordinary)
+        .collect(),
+        offset: 0,
+    };
+    saved_positional_generated_entities(
+        &payload,
+        0,
+        payload.len(),
+        &scalar::ScalarCache::default(),
+        Some(&order),
+        Some(&segments),
+    )
+}
+
+#[test]
+fn saved_generated_header_refuses_nearby_terminator_and_unproved_counted_forms() {
+    for header in [
+        vec![0, 0xe2],
+        vec![0xf7, 0x80, 0x96, 0, 0xe2],
+        vec![0xf8, 1, 0xf7, 7, 0xfb, 0xe2],
+    ] {
+        assert!(generated_header_row(FeatureSegmentKind::Arc([1, 2]), None, &header).is_empty());
+    }
+}
+
+#[test]
+fn saved_generated_header_keeps_immediate_and_single_reference_controls() {
+    for header in [
+        vec![0xe2],
+        vec![0xf7, 0x80, 0x96, 0xe2],
+        vec![0xf7, 0x80, 0xe3, 0xe2],
+    ] {
+        let rows = generated_header_row(FeatureSegmentKind::Arc([1, 2]), None, &header);
+        let [FeatureSavedEntity::Arc(arc)] = rows.as_slice() else {
+            panic!("exact supported saved header");
+        };
+        assert_eq!(arc.center, [Some(0.0); 3]);
+        assert_eq!(arc.radius, Some(0.0));
+    }
+}
