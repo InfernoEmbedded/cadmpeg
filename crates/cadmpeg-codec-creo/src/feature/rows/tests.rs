@@ -481,7 +481,7 @@ fn loop_history_roster_uses_declared_loop_count_and_stored_order() {
     );
     assert_eq!(
         entries[0].field_bytes,
-        [vec![1], vec![0xf6], vec![0xe5], vec![2]]
+        vec![vec![1], vec![0xf6], vec![0xe5], vec![2]]
     );
     assert_eq!(
         entries[0].boundary,
@@ -493,11 +493,14 @@ fn loop_history_roster_uses_declared_loop_count_and_stored_order() {
     );
     assert_eq!(entries[2].fields().count(), 5);
     assert_eq!(
-        entries[2].boundary,
-        FeatureLoopHistoryBoundary::NamedRecord {
-            trailing: Some(vec![7])
-        }
+        entries[0].logical_fields,
+        [Some(1), None, Some(0), Some(0), Some(2)]
     );
+    assert_eq!(
+        entries[2].logical_fields,
+        [Some(5), Some(6), Some(1), None, Some(7)]
+    );
+    assert_eq!(entries[2].boundary, FeatureLoopHistoryBoundary::NamedRecord);
 }
 
 #[test]
@@ -512,7 +515,7 @@ fn loop_history_roster_rejects_incomplete_and_early_boundaries() {
     assert_eq!(direct_named[0].end_offset, 5);
     assert_eq!(
         direct_named[0].boundary,
-        FeatureLoopHistoryBoundary::NamedRecord { trailing: None }
+        FeatureLoopHistoryBoundary::NamedRecord
     );
 
     let body = b"\xe0\x00lo_id_tab_ptr\0\xf8\x01\xf7\x60\xfb\xe3\
@@ -833,4 +836,41 @@ fn replay_ids_withholds_zero_count_past_end() {
     {
         assert!(super::replay_ids(&[], 0, 1).is_none());
     };
+}
+
+#[test]
+fn loop_history_requires_type_after_all_five_logical_fields() {
+    let missing_type = [71, 9, 31, 0xe4, 0xf6, 0xe3];
+    assert!(loop_history_roster(&missing_type, 0, 1).is_none());
+    let extra_after_type = b"\x47\x09\x1f\xe4\xf6\x0b\x0c\xe0\x00next\0";
+    assert!(loop_history_roster(extra_after_type, 0, 1).is_none());
+    let complete = b"\x47\x09\x1f\xe4\xf6\x0b\xe0\x00next\0";
+    let rows = loop_history_roster(complete, 0, 1).expect("complete logical row");
+    assert_eq!(
+        rows[0].logical_fields,
+        [Some(9), Some(31), Some(1), None, Some(11)]
+    );
+    assert_eq!(rows[0].field_bytes.concat(), complete[1..6]);
+    assert_eq!(rows[0].end_offset, 6);
+}
+
+#[test]
+fn loop_history_zero_runs_are_owned_by_operand_slots() {
+    for invalid in [
+        vec![71, 0xe5, 31, 0xf6, 11, 0xe3],
+        vec![71, 9, 31, 1, 0xe5, 11, 0xe3],
+        vec![71, 9, 31, 1, 0xf6, 0xe5, 0xe3],
+        vec![71, 9, 31, 0xe6, 0xf6, 11, 0xe3],
+        vec![71, 9, 0x80, 1, 0xe4, 0xf6, 11, 0xe3],
+        vec![71, 9, 31, 1, 0xf6, 0x80],
+    ] {
+        assert!(loop_history_roster(&invalid, 0, 1).is_none());
+    }
+    let body = [71, 9, 0xf6, 0xe5, 11, 0xe3];
+    let rows = loop_history_roster(&body, 0, 1).expect("owned zero run");
+    assert_eq!(
+        rows[0].logical_fields,
+        [Some(9), None, Some(0), Some(0), Some(11)]
+    );
+    assert_eq!(rows[0].field_bytes.concat(), body[1..5]);
 }

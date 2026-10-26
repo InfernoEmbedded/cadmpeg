@@ -230,7 +230,7 @@ fn surface_merge_replay_affected_ids_decode_one_record() {
 
 #[test]
 fn loop_history_roster_decodes_one_row() {
-    let body = [42, 1, 2, 3, 4, 0xe3];
+    let body = [42, 1, 2, 3, 4, 5, 0xe3];
     assert!(matches!(
         super::super::loop_history_roster(&body, 0, 1),
         Some(Ok(_))
@@ -240,7 +240,7 @@ fn loop_history_roster_decodes_one_row() {
 #[test]
 fn loop_history_entries_decode_one_result() {
     let body = b"\xe0\x00lo_id_tab_ptr\0\xf8\x01\xf7\x60\xfb\xe3\
-                 \xe0\x01lo_hist\0\xf8\x06\x2a\x01\x02\x03\x04\xe3";
+                 \xe0\x01lo_hist\0\xf8\x06\x2a\x01\x02\x03\x04\x05\xe3";
     let row = FeatureRow {
         feature_id: 7,
         root_schema_class: Some(crate::feature::schema::SchemaClass::Protrusion),

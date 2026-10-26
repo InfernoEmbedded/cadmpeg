@@ -4547,12 +4547,22 @@ datum identifier namespace independently of that class identifier.
 A named `lo_id_tab_ptr` table can be followed in the same feature row by
 `e0 01 lo_hist 00 f8 06`. The value `6` is the stored loop-history record
 width. Exactly the table's declared count of loop-history records follows.
-Each record begins with the feature-local loop identifier and four
-self-delimiting PSB fields. Its sixth slot is the terminator `e3` or
-`f1|f2 f7 <reference> e3`. The final record can instead end directly at the
-following named-record header or contain one additional self-delimiting field
-before that header. Record order is the loop roster order. An incomplete field,
-early terminator, or nonfinal header boundary defines no loop roster.
+Each record has six logical slots: the feature-local loop identifier,
+subtype, three operands, and the required loop type. Identifiers, subtype, and
+type use complete canonical compact integers. In the three operand slots,
+`f6` is absent, `e4` is one, and `e5` occupies two slots with zero in both.
+A zero run may not cross into the required final type. Physical token count
+therefore differs from logical slot count; original token bytes remain
+separate from their expanded values.
+
+After all six slots, a record ends at `e3` or
+`f1|f2 f7 <reference> e3`. Only the final record may instead meet the next
+named-record header directly. The final type is never an optional trailing
+field, and the terminator is not one of the six logical slots. Record order
+is the loop roster order. Incomplete fields, extra tail fields, early closes,
+and nonfinal named boundaries define no complete loop roster. Subtype and type
+values do not by themselves resolve the three operands or a current boundary
+network.
 
 The implicit `AllFeatur` entity table begins at section-body offset zero with
 `e0 00 Sld_Features 00`. A section body without this root does not carry the

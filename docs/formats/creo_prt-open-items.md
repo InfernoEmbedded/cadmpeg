@@ -742,21 +742,35 @@ unproved.
 join before applying traversal order. Neither a roster match nor an anchored
 cycle rotation proves restoration semantics or persistence lifecycle.
 
-### TP-09. Required `lo_hist` fields
+### TP-09. Loop-history operand ownership
 
-**Question.** What semantic role does each of the four required `lo_hist` fields have?
+**Question.** Which source-owned namespace and complete history relation
+resolve each of the three `lo_hist` operands for every subtype?
 
-**Known.** `creo_prt.md` §6 "A named `lo_id_tab_ptr` table can be followed in the same feature row by" defines the six-entry stored loop-history frame and preserves all field identities.
+**Known.** A row contains the loop identifier, subtype, three operand slots,
+and required loop type. Operand-only `e5` expands to two zeros; `e4` is one
+and `f6` is absent. Original physical tokens are retained independently of
+these logical values. The subtype and type do not make an arbitrary operand
+a surface, curve, or current loop identity.
 
-**Need.** We must know the roles to reconstruct feature-local loop history.
+**Need.** Establish each subtype's complete owning production and independently
+joined target namespace before applying history. Preserve opaque operands,
+nullable states, unsupported forms, and historical rows outside the admitted
+feature/table caller scope. A roster alone does not establish current material
+boundaries or restoration order.
 
-### TP-10. Optional `lo_hist` field
+### TP-10. Required final loop-history type
 
-**Question.** What semantic role does the optional final `lo_hist` field have?
+**Question.** Which subtype-specific semantics and current-state evidence
+make the required final `lo_type` actionable?
 
-**Known.** The decoder preserves the optional field separately from the four required fields.
+**Known.** The final type follows all three logical operands in every complete
+row, including the final row before a named header. It is not an optional
+trailing field. Row-boundary tokens follow all six logical slots.
 
-**Need.** We must know the role to apply the complete loop-history record.
+**Need.** Bind type and subtype to their complete history production before
+traversal or restoration. Retaining the raw enum values does not prove a
+current-boundary selector, operand namespace, or face-side action.
 
 ### TP-11. Loop-to-boundary-surface join
 

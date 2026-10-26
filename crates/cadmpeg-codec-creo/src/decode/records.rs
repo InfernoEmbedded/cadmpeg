@@ -224,6 +224,9 @@ pub(super) struct CreoFeatureLoopHistoryEntryRecord<'a> {
     owner_feature_id: u32,
     ordinal: u32,
     loop_id: u32,
+    lo_subtype: Option<u32>,
+    operands: [Option<u32>; 3],
+    lo_type: Option<u32>,
     #[serde(serialize_with = "serialize_loop_history_fields")]
     field_bytes: &'a crate::feature::rows::FeatureLoopHistoryEntry,
     #[serde(flatten, serialize_with = "serialize_loop_history_boundary")]
@@ -254,7 +257,7 @@ fn serialize_loop_history_boundary<S: serde::Serializer>(
         FeatureLoopHistoryBoundary::ReferenceFinal(reference) => {
             ("reference_final", Some(*reference))
         }
-        FeatureLoopHistoryBoundary::NamedRecord { .. } => ("named_record", None),
+        FeatureLoopHistoryBoundary::NamedRecord => ("named_record", None),
     };
     let mut map = serializer.serialize_map(Some(2))?;
     map.serialize_entry("boundary", &boundary)?;
@@ -900,7 +903,7 @@ pub(super) fn feature_entity_table_records(
 #[cfg(test)]
 mod feature_entity_table_record_tests {
     use super::feature_entity_table_records;
-    use crate::feature::entity::{FeatureEntityTable, dummy_table_entry};
+    use crate::feature::entity::{dummy_table_entry, FeatureEntityTable};
     use std::collections::BTreeSet;
 
     fn scan_with_table() -> crate::container::ContainerScan<'static> {
@@ -958,6 +961,13 @@ pub(super) fn feature_loop_history_entry_records<'a>(
             owner_feature_id: entry.feature_id,
             ordinal: entry.ordinal,
             loop_id: entry.loop_id,
+            lo_subtype: entry.logical_fields[0],
+            operands: [
+                entry.logical_fields[1],
+                entry.logical_fields[2],
+                entry.logical_fields[3],
+            ],
+            lo_type: entry.logical_fields[4],
             field_bytes: entry,
             boundary: &entry.boundary,
             offset: entry.offset,
@@ -1134,7 +1144,7 @@ pub(super) fn depdb_recipe_row_records<'a>(
 mod feature_projection_tests {
     use super::{feature_geometry_table_records, feature_loop_history_entry_records};
     use crate::feature::rows::{
-        FeatureGeometryTable, FeatureGeometryTableKind, dummy_loop_history_entry,
+        dummy_loop_history_entry, FeatureGeometryTable, FeatureGeometryTableKind,
     };
 
     fn scan() -> crate::container::ContainerScan<'static> {
@@ -1162,7 +1172,7 @@ mod feature_projection_tests {
         assert_eq!(geometry["entry_ids"], serde_json::json!([4, 5]));
         assert_eq!(
             history["field_bytes"],
-            serde_json::json!(["01", "02", "03", "04"])
+            serde_json::json!(["01", "02", "03", "04", "05"])
         );
     }
 }
@@ -2497,13 +2507,11 @@ mod surface_projection_tests {
                 surface_prototype_records(&scan, std::slice::from_ref(&prototype), "visibgeom");
             let value =
                 serde_json::to_value(&records[0]).expect("unqualified parameter serializes");
-            assert!(
-                value["parameters"]
-                    .as_array()
-                    .expect("parameters")
-                    .iter()
-                    .all(|p| p["value_kind"] != "cubic_knots")
-            );
+            assert!(value["parameters"]
+                .as_array()
+                .expect("parameters")
+                .iter()
+                .all(|p| p["value_kind"] != "cubic_knots"));
         }
         let duplicates = [original.clone(), original];
         for record in surface_prototype_records(&scan, &duplicates, "visibgeom") {

@@ -584,6 +584,18 @@ fn scan_decodes_complete_allfeatur_loop_history_rosters() {
         5
     );
     assert_eq!(records[1].fields().unwrap()["boundary"], "named_record");
+    assert_eq!(records[0].fields().unwrap()["lo_subtype"], 1);
+    assert_eq!(
+        records[0].fields().unwrap()["operands"],
+        serde_json::json!([null, 0, 0])
+    );
+    assert_eq!(records[0].fields().unwrap()["lo_type"], 2);
+    assert_eq!(records[1].fields().unwrap()["lo_subtype"], 3);
+    assert_eq!(
+        records[1].fields().unwrap()["operands"],
+        serde_json::json!([4, 1, null])
+    );
+    assert_eq!(records[1].fields().unwrap()["lo_type"], 5);
     assert_annotation(
         &result.source_fidelity().annotations,
         records[0].id(),

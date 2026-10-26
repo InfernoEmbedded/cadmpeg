@@ -293,8 +293,10 @@ pub(crate) struct FeatureLoopHistoryEntry {
     pub(crate) ordinal: u32,
     /// Feature-local loop identifier.
     pub(crate) loop_id: u32,
-    /// Four required row fields, in stored order.
-    pub(super) field_bytes: [Vec<u8>; 4],
+    /// Physical tokens after the loop identifier, in stored order.
+    pub(super) field_bytes: Vec<Vec<u8>>,
+    /// Subtype, three operands, and type after logical zero-run expansion.
+    pub(crate) logical_fields: [Option<u32>; 5],
     /// Stored row boundary form.
     pub(crate) boundary: FeatureLoopHistoryBoundary,
     /// Byte offset of the loop identifier in the original stream.
@@ -304,13 +306,8 @@ pub(crate) struct FeatureLoopHistoryEntry {
 }
 
 impl FeatureLoopHistoryEntry {
-    /// Required fields followed by the optional named-boundary field.
     pub(crate) fn fields(&self) -> impl Iterator<Item = &[u8]> {
-        let trailing = match &self.boundary {
-            FeatureLoopHistoryBoundary::NamedRecord { trailing } => trailing.as_ref(),
-            _ => None,
-        };
-        self.field_bytes.iter().chain(trailing).map(Vec::as_slice)
+        self.field_bytes.iter().map(Vec::as_slice)
     }
 }
 
@@ -320,10 +317,11 @@ pub(crate) fn dummy_loop_history_entry() -> FeatureLoopHistoryEntry {
         feature_id: 7,
         ordinal: 0,
         loop_id: 11,
-        field_bytes: [vec![1], vec![2], vec![3], vec![4]],
+        field_bytes: vec![vec![1], vec![2], vec![3], vec![4], vec![5]],
+        logical_fields: [Some(1), Some(2), Some(3), Some(4), Some(5)],
         boundary: FeatureLoopHistoryBoundary::CompoundClose,
         offset: 23,
-        end_offset: 27,
+        end_offset: 30,
     }
 }
 
@@ -337,7 +335,7 @@ pub(crate) enum FeatureLoopHistoryBoundary {
     /// `f2 f7 <reference> e3` terminator.
     ReferenceFinal(u32),
     /// The next named-record header bounds the final row.
-    NamedRecord { trailing: Option<Vec<u8>> },
+    NamedRecord,
 }
 
 /// One resolved rotational extent from an `AllFeatur` feature row.
@@ -1528,6 +1526,7 @@ pub(crate) fn loop_history_entries(
                 ordinal,
                 loop_id: entry.loop_id,
                 field_bytes: entry.field_bytes,
+                logical_fields: entry.logical_fields,
                 boundary: entry.boundary,
                 offset: row.body_offset + entry.offset,
                 end_offset: row.body_offset + entry.end_offset,
@@ -1547,20 +1546,38 @@ fn loop_history_roster(
     let mut entries = Vec::new();
     for index in 0..count {
         let offset = cursor;
-        let (loop_id, after_id) = psb::compact_int(body, cursor);
-        (after_id > cursor && body[cursor] <= 0xbf).then_some(())?;
+        let (loop_id, after_id) = psb::reference_id(body, cursor).ok()?;
         cursor = after_id;
-        let mut field_bytes = std::array::from_fn(|_| Vec::new());
-        for field in &mut field_bytes {
-            let token = psb::token_at(body, cursor)?;
-            (!matches!(
-                token.kind,
-                psb::TokenKind::CompoundClose | psb::TokenKind::Truncated(_)
-            ))
-            .then_some(())?;
-            let bytes = body.get(cursor..cursor.checked_add(token.length)?)?;
-            *field = bytes.to_vec();
-            cursor = cursor.checked_add(token.length)?;
+        let mut field_bytes = Vec::new();
+        let mut logical_fields = [None; 5];
+        let mut slot = 0;
+        while slot < logical_fields.len() {
+            let start = cursor;
+            match body.get(cursor).copied()? {
+                0xe5 if (1..=2).contains(&slot) => {
+                    logical_fields[slot] = Some(0);
+                    logical_fields[slot + 1] = Some(0);
+                    slot += 2;
+                    cursor += 1;
+                }
+                0xe4 if (1..=3).contains(&slot) => {
+                    logical_fields[slot] = Some(1);
+                    slot += 1;
+                    cursor += 1;
+                }
+                0xf6 if (1..=3).contains(&slot) => {
+                    slot += 1;
+                    cursor += 1;
+                }
+                0x00..=0xbf => {
+                    let (value, after) = psb::reference_id(body, cursor).ok()?;
+                    logical_fields[slot] = Some(value);
+                    slot += 1;
+                    cursor = after;
+                }
+                _ => return None,
+            }
+            field_bytes.push(body.get(start..cursor)?.to_vec());
         }
         let boundary = if body.get(cursor) == Some(&0xe3) {
             cursor += 1;
@@ -1581,30 +1598,17 @@ fn loop_history_roster(
             }
         } else {
             (index + 1 == count).then_some(())?;
-            let token = psb::token_at(body, cursor)?;
-            let trailing = if token.kind == psb::TokenKind::NamedRecord {
-                None
-            } else {
-                (!matches!(
-                    token.kind,
-                    psb::TokenKind::CompoundClose | psb::TokenKind::Truncated(_)
-                ))
-                .then_some(())?;
-                let bytes = body.get(cursor..cursor.checked_add(token.length)?)?;
-                let bytes = bytes.to_vec();
-                cursor = cursor.checked_add(token.length)?;
-                matches!(
-                    psb::token_at(body, cursor).map(|token| token.kind),
-                    Some(psb::TokenKind::NamedRecord)
-                )
-                .then_some(())?;
-                Some(bytes)
-            };
-            FeatureLoopHistoryBoundary::NamedRecord { trailing }
+            matches!(
+                psb::token_at(body, cursor).map(|token| token.kind),
+                Some(psb::TokenKind::NamedRecord)
+            )
+            .then_some(())?;
+            FeatureLoopHistoryBoundary::NamedRecord
         };
         entries.push(ParsedLoopHistoryEntry {
             loop_id,
             field_bytes,
+            logical_fields,
             boundary,
             offset,
             end_offset: cursor,
@@ -1615,7 +1619,8 @@ fn loop_history_roster(
 
 struct ParsedLoopHistoryEntry {
     pub(super) loop_id: u32,
-    field_bytes: [Vec<u8>; 4],
+    field_bytes: Vec<Vec<u8>>,
+    logical_fields: [Option<u32>; 5],
     pub(super) boundary: FeatureLoopHistoryBoundary,
     pub(super) offset: usize,
     pub(super) end_offset: usize,
