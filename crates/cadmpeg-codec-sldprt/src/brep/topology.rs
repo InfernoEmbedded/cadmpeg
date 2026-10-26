@@ -1312,11 +1312,13 @@ pub(crate) fn patch_point(buf: &mut [u8], attr: u16, xyz_m: [f64; 3]) -> bool {
 pub(crate) fn scan(body: &[u8]) -> Tables {
     let owner_facts = super::typed::scan(body);
     let owners = super::typed::topology_owner_attrs_for_streams([(&owner_facts, body, false)]);
+    let face_attrs = owner_facts.valid_ownership_face_attrs();
+    let typed_face_offsets = owner_facts.selected_face_offsets(face_attrs.as_ref());
     scan_records(
         body,
         false,
         None,
-        None,
+        Some(&typed_face_offsets),
         None,
         (!owners.is_empty()).then_some(&owners),
     )
@@ -2972,7 +2974,10 @@ mod tests {
             false,
             false,
         ));
-        let tables = super::scan_records(&bytes, false, None, None, None, None);
+        let facts = super::super::typed::scan(&bytes);
+        let face_attrs = facts.valid_ownership_face_attrs();
+        let typed_offsets = facts.selected_face_offsets(face_attrs.as_ref());
+        let tables = super::scan_records(&bytes, false, None, Some(&typed_offsets), None, None);
         assert!(tables.vertex_is_unresolved(211));
         assert!(tables.vertex_classes.contains_key(&211));
         assert_eq!(
@@ -2982,14 +2987,14 @@ mod tests {
         let known = super::scan_with_owner_attrs(
             &bytes,
             &HashSet::new(),
-            &HashSet::new(),
+            &typed_offsets,
             &HashSet::from([900]),
         );
         assert_eq!(known.vertex_uses[&211].owner, 900);
         let wrong = super::scan_with_owner_attrs(
             &bytes,
             &HashSet::new(),
-            &HashSet::new(),
+            &typed_offsets,
             &HashSet::from([901]),
         );
         assert!(wrong.vertex_is_unresolved(211));

@@ -90,13 +90,14 @@ pub(crate) fn offset_surface_carrier(attr: u16, support: u16, distance: f64) -> 
     be16(&mut bytes, attr);
     be32(&mut bytes, 0);
     for _ in 0..5 {
-        be16(&mut bytes, 0);
+        be16(&mut bytes, 1);
     }
     bytes.push(0x2b);
     bytes.push(b'V');
     bytes.push(1);
     be16(&mut bytes, support);
     bef64(&mut bytes, distance);
+    bef64(&mut bytes, 1.0);
     bytes
 }
 

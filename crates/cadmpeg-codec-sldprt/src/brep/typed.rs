@@ -210,6 +210,19 @@ impl Facts {
             .map(|(_, _, _, faces)| faces.into_keys().collect())
     }
 
+    /// Physical FACE records selected by a closed typed ownership set.
+    pub(super) fn selected_face_offsets(&self, attrs: Option<&HashSet<u16>>) -> HashSet<usize> {
+        let mut offsets = HashSet::new();
+        if let Some(attrs) = attrs {
+            for face in &self.faces {
+                if attrs.contains(&face.attr) {
+                    offsets.insert(face.offset);
+                }
+            }
+        }
+        offsets
+    }
+
     /// Return body hierarchies only when the typed ownership graph is complete
     /// for the caller's compact face set.
     pub(super) fn hierarchies(&self, bridge_attrs: &HashSet<u16>) -> Option<Vec<Hierarchy>> {

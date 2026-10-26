@@ -1201,21 +1201,6 @@ fn is_deltas_stream(header: &StreamHeader) -> bool {
         .any(|window| window.eq_ignore_ascii_case(b"deltas"))
 }
 
-fn selected_typed_face_offsets(
-    facts: &typed::Facts,
-    attrs: Option<&HashSet<u16>>,
-) -> HashSet<usize> {
-    let mut offsets = HashSet::new();
-    if let Some(attrs) = attrs {
-        for face in &facts.faces {
-            if attrs.contains(&face.attr) {
-                offsets.insert(face.offset);
-            }
-        }
-    }
-    offsets
-}
-
 fn append_entity_facts(target: &mut entity::Facts, mut source: entity::Facts) {
     target.face_colors.append(&mut source.face_colors);
     target
@@ -1272,7 +1257,7 @@ pub(crate) fn decode_bodies(
         let body = header_body(payload, header)?;
         let is_deltas = is_deltas_stream(header);
         let typed_face_offsets =
-            selected_typed_face_offsets(&stream_typed_facts, typed_bridge_attrs.as_ref());
+            stream_typed_facts.selected_face_offsets(typed_bridge_attrs.as_ref());
         carriers.merge_missing(scan_carriers_for_role(ctx, body, is_deltas)?);
         let curve_attrs = carriers.curve_attrs();
         let scanned_tables = if is_deltas {
@@ -1321,7 +1306,7 @@ fn decode_body(
     let typed_facts = typed::scan(body);
     let owner_attrs = typed::topology_owner_attrs_for_streams([(&typed_facts, body, false)]);
     let typed_face_attrs = typed_facts.valid_ownership_face_attrs();
-    let typed_face_offsets = selected_typed_face_offsets(&typed_facts, typed_face_attrs.as_ref());
+    let typed_face_offsets = typed_facts.selected_face_offsets(typed_face_attrs.as_ref());
     let t = topology::scan_with_owner_attrs(body, &curve_attrs, &typed_face_offsets, &owner_attrs);
     let entity_facts = entity::scan_metadata(body, false);
     decode_graph(ctx, &mut carriers, &t, entity_facts, &typed_facts, stream)
