@@ -3220,7 +3220,10 @@ strictly contain every other loop. That containing loop is the outer boundary;
 every contained loop is an inner boundary. A planar face with one closed loop,
 and a non-planar face admitted under the one-loop rule, has one outer boundary.
 
-In a round-feature generated-entity table, a rowless face-use entry is a cylinder only when the table's following materialized `srf_array` entry is a cylinder. The two entries are angular sectors of one oriented cylinder; the rowless face use inherits the materialized sibling's carrier and orientation. The table class token alone does not identify the surface kind.
+A generated-table identifier that occurs as a `crv_array` face side binds
+that face-reference identity and its edge uses. An unresolved surface row
+supplies neither a carrier nor face sense. Table class and adjacency alone do
+not establish a surface kind, carrier, or orientation.
 
 Two parallel circular cylinders in strict secant position intersect in two
 generator lines parallel to their common axis. Intersecting their transverse
@@ -4384,6 +4387,11 @@ class-`200` entries. The result state names that face as
 another feature invalidate the feature's complete face-result state. A
 generated face selection is valid only when its producer feature and
 `surface#<geom_id>` identity occur in that producer's result state.
+
+A result identity without a current face-side use remains a feature-result
+identity. Its roster does not admit a body face: carrier, orientation, boundary
+and loop checks remain independent. The complete result roster is not a
+subset chosen by plausible geometry or the affected-geometry list.
 
 A regenerated-result edge identity is declared for each unique `crv_array`
 topology row whose `feat_id` is the producing feature. The topology row is

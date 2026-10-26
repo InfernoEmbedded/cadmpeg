@@ -264,13 +264,13 @@ witnesses; it does not by itself define the remaining carrier equation.
 
 **Need.** We must know the fields to construct the blend surface and its trims.
 
-### GS-23. Round generated-face bindings
+### GS-23. Round carrier ownership and generated-entry extents
 
-**Question.** Which relation binds each round or fillet result to its generated face instances?
+**Question.** Which complete native fields establish carrier/sense inheritance for a row-unresolved generated face, and which body grammar bounds the final plain generated-entity entry?
 
-**Known.** `creo_prt.md` §6 "Classes 913" through `creo_prt.md` §6 "For a class-913 cylindrical slot fillet, the first two `geoms_affected`" define the generated-surface arrays and the rowless-cylinder special case.
+**Known.** `creo_prt.md` §6 defines complete generated-result identities through unique, same-owner surface rows across all owned tables. Current face-side identity and independent B-rep admission are separate joins. The bounded round example reproduces its complete nine-member result roster. This does not establish the general rowless-cylinder carrier claim or the final plain-entry grammar.
 
-**Need.** We must know the binding to add the generated faces to the body topology.
+**Need.** Obtain complete source-owned rowless carrier/sense discriminators and plain-entry field consumption or a positively owned enclosing boundary. Preserve the observed overlap with a candidate following table header as an unresolved extent issue. A raw `f2 f7` search, a fixed byte subtraction, or table adjacency is not a boundary or carrier proof. Historical topology/census counts and inactive-item selection remain separate from this verified result-identity rule.
 
 ## 3. Section solving and feature placement
 
