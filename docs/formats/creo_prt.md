@@ -5497,3 +5497,57 @@ endpoint with a nonzero major-axis projection. Equal coefficient radii have
 equivalent mappings and use the first frame direction. Records that satisfy
 neither proof, or admit two distinct unequal-radius mappings, do not define an
 ellipse carrier.
+
+### 8.6 `NeuPrtSld` element-color records
+
+`element_colors` is a declared-count table in `NeuPrtSld`. Its named prototype
+contains `element_id`, `color_inds`, and `surf_pl`. `color_inds` has two stored
+index slots. `surf_pl` has two property slots described by `surfprop_ptr`.
+The complete two-empty-property form has no contour identifier, loop
+identifier, boundary role, or bounded-face ordinal.
+
+The table opener is `f2 f8 <count> f7 <table-class> fb e2`. The prototype
+names the item identifier, then `color_inds f8 02` and two index values, then
+`surf_pl f8 02 f7 <property-class> fb e2` and a named `surfprop_ptr` with
+empty body `e1`. Its second empty property follows
+`f1 f7 <property-class> e2 e1`. A positional row stores the item identifier
+and both index values, followed by the same counted property table whose
+first empty property is introduced by `f7 <property-field-reference> e1`.
+Between rows, `f3 f7 <table-class> e2` replays the table schema. The declared
+count includes the named prototype. The final complete row reaches the next
+named-record header without an extra face selector.
+
+In this index lane, `e4` stores literal one and `f6` stores an undefined
+index; canonical compact integers retain their index values. Index-slot order
+and undefined state remain explicit. A nonempty property body does not use
+the two-empty-property grammar.
+
+An `element_id` comparison uses the owning model's topology face-reference
+namespace even when no same-ID surface row is materialized.
+Equal identifiers do not select one bounded face instance when that reference
+has several contour-defined outer boundaries. A missing namespace match does
+not permit an ordinal or nearest-identifier face assignment.
+
+### 8.7 ASCII display surface records
+
+An uncompressed ASCII `DispDataTable` can contain a `surf_ind_tab` array.
+The declaration names identify each field; declaration numbers are local
+schema keys and leading value-line integers describe object-tree depth.
+The array count includes each stored surface record. A complete record stores
+`surf_id`, `surf_color_inds [2]`, and `surf_pl [2]`. Each property-array entry
+has one `placement_ptr`. `NULL` placement bodies remain empty properties.
+Integer-array continuation lines retain their declared width; `$2*0` supplies
+two zero indices. The record's carrier key is the `surf_id` value, not its
+declaration number, tree depth, or position in the array.
+
+An exact `surf_id` match is qualified by the owning model's topology
+face-reference namespace. A same-ID surface row is corroboration, not a
+requirement. Repeated edge uses of one reference do not define several
+candidate identities. The complete ID, two-index, and two-empty-placement
+record carries no separate contour, loop, boundary-role, or bounded-face
+ordinal. Its ordered values remain native when the identity, appearance,
+orientation, or occurrence owner is unresolved. Equal integers in another
+model do not establish an occurrence-qualified join.
+
+Stored compressed bytes are not ASCII records. This grammar applies only
+after an ASCII display body is established.

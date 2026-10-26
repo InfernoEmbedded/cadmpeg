@@ -688,29 +688,67 @@ place an orbit whose existing evidence does not select one point.
 
 **Need.** We must know the relation to construct the correct body membership.
 
-### TP-13. `element_colors` face binding
+### TP-13. Element-color side and instance ownership
 
-**Question.** Which fields bind an `element_colors` entry to an exact face instance?
+**Question.** Which serialized slot convention binds the two `color_inds`
+values to an oriented model-item side, and which owner-qualified reference
+resolves item identifiers outside the established topology-reference match?
 
-**Known.** Geometry identity and face-instance identity are separate because one surface can support more than one face.
+**Known.** Complete two-empty-property `element_colors` rows store one item
+identifier, two ordered color indices, and two empty `surfprop_ptr` bodies.
+The row contains no contour, loop, boundary-role, or bounded-face selector.
+Exact item identifiers can occur in topology face-reference pairs without a
+materialized surface row. Such a reference can support several bounded faces.
+PTC's side-appearance API accepts a model item and side zero along the normal
+or side one on the other side; that API alone does not establish serialized
+array order. A selected-set graph with the same counts and degrees as an
+exported appearance set does not prove unique individual face identity under
+symmetry. Nonempty property pointers are outside the empty-body grammar.
 
-**Need.** We must know the binding to apply the color to the correct face.
+**Need.** We must know the directional slot convention, additional item
+namespaces, and complete carrier-to-instance ownership before transferring
+these appearances onto bounded face sides.
 
-### TP-14. `NeuPrtSld` face binding
+### TP-14. Unresolved `NeuPrtSld` appearance references
 
-**Question.** Which fields bind a `NeuPrtSld` appearance entry to an exact face instance?
+**Question.** Which additional owner-qualified `NeuPrtSld` records, if any,
+map unresolved appearance item identifiers to their native model-item class,
+carrier, and oriented bounded-face uses?
 
-**Known.** `creo_prt.md` §1.2 "| `NeuPrtSld` and display sections |" identifies `NeuPrtSld` as material, appearance, display, and tessellation data.
+**Known.** Complete two-empty-property `element_colors` rows contain one item
+identifier and two ordered color/property slots without a contour or bounded
+face selector. Exact topology-reference matches do not require a materialized
+surface row. Other fully decoded tables can retain identifiers absent from
+all tested visible and nonvisible surface, curve, topology-reference, and
+feature-row sets. Those nonmatches establish unresolved references; they do
+not prove a different model-item class or exclude an unmaterialized or stale
+reference. The public appearance API supports multiple model-item classes,
+but does not identify the class of an unmatched serialized value. Slot-to-side
+ordering and nonempty property pointees remain separate unresolved contracts.
 
-**Need.** We must know the binding to apply the appearance to the correct face.
+**Need.** We must know those identity and side contracts before promoting
+unresolved native appearances onto model faces. A nearest ID, table ordinal,
+or unique exported graph shape does not supply that join.
 
-### TP-15. Display-table face binding
+### TP-15. Display side and occurrence ownership
 
-**Question.** Which fields bind a display-table element to an exact face instance?
+**Question.** Which serialized convention assigns ASCII display color and
+placement slots to oriented surface sides, and which reference supplies an
+assembly occurrence owner or a nonempty placement-property pointee?
 
-**Known.** Embedded display streams and model topology use separate record namespaces.
+**Known.** A complete uncompressed ASCII `surf_ind_tab` record stores one
+`surf_id`, two ordered `surf_color_inds`, and two `placement_ptr` entries.
+Declaration numbers and object depth are schema structure, not the carrier
+identity. Exact stored IDs can match current topology references without a
+materialized surface row. The complete two-empty-placement form has no
+additional contour, loop, or bounded-face selector. Equal color pairs do not
+identify slot-to-side direction. A topology-reference match does not prove a
+complete bounded-face partition, and a coincident integer in another model
+does not establish an assembly occurrence. Nonempty placements and compressed
+display bodies require their own grammar.
 
-**Need.** We must know the binding to transfer per-face display data.
+**Need.** We must know those side, occurrence, and property contracts before
+transferring display metadata onto final bounded face uses.
 
 ### TP-16. Unresolved RGB constants and appearance projection
 
