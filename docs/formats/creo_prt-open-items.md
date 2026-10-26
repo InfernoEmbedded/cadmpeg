@@ -699,15 +699,23 @@ place an orbit whose existing evidence does not select one point.
 
 ### TP-05. General rowless face-use binding
 
-**Question.** Which fields bind a rowless face-use reference to its face, loop, edge, and orientation outside the round-feature rowless-cylinder table?
+**Question.** Which fields bind a rowless face-use reference to its face, loop, edge, and orientation outside the round-feature rowless-cylinder table? Which stored curve incidences belong to the complete current face boundary?
 
-**Known.** `creo_prt.md` §6 "Classes 913" through `creo_prt.md` §6 "For a class-913 cylindrical slot fillet, the first two `geoms_affected`" define the round-feature rowless-cylinder special case.
+**Known.** `creo_prt.md` §6 "Classes 913" through `creo_prt.md` §6 "For a class-913 cylindrical slot fillet, the first two `geoms_affected`" define the round-feature rowless-cylinder special case. Raw side rows and closed successor cycles are distinct retained facts. Neither a closed cycle nor coverage of every raw side proves current trim ownership.
 
-**Need.** Establish that general binding with complete incidence, a unique
-carrier, directed endpoint geometry, and independent face-surface sense.
-Every original incident side must occur exactly once in the closed boundary;
-a closed subset does not establish the whole face. Preserved Native loops do
-not imply that the corresponding neutral face is admissible.
+**Need.** Establish that general binding with complete owner-qualified
+incidence, a unique carrier, directed endpoint geometry, and independent
+face-surface sense. Distinguish required current boundary uses from other
+stored incidence before applying a completeness requirement. Resolve repeated
+identities and unmatched chains with an independently mapped stored trim.
+
+**Conflict.** Other stored rows can name a face with a closed ring while
+remaining outside that ring. This alone establishes neither a complete face
+nor the invalidity of that face.
+
+**Note.** The runtime all-incident-side admission guard remains conservative.
+Its coverage result must not be used as proof that a withheld face is invalid.
+The general current-boundary ownership rule remains unresolved.
 
 ### TP-06. Shared-surface face partition
 
