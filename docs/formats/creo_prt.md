@@ -3005,10 +3005,11 @@ type 30 selects section `v`, and type 31 selects section `u`. Their `flags`
 field does not select the coordinate.
 A two-item type-35 incidence whose operands resolve as one point locus and one
 bounded line or arc places that point at the entity midpoint. The target entity
-has sense zero. A centered type-47 construction line instead uses sense `4` on
-the target line; its stored center point is the line midpoint. This form
-establishes the other sense-zero solver-only entity as a point independently of
-incidence activity. The point operand is either a sense-zero point entity, the
+has sense zero. Sense `4` on a centered type-47 construction line selects its
+stored center as the point locus. It does not make that centered line the
+midpoint target or establish the other operand as a point entity. An independent
+line or arc role must establish the sense-zero target. The point operand is
+either a sense-zero point entity, the
 center of a sense-zero arc or circle, or an endpoint or center locus selected
 by sense `2`, `3`, or `4`. Exactly one operand pairing must supply a bounded
 target and a point locus; zero or two pairings retain the native incidence.

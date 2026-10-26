@@ -372,9 +372,18 @@ native.
 
 ### SP-06. Other type-35 operands
 
-**Question.** What does a type-35 operand identify when it does not resolve through a section entity?
+**Question.** What independent family proof distinguishes a point entity from
+a circular carrier when one solver-only identity has both sense-zero and
+sense-four point-on-object roles?
 
-**Known.** Section-entity identifiers and relation identifiers occupy separate namespaces.
+**Known.** Section-entity identifiers and relation identifiers occupy separate
+namespaces. An identity absent from the complete segment table remains scoped
+to its sketch. A unique unary type-one or type-two incidence proves a line
+independently of activity. In a type-35 incidence, that line can be the
+sense-zero midpoint target while sense four on a centered construction line
+selects the point locus. The type-35 role does not prove the missing entity is
+a point. Mixed sense-zero and sense-four incidence roles do not by themselves
+establish a unique point-versus-circular carrier family.
 
 **Need.** We must know the referent to evaluate the relation.
 
