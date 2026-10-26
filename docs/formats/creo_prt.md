@@ -1176,7 +1176,10 @@ Complete readings must agree on both radius values and their byte positions.
 A complete unique pair can replay the uniquely associated prototype minor
 radius only when its minor-radius bits equal the positive finite prototype
 value. A tagged radius override takes precedence. Radius agreement alone does
-not select a local-system origin, frame branch, or placed carrier.
+not select a local-system origin, frame branch, or placed carrier. An already
+resolved complete torus carrier also supplies the minor-radius replay when its
+minor-radius bits equal the uniquely associated positive finite prototype
+value; this uses the carrier's existing radius ownership and placement proof.
 
 A selector envelope stores `<selector0> <v0> <selector1> <v1>` followed by the
 same two XYZ outline corners, optional replay reference, and `e3`. A selector

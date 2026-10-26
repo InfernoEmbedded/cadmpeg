@@ -1440,6 +1440,12 @@ impl SurfaceParameterRecord {
             InlineType26MinorRadius::Withheld => return None,
             InlineType26MinorRadius::Absent => {}
         }
+        if let Some(frame) = self.positional_torus_frame() {
+            let minor = frame.minor_radius().get();
+            if minor.to_bits() == prototype_minor_radius.to_bits() {
+                return Some(minor);
+            }
+        }
         let frame = self.terminal_scalar_frame()?;
         let slot = frame.slots.last()?;
         let value = slot.value?;
