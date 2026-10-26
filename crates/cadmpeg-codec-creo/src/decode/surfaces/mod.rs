@@ -3,6 +3,7 @@
 
 pub(super) mod brep;
 pub(super) mod cap_envelopes;
+pub(super) mod cone_origins;
 pub(super) mod cylinders;
 pub(super) mod intersection_candidates;
 pub(super) mod intersection_resolve;

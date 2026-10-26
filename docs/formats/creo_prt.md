@@ -1141,24 +1141,27 @@ below. The named prototype therefore defines the carrier of its uniquely
 associated first surface row. Other cylinder and cone prototypes require a
 positional construction or feature placement.
 
-A positional cone suffix consists of exactly one complete nine-slot support
-frame, one axis-coordinate apex scalar, one complete `19` or `32`
-model-reference token, one three-byte station token, and a terminal positive
-DICT half-angle. The support frame's first and third triples are orthogonal
-unit directions. Their cross product defines the axis line. The only nonzero
-apex coordinate lies on that axis; the axis sign points from the apex toward
-model zero. Negating the support frame's third direction defines the
-parameter-space reference direction. The apex, signed axis, zero apex radius,
-unit radial ratio, and positive half-angle define the exact cone independently
-of the station token's scalar meaning.
+A cone `local_sys f9 04 03` contains twelve scalar slots: three direction
+triples followed by three origin coordinates. The last scalar is `origin[2]`,
+not a separate station parameter. The half-angle follows the local system.
+The origin is the cone apex. Each resolved origin component uses the source
+length unit. The three-byte image `2f 34 00` reconstructs binary64
+`40 34 00 00 00 00 00 00`, or source-length 20.
 
-A later positional cone can store this support-apex operand after a separate
-envelope operand. Each operand ends with `e3`. The support-apex operand stores
-the complete nine-slot support frame, apex scalar, model-reference token,
-three-byte station token, and positive half-angle in that order. It defines
-the carrier independently of the preceding envelope. Exactly one complete
-support-apex operand must occur among the `e3`-delimited segments. Zero or
-multiple distinct complete operands do not define a carrier.
+A compact positional cone suffix stores its support directions followed by
+three origin slots and one positive half-angle. In the zero/reference/short
+production, the origin fields are one-byte `18`, an eight-byte `19` or `32`
+image, and one complete three-byte scalar image. The reference image owns all
+eight bytes. Its payload does not complete a wider preceding zero scalar or
+supply another origin slot. The coordinate role does not establish the
+unresolved image's numeric value, and it does not imply zero.
+
+A separate envelope can precede the local-system operand. Each operand ends
+with `e3`; a complete scalar payload owns any `e3` within its bytes. A complete
+placed carrier requires every needed origin component or an independently
+complete admitted construction. An unresolved origin image does not select
+model zero or a point on a principal axis. Multiple distinct complete
+constructions do not define one carrier.
 
 A planar-envelope positional cone has an axis parallel to model Y and a
 reference direction along positive model X. It stores positive outer and inner

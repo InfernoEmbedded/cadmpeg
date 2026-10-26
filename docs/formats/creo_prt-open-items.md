@@ -240,13 +240,13 @@ witnesses; it does not by itself define the remaining carrier equation.
 
 **Need.** We must know the equation to construct the cylinder carrier.
 
-### GS-19. Positional cone station token
+### GS-19. Unresolved cone origin-coordinate images
 
-**Question.** What scalar value does the three-byte station token between a positional cone's model-reference token and half-angle encode?
+**Question.** Which owned scalar or model-reference grammar resolves the remaining cone origin-coordinate images and establishes their placement?
 
-**Known.** `creo_prt.md` §3.2 "A positional cone suffix consists of exactly one complete nine-slot support" states that the support frame and half-angle define the exact cone independently of this token.
+**Known.** `creo_prt.md` §3.2 defines the twelve-slot owner and the zero/reference/short origin production. Its last image is `origin[2]`, not a station parameter. The bounded `2f3400` value is source-length 20; the CTC05 inch selector converts it to 508 mm. Independent resistor STEP apices constrain the checked `1b`/`34` instances to zero Z but supply no raw-only formula. The CTC05 raw origin is `18`, `19c60fafbfd97304`, `2f3400`; interpreting the first two as independent generic numeric lanes gives X/Y values that disagree with the sibling STEP. Complete seven-byte scalar owners also prohibit splitting their suffix bytes into another coordinate.
 
-**Need.** We must know the value to preserve the native cone parameters.
+**Need.** Resolve the reference-backed origin through its complete native owner before admitting a placed cone. Preserve unresolved bytes and withhold dependent geometry. Do not map a prefix to zero from the checked resistor instances or use a STEP fit as the runtime decoder.
 
 ### GS-21. Non-prismatic round radii
 

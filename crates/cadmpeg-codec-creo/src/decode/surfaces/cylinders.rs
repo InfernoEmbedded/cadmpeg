@@ -1510,6 +1510,9 @@ pub(in super::super) fn transfer_positional_cones(
     let rows = UniqueById::new(&scan.surfaces.rows, |row| row.id);
     let mut transferred = 0;
     for record in &scan.surfaces.parameters {
+        if scan.surfaces.withheld_cone_origin_surface_ids.contains(&record.surface_id) {
+            continue;
+        }
         let Some(frame) = record.positional_cone_frame() else {
             continue;
         };
