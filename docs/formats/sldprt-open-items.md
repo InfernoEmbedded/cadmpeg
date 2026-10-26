@@ -78,11 +78,11 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 ### GC-09. Conflicting surface carrier families
 
-**Question.** Which surface carrier family owns a face when analytic, offset, blend, or sweep candidates are all structurally valid for the same surface attribute?
+**Question.** Which complete physical node occurrence is authoritative when several source occurrences claim one face-support index?
 
-**Known.** `sldprt.md` §7 defines analytic and procedural surface carriers, but does not define a conflict rule between valid carrier families.
+**Known.** A face-support pointer selects one typed XT node, as defined in `sldprt.md` §7. Decode withholds typed surfaces when several existing surface, offset, blend, or sweep map categories claim the same index, including after stream merging. Analytic and B-surface records share one map, and swept and spun records share another; conflicts inside those maps remain outside this veto.
 
-**Need.** We must define the native family discriminator or ownership relation that selects one exact face support when several carrier families are structurally valid.
+**Need.** A complete site-local node table must preserve physical candidates, common fields and full canonical indexes before duplicate resolution. Same-category duplicates, opaque targets and source-state precedence need independent ownership rules.
 
 ## 3. Container metadata
 

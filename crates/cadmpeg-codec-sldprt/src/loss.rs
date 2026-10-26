@@ -106,6 +106,8 @@ pub(crate) enum SldprtLossCode {
     FeatureBodyRetentionUnresolved,
     /// Face or procedural construction references an untyped support surface.
     GeometryFaceSupportSurfaceUntyped,
+    /// Different surface carrier categories claim one node index.
+    GeometrySurfaceCarrierAmbiguous,
     /// Edge references an untyped support curve carried opaque.
     GeometryEdgeSupportCurveUntyped,
     /// Referenced POINT records have conflicting complete frames.
@@ -234,6 +236,7 @@ impl SldprtLossCode {
         Self::FeatureEdgeTerminalUnresolved,
         Self::FeatureBodyRetentionUnresolved,
         Self::GeometryFaceSupportSurfaceUntyped,
+        Self::GeometrySurfaceCarrierAmbiguous,
         Self::GeometryEdgeSupportCurveUntyped,
         Self::GeometryPointRecordAmbiguous,
         Self::GeometryPcurveAmbiguous,
@@ -309,6 +312,7 @@ impl SldprtLossCode {
             Self::FeatureEdgeTerminalUnresolved => "feature.edge-terminal-unresolved",
             Self::FeatureBodyRetentionUnresolved => "feature.body-retention-unresolved",
             Self::GeometryFaceSupportSurfaceUntyped => "geometry.face-support-surface-untyped",
+            Self::GeometrySurfaceCarrierAmbiguous => "geometry.surface-carrier-ambiguous",
             Self::GeometryEdgeSupportCurveUntyped => "geometry.edge-support-curve-untyped",
             Self::GeometryPointRecordAmbiguous => "geometry.point-record-ambiguous",
             Self::GeometryPcurveAmbiguous => "geometry.pcurve-ambiguous",
@@ -405,6 +409,7 @@ impl SldprtLossCode {
             | Self::FeatureEdgeTerminalUnresolved
             | Self::FeatureBodyRetentionUnresolved
             | Self::GeometryFaceSupportSurfaceUntyped
+            | Self::GeometrySurfaceCarrierAmbiguous
             | Self::GeometryEdgeSupportCurveUntyped
             | Self::GeometryPointRecordAmbiguous
             | Self::GeometryPcurveAmbiguous
@@ -472,6 +477,7 @@ impl SldprtLossCode {
             Self::TopologyPcurveCarrierOffSurface => LossTaxonomy::PcurveOmitted,
             Self::TopologyGraphNotTransferred => LossTaxonomy::TopologyNotTransferred,
             Self::GeometryFaceSupportSurfaceUntyped
+            | Self::GeometrySurfaceCarrierAmbiguous
             | Self::GeometryEdgeSupportCurveUntyped
             | Self::GeometryPointRecordAmbiguous
             | Self::GeometrySplineLanesUnpaired
@@ -699,6 +705,7 @@ mod tests {
                 "feature.edge-terminal-unresolved",
                 "feature.body-retention-unresolved",
                 "geometry.face-support-surface-untyped",
+                "geometry.surface-carrier-ambiguous",
                 "geometry.edge-support-curve-untyped",
                 "geometry.point-record-ambiguous",
                 "geometry.pcurve-ambiguous",

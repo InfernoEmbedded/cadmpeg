@@ -1992,6 +1992,8 @@ loop.
 
 ## 7. Geometry carriers
 
+A `FACE.surface` pointer names one stream-local XT node index. The target node type selects its surface family. Analytic, B-surface, offset, rolling-ball, swept, and spun surfaces do not have separate index namespaces or a family-precedence rule. Conflicting complete node types at one index do not define a unique typed surface.
+
 All length fields are metres. Directions, normals, axes, reference directions, knots, and weights are dimensionless.
 
 ### 7.1 Compact analytic records

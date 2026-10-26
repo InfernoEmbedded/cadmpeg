@@ -1608,6 +1608,11 @@ fn decode_graph(
         },
         ..Brep::default()
     };
+    if carriers.has_surface_category_conflict() {
+        out.losses.push(crate::loss::SldprtLossCode::GeometrySurfaceCarrierAmbiguous.note(
+            "Multiple surface carrier categories claim one node index; conflicting typed surfaces remain untransferred.",
+        ));
+    }
     let mut annotations = AnnotationBuilder::new();
     let source_stream = StreamHandle::new(stream.clone());
     if t.bridges().is_empty() {
