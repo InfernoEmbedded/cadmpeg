@@ -691,27 +691,52 @@ place an orbit whose existing evidence does not select one point.
 
 ### TP-06. Shared-surface face partition
 
-**Question.** Which field partitions uses of one surface reference into separate face instances?
+**Question.** Which source-owned reference partitions several outer loops of
+one surface carrier into separate face instances and assigns their inner loops?
 
-**Known.** A surface carrier identity does not by itself identify one bounded face instance.
+**Known.** A surface carrier identity does not identify one bounded face
+instance. Complete same-surface contour/closed-loop joins distinguish stored
+outer and inner roles. A parameter-envelope containment test only filters
+candidate owners: a circle inside a concave polygon's bounding box can remain
+outside the polygon. Independent complete boundary containment can corroborate
+a partition when both boundaries share a proved chart.
 
-**Need.** We must know the partition to prevent distinct faces from collapsing into one face.
+**Need.** Establish a complete owner reference or common-chart geometric
+containment for every inner-to-outer assignment. Preserve distinct outer
+instances and all unmatched contours. Partial joins, bounding boxes, and
+surface identity alone must not admit a face partition.
 
 ### TP-07. `lo_restore.direction`
 
-**Question.** What does the `lo_restore.direction` compact integer refer to, and how does it control loop traversal?
+**Question.** Which restoration state and face side determine the traversal
+action of the primary `lo_restore.direction` edge reference?
 
-**Known.** `creo_prt.md` §6 "Within an `AllFeatur` `lo_restore` body, named-record type-one fields" states that it belongs to a loop-restoration edge record and is not a sweep direction or extent.
+**Known.** The primary integer binds an edge identity in its attached generated
+edge object or same-owner affected-edge roster. It is distinct from the loop
+identifier and is not a signed direction, angle, or extent. An edge can have
+two current face-side successor cycles; the integer alone does not select one.
+A historical edge can be absent from the current visible topology.
 
-**Need.** We must know its referent and sense to restore the loop order.
+**Need.** Prove the complete restoration-state-to-current-boundary join and
+face-side action with an independent restoration control. Rotating a cycle to
+an included edge demonstrates graph algebra, not an authored cyclic-start
+rule. Preserve the raw reference without choosing a side or order from roster
+overlap.
 
 ### TP-08. `lo_restore.direction2`
 
-**Question.** What does the `lo_restore.direction2` compact integer refer to, and how does it control loop traversal?
+**Question.** Which restoration state and side determine the action of the
+secondary `lo_restore.direction2` edge reference, including explicit zero?
 
-**Known.** `creo_prt.md` §6 "Within an `AllFeatur` `lo_restore` body, named-record type-one fields" states that it belongs to a loop-restoration edge record and is not a sweep direction or extent.
+**Known.** The secondary lane binds an edge from its separate typed secondary
+or old-secondary object roster. It need not equal the first roster member or
+the primary edge. An old reference need not occur in current visible topology.
+Explicit zero is distinct from a missing field; its restoration action is
+unproved.
 
-**Need.** We must know its referent and sense to restore the loop order.
+**Need.** Establish the same-owner restoration/current-boundary and face-side
+join before applying traversal order. Neither a roster match nor an anchored
+cycle rotation proves restoration semantics or persistence lifecycle.
 
 ### TP-09. Required `lo_hist` fields
 
