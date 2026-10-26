@@ -289,6 +289,16 @@ layout. Section cardinality is descriptive and does not select a layout.
 | `NeuPrtSld` and display sections | Material, appearance, display, and tessellation data.                                                                |
 | `THMB_IMG_MAIN`                  | JPEG thumbnail. Its raw payload begins with `FF D8 FF` or uses Unix-compress framing; after expansion, bytes from the `FF D8 FF` marker through the payload end are the JPEG payload. It does not contain model geometry. |
 
+The non-RGB scalar fields of a binary `color_tab` appearance row are
+`ambient`, `diffuse`, `specular`, `spec_coef`, `transmission`, and
+`reflection`; the three-component `highlight` vector is a separate field.
+Compact scalar meanings are qualified by their field. In the `diffuse`
+field, `0f` represents `1`; in `transmission`, `18` represents `0`.
+These assignments do not define the same bytes in other fields. Within a
+complete three-component highlight vector, `e5` repeats the preceding
+component twice, including when that component is nonzero. A scalar's value
+does not establish an appearance-to-face binding or a surface side.
+
 ### 1.3 Units
 
 `_principal_sys_units_id` identifies the active coordinate unit system.

@@ -258,6 +258,9 @@ fixtures, scores above L1 remain blocked.
 - Axis-aligned coaxial cone-cylinder intersections transfer the unique circle
   whose axial center coordinate agrees with the repeated `fc 14` held
   world-coordinate token.
+- The complete physical `NeuPrtSld` section is retained byte-exact as opaque
+  metadata. It does not create typed appearances or material bindings. Failed
+  compressed expansions retain their existing unresolved classification.
 - Count-selected curve frames retain their exact parameter bodies and literal
   topology references. When count evidence is necessary to fix a boundary,
   literal zero slots transfer as numeric tokens; other scalar images remain

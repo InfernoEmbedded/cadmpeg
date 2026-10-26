@@ -724,9 +724,9 @@ place an orbit whose existing evidence does not select one point.
 
 **Question.** What scalar value does each undefined token in a non-RGB appearance component lane encode?
 
-**Known.** Appearance records keep color and other material components in separate scalar lanes.
+**Known.** `creo_prt.md` §1.2 defines field-qualified `diffuse:0f=1`, `transmission:18=0`, and the highlight-vector repeat control. Those meanings do not transfer to other component fields. Complete `NeuPrtSld` bytes preserve the remaining scalar images without establishing their values, appearance ownership, or surface side.
 
-**Need.** We must know the values to construct the complete material.
+**Need.** Define complete owned appearance rows, retain unresolved component bodies, and establish each value independently with an exact field/component oracle. API ranges and values in another lane do not identify a token. Keep appearance binding and side selection separate from scalar decoding.
 
 ### TP-18. Complete modification-audit event grammar
 

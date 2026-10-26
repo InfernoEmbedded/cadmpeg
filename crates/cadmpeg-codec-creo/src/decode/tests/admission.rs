@@ -800,3 +800,70 @@ fn audit_names_cannot_override_an_independent_depdb_operation() {
     assert_eq!(scan.features.operation_states.len(), 1);
     assert_eq!(scan.features.operation_states[0].feature_id, 73);
 }
+
+#[test]
+fn saved_display_metadata_is_retained_without_appearance_guesses() {
+    for payload in [
+        Vec::new(),
+        b"\xe0\x00color_tab\0\xf8\x01\x0a\0\x0c\x9a\xf7\xe3\xe0\0element_colors\0".to_vec(),
+    ] {
+        let data = build_prt("c", &[("NeuPrtSld", payload)]);
+        let scan = container::scan_bytes_ok(data.clone());
+        let section = scan
+            .framing
+            .sections
+            .iter()
+            .find(|section| section.name() == "NeuPrtSld")
+            .expect("physical display owner");
+        let expected = container::section_region(&scan.framing.data, section)
+            .expect("complete physical section");
+        let result = EditableDecodeResult::from(
+            CreoCodec
+                .decode(&mut Cursor::new(data), &DecodeOptions::default())
+                .expect("opaque display retention"),
+        );
+        assert!(result.ir().model.appearances.is_empty());
+        assert!(result.ir().model.appearance_bindings.is_empty());
+        let unknowns = result
+            .ir()
+            .native_unknowns("creo")
+            .expect("retained metadata");
+        assert_eq!(unknowns.len(), 1);
+        assert_eq!(
+            result
+                .source_fidelity()
+                .retained_record(unknowns[0].id.as_str())
+                .expect("physical bytes")
+                .data(),
+            Some(expected)
+        );
+        assert_annotation(
+            &result.source_fidelity().annotations,
+            unknowns[0].id.as_str(),
+            "creo:NeuPrtSld",
+            u64::try_from(section.offset()).expect("small fixture"),
+            "opaque_metadata_section",
+            Exactness::ByteExact,
+        );
+    }
+}
+
+#[test]
+fn display_metadata_retention_does_not_select_other_metadata_names() {
+    let result = CreoCodec
+        .decode(
+            &mut Cursor::new(build_prt(
+                "c",
+                &[("NotNeuPrtSld", b"color_tab\0\x0a".to_vec())],
+            )),
+            &DecodeOptions::default(),
+        )
+        .expect("unrelated metadata");
+    assert!(result
+        .ir()
+        .native_unknowns("creo")
+        .expect("valid unknown arena")
+        .iter()
+        .all(|record| !record.id.as_str().starts_with("creo:NeuPrtSld:")));
+    assert!(result.ir().model.appearances.is_empty());
+}
