@@ -52,13 +52,13 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 **Need.** We must know the grammar to construct the edge curve.
 
-### GC-04. Offset-surface carriers
+### GC-04. Offset-surface admission
 
-**Question.** Which carrier and field semantics identify an offset surface, including the discriminator and flag in its native record?
+**Question.** Which complete support and selected-set relation validates an unchecked offset for exact transfer, including negative support sense and full canonical indexes?
 
-**Known.** `sldprt.md` §7.4 defines the supported offset carrier and its signed normal-offset construction over an analytic, B-spline, or procedural support surface.
+**Known.** `sldprt.md` §7.5 defines the complete status, unused logical, support, distance and scale fields. The current short grammar requires the scale lane and withholds invalid, unchecked and zero-distance offsets while retaining their raw source and index claims. Scale does not multiply distance; FACE sense does not change its sign.
 
-**Need.** We must know the carrier grammar and field semantics to construct the exact offset surface and preserve its orientation.
+**Need.** Exact unchecked admission needs a selected typed support, equal carrier/support senses, nonzero distance outside modeller resolution, an acyclic support graph and a valid selected surface set. Wide identities and pointers need one canonical index domain across every dependent carrier.
 
 ### GC-05. Variable-radius law and result parameterization
 

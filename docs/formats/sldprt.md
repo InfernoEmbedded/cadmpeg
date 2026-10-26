@@ -2120,24 +2120,28 @@ A variable-radius blend result uses a `00 7c` B-spline surface-use wrapper and t
 
 ### 7.5 Offset surfaces
 
-A `00 3c` surface carrier defines an exact signed normal offset from one support surface:
+An `OFFSET_SURF` node has type `00 3c`. Its index and pointers use the XT positive-integer primitive: a signed i16 word in `1..=32767` encodes `word - 1`; a negative word followed by quotient `q` encodes `q * 32767 - word - 1`. The raw short code `00 01` is null. Every four-byte index or pointer moves the following fields by two bytes.
+
+The all-short Partition form is:
 
 ```
 00 3c [ff]? attr u16 BE  ordinal u32 BE  refs u16 BE[5]
              marker u8 (0x2b|0x2d)
              discriminator u8 ('V'|'I'|'U')  true_offset u8 (0|1)
-             support u16 BE  distance f64 BE
+             support u16 BE  distance f64 BE  scale f64 BE
 ```
 
-The compact partition record is 31 bytes from the `00 3c` tag through `distance`. The deltas form stores each common-header reference and `support` as `[hi][lo][01]`. A deltas status frame can continue after `distance`; that continuation is not part of the surface carrier.
+This all-short record is 39 bytes, or 40 bytes with `ff`. The scale field follows distance and belongs to the record. The short deltas form stores each common-header reference and `support` as `[hi][lo][01]` before the distance and scale fields. The fixed layout table applies only when every identity and pointer has the short encoding.
 
-`support` is a non-null reference to an analytic, B-spline, or typed procedural surface carrier. `distance` is a finite signed length in metres and has no magnitude limit. `discriminator` and `true_offset` classify the serialized construction and do not change its point equation. For support point `S(u,v)` with partial derivatives `S_u` and `S_v`, the offset surface is
+`discriminator` is the validity state: `V` is valid, `I` is invalid, and `U` is unchecked. An invalid record does not define exact transferred geometry. An unchecked record requires independent support, sense, distance, acyclicity and selected-set validation. The distance is nonzero and outside the modeller's linear resolution. `true_offset` is unused. `scale` is nullable internal data, not a distance multiplier. A null scale has the XT null-f64 value; a present scale is finite.
+
+`support` names the underlying surface. For support point `S(u,v)`, natural normal `N = unit(S_u × S_v)` and support sense sign `sigma`, the construction is
 
 ```
-O(u,v) = S(u,v) + distance * unit(S_u(u,v) × S_v(u,v)).
+O(u,v) = S(u,v) + distance * sigma * N(u,v).
 ```
 
-The offset surface retains the support parameterization. Nested offset carriers resolve recursively. A cyclic support-reference graph is invalid.
+The offset retains the support parameterization and has the same surface sense as its support. FACE sense is separate and does not negate the stored distance. Nested supports must be acyclic.
 
 ## 8. Auxiliary lanes
 

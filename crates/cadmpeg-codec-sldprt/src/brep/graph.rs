@@ -1608,6 +1608,11 @@ fn decode_graph(
         },
         ..Brep::default()
     };
+    if carriers.has_unvalidated_offset() {
+        out.losses.push(crate::loss::SldprtLossCode::GeometryOffsetValidityUnresolved.note(
+            "Invalid, unchecked, or zero-distance offset records retain opaque geometry until their exact construction is validated.",
+        ));
+    }
     if carriers.has_surface_category_conflict() {
         out.losses.push(crate::loss::SldprtLossCode::GeometrySurfaceCarrierAmbiguous.note(
             "Multiple surface carrier categories claim one node index; conflicting typed surfaces remain untransferred.",

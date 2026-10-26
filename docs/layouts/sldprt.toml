@@ -2119,9 +2119,9 @@ name = "offset_surface_00_3c"
 kind = "byte"
 section = "7.5"
 anchor = "00 3c [ff]? attr u16 BE  ordinal u32 BE  refs u16 BE[5]"
-size = 29
+size = 37
 endianness = "big"
-note = "Partition body relative to the byte after the `00 3c` tag and optional `ff`. With the two-byte tag, the compact record is 31 bytes. The deltas form expands each reference, including `support`, to `[hi][lo][01]`."
+note = "All-short Partition body after the tag and optional ff; complete record is 39 or 40 bytes including scale. XT variable-width identities and pointers move later fields. The short deltas form triples each common reference and support."
 
 [[record.field]]
 name = "attr"
@@ -2178,6 +2178,13 @@ offset = 21
 type = "f64"
 source = "spec"
 anchor = "distance f64 BE"
+
+[[record.field]]
+name = "scale"
+offset = 29
+type = "f64"
+source = "spec"
+anchor = "scale f64 BE"
 
 [[record.code]]
 path = "crates/cadmpeg-codec-sldprt/src/brep/offset.rs"

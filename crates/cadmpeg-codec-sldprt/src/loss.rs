@@ -108,6 +108,8 @@ pub(crate) enum SldprtLossCode {
     GeometryFaceSupportSurfaceUntyped,
     /// Different surface carrier categories claim one node index.
     GeometrySurfaceCarrierAmbiguous,
+    /// Offset validity does not establish an exact construction.
+    GeometryOffsetValidityUnresolved,
     /// Edge references an untyped support curve carried opaque.
     GeometryEdgeSupportCurveUntyped,
     /// Referenced POINT records have conflicting complete frames.
@@ -237,6 +239,7 @@ impl SldprtLossCode {
         Self::FeatureBodyRetentionUnresolved,
         Self::GeometryFaceSupportSurfaceUntyped,
         Self::GeometrySurfaceCarrierAmbiguous,
+        Self::GeometryOffsetValidityUnresolved,
         Self::GeometryEdgeSupportCurveUntyped,
         Self::GeometryPointRecordAmbiguous,
         Self::GeometryPcurveAmbiguous,
@@ -313,6 +316,7 @@ impl SldprtLossCode {
             Self::FeatureBodyRetentionUnresolved => "feature.body-retention-unresolved",
             Self::GeometryFaceSupportSurfaceUntyped => "geometry.face-support-surface-untyped",
             Self::GeometrySurfaceCarrierAmbiguous => "geometry.surface-carrier-ambiguous",
+            Self::GeometryOffsetValidityUnresolved => "geometry.offset-validity-unresolved",
             Self::GeometryEdgeSupportCurveUntyped => "geometry.edge-support-curve-untyped",
             Self::GeometryPointRecordAmbiguous => "geometry.point-record-ambiguous",
             Self::GeometryPcurveAmbiguous => "geometry.pcurve-ambiguous",
@@ -410,6 +414,7 @@ impl SldprtLossCode {
             | Self::FeatureBodyRetentionUnresolved
             | Self::GeometryFaceSupportSurfaceUntyped
             | Self::GeometrySurfaceCarrierAmbiguous
+            | Self::GeometryOffsetValidityUnresolved
             | Self::GeometryEdgeSupportCurveUntyped
             | Self::GeometryPointRecordAmbiguous
             | Self::GeometryPcurveAmbiguous
@@ -478,6 +483,7 @@ impl SldprtLossCode {
             Self::TopologyGraphNotTransferred => LossTaxonomy::TopologyNotTransferred,
             Self::GeometryFaceSupportSurfaceUntyped
             | Self::GeometrySurfaceCarrierAmbiguous
+            | Self::GeometryOffsetValidityUnresolved
             | Self::GeometryEdgeSupportCurveUntyped
             | Self::GeometryPointRecordAmbiguous
             | Self::GeometrySplineLanesUnpaired
@@ -706,6 +712,7 @@ mod tests {
                 "feature.body-retention-unresolved",
                 "geometry.face-support-surface-untyped",
                 "geometry.surface-carrier-ambiguous",
+                "geometry.offset-validity-unresolved",
                 "geometry.edge-support-curve-untyped",
                 "geometry.point-record-ambiguous",
                 "geometry.pcurve-ambiguous",

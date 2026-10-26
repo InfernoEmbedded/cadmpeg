@@ -627,10 +627,10 @@ pub(crate) mod rolling_ball_blend_00_38 {
 
 /// Byte offsets for the `offset_surface_00_3c` record.
 ///
-/// Spec §7.5. Record length 29 B.
+/// Spec §7.5. Record length 37 B.
 ///
 /// ```text
-/// Partition body relative to the byte after the `00 3c` tag and optional `ff`. With the two-byte tag, the compact record is 31 bytes. The deltas form expands each reference, including `support`, to `[hi][lo][01]`.
+/// All-short Partition body after the tag and optional ff; complete record is 39 or 40 bytes including scale. XT variable-width identities and pointers move later fields. The short deltas form triples each common reference and support.
 /// ```
 pub(crate) mod offset_surface_00_3c {
     /// Offset of `attr` (`u16`, big-endian). Spec §7.5.
@@ -647,6 +647,8 @@ pub(crate) mod offset_surface_00_3c {
     pub(crate) const SUPPORT: usize = 19;
     /// Offset of `distance` (`f64`, big-endian). Spec §7.5.
     pub(crate) const DISTANCE: usize = 21;
+    /// Offset of `scale` (`f64`, big-endian). Spec §7.5.
+    pub(crate) const SCALE: usize = 29;
 }
 
 /// Byte offsets for the `current_extended_zero_tail_92_profile_curve` record.

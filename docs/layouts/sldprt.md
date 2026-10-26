@@ -725,9 +725,9 @@ Cross-checked against code:
 
 ## `offset_surface_00_3c`
 
-Spec §7.5 · layout: byte offsets · size: 29 B
+Spec §7.5 · layout: byte offsets · size: 37 B
 
-Partition body relative to the byte after the `00 3c` tag and optional `ff`. With the two-byte tag, the compact record is 31 bytes. The deltas form expands each reference, including `support`, to `[hi][lo][01]`.
+All-short Partition body after the tag and optional ff; complete record is 39 or 40 bytes including scale. XT variable-width identities and pointers move later fields. The short deltas form triples each common reference and support.
 
 | Offset | Size | Field | Type | Endian | Src | Meaning |
 | -----: | ---: | ----- | ---- | ------ | --- | ------- |
@@ -739,6 +739,7 @@ Partition body relative to the byte after the `00 3c` tag and optional `ff`. Wit
 | 18 | 1 | `true_offset` | `u8` | big | spec | true_offset u8 (0\|1) |
 | 19 | 2 | `support` | `u16` | big | spec | support u16 BE distance f64 BE |
 | 21 | 8 | `distance` | `f64` | big | spec | distance f64 BE |
+| 29 | 8 | `scale` | `f64` | big | spec | scale f64 BE |
 
 Cross-checked against code:
 

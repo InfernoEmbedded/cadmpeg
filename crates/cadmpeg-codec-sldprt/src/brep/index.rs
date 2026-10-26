@@ -110,8 +110,14 @@ impl CarrierIndex {
         if self.surface_category_ambiguous(attr) {
             None
         } else {
-            self.offsets.get(&attr)
+            self.offsets
+                .get(&attr)
+                .filter(|carrier| carrier.transferable)
         }
+    }
+
+    pub(super) fn has_unvalidated_offset(&self) -> bool {
+        self.offsets.values().any(|carrier| !carrier.transferable)
     }
 
     /// Zero-offset surface pair carried by `attr`.
@@ -263,6 +269,9 @@ mod tests {
         for value in values {
             bytes.extend_from_slice(&value.to_be_bytes());
         }
+        if kind == 0x3c {
+            bytes.extend_from_slice(&(-31_415_800_000_000.0f64).to_be_bytes());
+        }
         bytes.extend_from_slice(&[0; 3]);
         bytes
     }
@@ -330,6 +339,25 @@ mod tests {
             let second = super::scan_carriers(&ctx, &authored_surface(kinds[1], 73)).unwrap();
             first.merge_missing(second);
             assert_eq!(available_categories(&first, 73), [false; 4]);
+        }
+    }
+    #[test]
+    fn ineligible_offset_claim_prevents_another_category_from_replacing_it() {
+        let arena = cadmpeg_core::decode::DecodeArena::new();
+        let (ctx, _) = cadmpeg_core::decode::DecodeContext::from_root_bytes(
+            &[],
+            &arena,
+            &cadmpeg_core::decode::DecodePolicy::service(),
+        )
+        .unwrap();
+        for status in [b'I', b'U'] {
+            let mut raw = authored_surface(0x3c, 73);
+            raw[2 + crate::layout::offset_surface_00_3c::DISCRIMINATOR] = status;
+            let mut index = super::scan_carriers(&ctx, &raw).unwrap();
+            assert!(index.has_unvalidated_offset());
+            assert!(index.offset(73).is_none());
+            index.merge_missing(super::scan_carriers(&ctx, &authored_surface(0x32, 73)).unwrap());
+            assert_eq!(available_categories(&index, 73), [false; 4]);
         }
     }
 }
