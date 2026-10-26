@@ -4268,9 +4268,7 @@ fn finish_inline_layout(
 ) -> Option<InlineSurfaceBody> {
     let mut layout = sole?;
     if ambiguous {
-        if layout.withheld_cone_origin_start.is_none() {
-            return None;
-        }
+        layout.withheld_cone_origin_start?;
         layout.terminal_close = None;
     }
     if layout.withheld_cone_origin_start.is_some() {

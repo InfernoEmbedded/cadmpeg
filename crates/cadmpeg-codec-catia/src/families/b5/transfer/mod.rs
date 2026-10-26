@@ -604,9 +604,8 @@ fn build_plan(
             Ok(None) => return None,
             Err(error) => return Some(Err(error)),
         };
-        let mut face_senses = admitted!(ctx
-            .alloc_filled(graph.faces.len(), Sense::Forward, "catia b5 face senses")
-            .map_err(cadmpeg_core::CodecError::from));
+        let mut face_senses =
+            admitted!(ctx.alloc_filled(graph.faces.len(), Sense::Forward, "catia b5 face senses"));
         for (index, face) in graph.faces.iter().enumerate() {
             if matches!(
                 graph.surfaces.get(&face.surface),

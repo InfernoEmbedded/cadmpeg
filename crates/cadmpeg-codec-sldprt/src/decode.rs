@@ -4620,8 +4620,13 @@ fn assign_configuration_bodies(
             let index = configuration
                 .name
                 .as_deref()
-                .and_then(|name| container::manifest_configuration_index(scan, name))
-                .flatten()
+                .and_then(
+                    |name| match container::manifest_configuration_index(scan, name) {
+                        container::ManifestConfigurationIndex::Resolved(index) => Some(index),
+                        container::ManifestConfigurationIndex::Absent
+                        | container::ManifestConfigurationIndex::Unresolved => None,
+                    },
+                )
                 .and_then(|index| u32::try_from(index).ok())
                 .filter(|index| partition_map.contains_key(index));
             configuration.source_index = index;

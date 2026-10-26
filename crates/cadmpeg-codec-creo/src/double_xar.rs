@@ -103,6 +103,7 @@ fn type_count(data: &[u8]) -> Option<usize> {
     let end = find_from(view.unread(), &[0xe0], 0)?;
     let types = view.child(view.position(), view.position().checked_add(end)?)?;
     let mut logical = 0usize;
+    let mut handles = 0usize;
     let mut preceding = None;
     for &token in types.window() {
         let width = match token {
@@ -111,18 +112,13 @@ fn type_count(data: &[u8]) -> Option<usize> {
             _ => 1,
         };
         logical = logical.checked_add(width)?;
+        handles = handles.checked_add(usize::from(token == b'H'))?;
         preceding = Some(token);
     }
     if logical != usize::try_from(declared).ok()? {
         return None;
     }
-    Some(
-        types
-            .window()
-            .iter()
-            .filter(|&&token| token == b'H')
-            .count(),
-    )
+    Some(handles)
 }
 
 fn peek(view: View<'_>) -> Option<u8> {
@@ -323,7 +319,7 @@ pub(crate) fn tables(
     };
     let Some(count) = View::over_retained(data)
         .counted(u64::from(declared), 1)
-        .map(|c| c.get())
+        .map(cadmpeg_core::decode::BoundedCount::get)
     else {
         return Ok(Vec::new());
     };

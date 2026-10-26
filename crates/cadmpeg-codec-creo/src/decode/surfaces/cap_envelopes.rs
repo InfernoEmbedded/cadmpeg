@@ -76,7 +76,9 @@ pub(in crate::decode) fn withhold_unresolved_cap_envelopes(
             .filter(|row| {
                 row.kind == SurfaceKind::Cylinder
                     && unique.get(row.id).is_some()
-                    && classes.get(row.feature_id).map(|class| class.code())
+                    && classes
+                        .get(row.feature_id)
+                        .map(crate::feature::schema::SchemaClass::code)
                         == Some(CAP_ENVELOPE_SCHEMA_CLASS)
             })
             .map(|row| row.id)

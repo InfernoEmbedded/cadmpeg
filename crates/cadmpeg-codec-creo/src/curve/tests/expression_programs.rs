@@ -222,7 +222,7 @@ fn depdb_segment_unique_candidates_parse_one_row() {
     .expect("candidate scan succeeds")
     .expect("one prefix and one suffix");
     assert_eq!(row.id, 7);
-    assert_eq!(row.suffix.next_curve_id, 9);
+    assert_eq!(row.suffix.next_curve, 9);
 }
 
 #[test]

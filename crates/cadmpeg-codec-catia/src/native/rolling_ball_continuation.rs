@@ -353,12 +353,12 @@ fn admit(
     ordinal: usize,
     source: &ConsolidatedRecord,
     payload: &[u8],
-    parsed: Fields,
+    parsed: &Fields,
 ) -> Result<CatiaRollingBallContinuation, CodecError> {
     let mut retained = ctx.alloc_filled(payload.len(), 0u8, "CATIA continuation source payload")?;
     retained.copy_from_slice(payload);
     let frame = ConsolidatedRawFrame::from_record(source, retained)?.into();
-    let jet = scalar_jet(ctx, payload, &parsed)?;
+    let jet = scalar_jet(ctx, payload, parsed)?;
     Ok(CatiaRollingBallContinuation {
         id: format!("catia:consolidated:rolling-ball-continuation#{ordinal}"),
         source_index: u64_from_index(source.source_index()),
@@ -390,14 +390,14 @@ pub(super) fn derive(
         u64_from_index(count),
         "admit CATIA rolling-ball continuations",
     )?;
-    let first = admit(ctx, 0, r, p, f)?;
+    let first = admit(ctx, 0, r, p, &f)?;
     let mut result = ctx.alloc_filled(count, first, "CATIA continuation records")?;
     for (ordinal, (target, (r, p, f))) in result
         .iter_mut()
         .zip(candidates(bytes, records))
         .enumerate()
     {
-        *target = admit(ctx, ordinal, r, p, f)?;
+        *target = admit(ctx, ordinal, r, p, &f)?;
     }
     Ok(result)
 }

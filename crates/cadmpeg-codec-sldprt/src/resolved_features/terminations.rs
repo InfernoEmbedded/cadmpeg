@@ -805,7 +805,10 @@ fn sweep_object_end(
         .filter(|name| name.offset > u64_from_index(start))
         .filter(|name| {
             feature.source_value().is_none()
-                || name.object_id.and_then(|id| id.value()) != feature.source_value()
+                || name
+                    .object_id
+                    .and_then(super::super::records::ObjectId::value)
+                    != feature.source_value()
         })
         .filter_map(|name| usize::try_from(name.offset).ok())
         .min()

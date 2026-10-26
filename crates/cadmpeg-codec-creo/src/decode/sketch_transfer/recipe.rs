@@ -81,14 +81,35 @@ fn feature_recipe_schema_conflict(scan: &ContainerScan, feature_id: u32) -> bool
             .any(|class| class != expected)
 }
 
-fn material_schema_disagreement(
-    operation_class: Option<SchemaClass>,
-    row_class: Option<Option<SchemaClass>>,
-) -> bool {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RowClass {
+    Missing,
+    Conflicting,
+    Known(SchemaClass),
+}
+
+impl RowClass {
+    fn from_consensus(class: Option<SchemaClass>) -> Self {
+        class.map_or(Self::Conflicting, Self::Known)
+    }
+
+    fn class(self) -> Option<SchemaClass> {
+        match self {
+            Self::Known(class) => Some(class),
+            Self::Missing | Self::Conflicting => None,
+        }
+    }
+}
+
+fn material_schema_disagreement(operation_class: Option<SchemaClass>, row_class: RowClass) -> bool {
     matches!(
         operation_class,
         Some(SchemaClass::Cut | SchemaClass::Protrusion)
-    ) && row_class.is_some_and(|class| class != operation_class)
+    ) && match row_class {
+        RowClass::Missing => false,
+        RowClass::Conflicting => true,
+        RowClass::Known(class) => Some(class) != operation_class,
+    }
 }
 
 pub(in super::super) fn current_additive_feature_recipe(
@@ -287,11 +308,15 @@ impl<'a> FeatureSchemaClasses<'a> {
             .operations
             .get(feature_id)
             .and_then(crate::feature::operations::FeatureOperation::root_schema_class);
-        let row_class = self.row_classes.get(&feature_id).copied();
+        let row_class = self
+            .row_classes
+            .get(&feature_id)
+            .copied()
+            .map_or(RowClass::Missing, RowClass::from_consensus);
         if material_schema_disagreement(operation_class, row_class) {
             return None;
         }
-        operation_class.or_else(|| row_class.flatten()).or_else(|| {
+        operation_class.or_else(|| row_class.class()).or_else(|| {
             self.legacy_rounds
                 .contains(&feature_id)
                 .then_some(SchemaClass::Round)
@@ -306,18 +331,18 @@ pub(in super::super) fn resolved_feature_schema_class_from_classes(
 ) -> Option<SchemaClass> {
     let operation_class = current_feature_operation(operations, feature_id)
         .and_then(crate::feature::operations::FeatureOperation::root_schema_class);
-    let mut row_class = None;
+    let mut row_class = RowClass::Missing;
     for class in classes {
-        row_class = Some(match row_class {
-            None => Some(class),
-            Some(Some(previous)) if previous == class => Some(class),
-            _ => None,
-        });
+        row_class = match row_class {
+            RowClass::Missing => RowClass::Known(class),
+            RowClass::Known(previous) if previous == class => RowClass::Known(class),
+            _ => RowClass::Conflicting,
+        };
     }
     if material_schema_disagreement(operation_class, row_class) {
         return None;
     }
-    operation_class.or_else(|| row_class.flatten())
+    operation_class.or_else(|| row_class.class())
 }
 
 pub(in super::super) fn feature_row_schema_classes(

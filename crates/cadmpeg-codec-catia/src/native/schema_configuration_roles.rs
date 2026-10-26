@@ -133,11 +133,15 @@ pub(super) fn bind<'e, 'o>(
             link.field_roles.clear();
         }
     }
-    if !chains.iter().flat_map(|c| c.links()).any(|l| {
-        l.intervening_entities
-            .as_ref()
-            .is_some_and(|v| !v.is_empty())
-    }) {
+    if !chains
+        .iter()
+        .flat_map(super::schema_configuration_chain::CatiaSchemaConfigurationRowChain::links)
+        .any(|l| {
+            l.intervening_entities
+                .as_ref()
+                .is_some_and(|v| !v.is_empty())
+        })
+    {
         return Ok(());
     }
     let objects = objects.into_iter().collect::<Vec<_>>();

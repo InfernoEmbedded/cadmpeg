@@ -83,10 +83,10 @@ pub(super) fn validate_retention(
         })?;
         if retained.next().is_some()
             || record.data != Some(owner.payload())
-            || !annotations
+            || annotations
                 .provenance
                 .get(id.as_str())
-                .is_some_and(|provenance| provenance.stream() == owner.source_stream().as_str())
+                .is_none_or(|provenance| provenance.stream() != owner.source_stream().as_str())
         {
             return Err(CodecError::NotImplemented(
                 "SLDPRT default-property carrier differs from its complete source owner".into(),
@@ -105,9 +105,9 @@ pub(super) fn validate_emitted(
             .iter()
             .filter(|(name, _)| name == owner.source_stream().as_str());
         if matches!(owner, Section::Compound(_))
-            || !emitted
+            || emitted
                 .next()
-                .is_some_and(|(_, payload)| payload == owner.payload())
+                .is_none_or(|(_, payload)| payload != owner.payload())
             || emitted.next().is_some()
         {
             return Err(CodecError::NotImplemented("SLDPRT default-property carrier must be emitted unchanged under its source namespace".into()));

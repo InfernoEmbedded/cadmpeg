@@ -3679,11 +3679,11 @@ fn standard_object_evidence_with_selected_faces(
         BTreeMap::new()
     };
     Ok(StandardObjectEvidence {
-        shell_planes,
         surface_geometries,
         procedural_surfaces,
         edge_owner_faces,
         edge_supports,
+        shell_planes,
         limit_curves,
     })
 }

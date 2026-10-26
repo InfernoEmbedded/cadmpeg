@@ -476,9 +476,9 @@ impl CurvePrototypeTopology {
 /// One-sided cross-section pointers in stored field order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct DepdbCurveSuffix {
-    section_plane_id: u32,
-    next_curve_id: u32,
-    reference_surface_id: u32,
+    section_plane: u32,
+    next_curve: u32,
+    reference_surface: u32,
 }
 
 impl serde::Serialize for DepdbCurveSuffix {
@@ -486,10 +486,10 @@ impl serde::Serialize for DepdbCurveSuffix {
         serde::Serialize::serialize(
             &[
                 0,
-                self.section_plane_id,
+                self.section_plane,
                 0,
-                self.next_curve_id,
-                self.reference_surface_id,
+                self.next_curve,
+                self.reference_surface,
                 0,
             ],
             serializer,
@@ -6912,9 +6912,9 @@ fn parse_depdb_curve_segment(
         feature_id: prefix.feature_id,
         directions: prefix.directions,
         suffix: DepdbCurveSuffix {
-            section_plane_id: suffix[1],
-            next_curve_id: suffix[3],
-            reference_surface_id: suffix[4],
+            section_plane: suffix[1],
+            next_curve: suffix[3],
+            reference_surface: suffix[4],
         },
         body,
         scalar_tokens,

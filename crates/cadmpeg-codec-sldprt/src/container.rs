@@ -1080,10 +1080,17 @@ pub(crate) fn has_manifest_configuration_rows(scan: &ContainerScan) -> bool {
     scan.solidworks.configuration_bindings.has_manifest_rows()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ManifestConfigurationIndex {
+    Absent,
+    Unresolved,
+    Resolved(usize),
+}
+
 pub(crate) fn manifest_configuration_index(
     scan: &ContainerScan,
     name: &str,
-) -> Option<Option<usize>> {
+) -> ManifestConfigurationIndex {
     scan.solidworks.configuration_bindings.index_for(name)
 }
 

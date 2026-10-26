@@ -52,7 +52,7 @@ pub(super) fn table(ctx: &DecodeContext<'_>, payload: &[u8]) -> Result<Table, Co
             return Err(unsupported("default-property two-section FMTID order"));
         }
         let start = index_from_u32(u32_at(record, descriptor::SECTION_OFFSET)?);
-        if start < descriptors_end || start % 4 != 0 {
+        if start < descriptors_end || !start.is_multiple_of(4) {
             return Err(unsupported("default-property section offset"));
         }
         let length = index_from_u32(u32_at(root, start + set_header::SIZE)?);
@@ -61,10 +61,8 @@ pub(super) fn table(ctx: &DecodeContext<'_>, payload: &[u8]) -> Result<Table, Co
         }
         let section = field(root, start, length)?;
         *span = (start, start + length);
-        if fmtid == USER_DEFINED {
-            if selected.replace(section).is_some() {
-                return Err(unsupported("default-property repeated UserDefined set"));
-            }
+        if fmtid == USER_DEFINED && selected.replace(section).is_some() {
+            return Err(unsupported("default-property repeated UserDefined set"));
         }
     }
     if count == 2 && spans[0].0 < spans[1].1 && spans[1].0 < spans[0].1 {
@@ -94,7 +92,7 @@ fn parse_set(ctx: &DecodeContext<'_>, section: View<'_>) -> Result<Table, CodecE
         let record = input.req_take_child(directory::LEN)?;
         let pid = u32_at(record, directory::PID)?;
         let at = index_from_u32(u32_at(record, directory::VALUE_OFFSET)?);
-        if at < directory_end || at >= section.window().len() || at % 4 != 0 {
+        if at < directory_end || at >= section.window().len() || !at.is_multiple_of(4) {
             return Err(unsupported("default-property value offset"));
         }
         *entry = (pid, at);

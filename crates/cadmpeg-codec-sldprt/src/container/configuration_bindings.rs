@@ -3,6 +3,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use super::ManifestConfigurationIndex;
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(super) struct ConfigurationBindings {
     keywords: Vec<Keyword>,
@@ -197,9 +199,14 @@ impl ConfigurationBindings {
         self.names_by_index = names_by_index;
     }
 
-    pub(super) fn index_for(&self, name: &str) -> Option<Option<usize>> {
-        self.has_manifest_rows()
-            .then(|| self.resolved.get(name).copied().flatten())
+    pub(super) fn index_for(&self, name: &str) -> ManifestConfigurationIndex {
+        if !self.has_manifest_rows() {
+            return ManifestConfigurationIndex::Absent;
+        }
+        self.resolved.get(name).copied().flatten().map_or(
+            ManifestConfigurationIndex::Unresolved,
+            ManifestConfigurationIndex::Resolved,
+        )
     }
 
     pub(super) fn name_for(&self, index: usize) -> Option<&str> {

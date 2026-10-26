@@ -1511,7 +1511,7 @@ pub(in crate::decode) fn resolved_section_scalar_values(
     let opaque = definition
         .variables
         .as_ref()
-        .map(|table| table.opaque_value_keys())
+        .map(crate::feature::definitions::FeatureVariableTable::opaque_value_keys)
         .unwrap_or_default();
     let mut resolved = BTreeMap::new();
     for (variable, value) in values {

@@ -701,9 +701,9 @@ fn decodes_complete_depdb_one_sided_curve_array() {
     assert_eq!(
         rows[0].suffix,
         DepdbCurveSuffix {
-            section_plane_id: 8,
-            next_curve_id: 9,
-            reference_surface_id: 10
+            section_plane: 8,
+            next_curve: 9,
+            reference_surface: 10
         }
     );
     assert_eq!(rows[0].body, [0xe4, 0xff]);
