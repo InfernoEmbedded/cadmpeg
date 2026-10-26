@@ -2263,6 +2263,8 @@ A property set begins with total size u32 and property count u32. Each property-
 
 Every property set has unnamed PID 1 with type VT_I2 as its codepage control. The control denotes a codepage identifier; its word is not a user property value. The XML rendering can state 65001 in its `vt:i2` element. Decode dictionary and LPSTR strings with the declared codepage; LPWSTR strings use UTF-16LE.
 
+VT_EMPTY (type 0) and VT_NULL (type 1) have no scalar payload. Their XML forms are empty `vt:empty` and `vt:null` elements. Each states a present property with no scalar value, distinct from an absent property record and from zero-length text.
+
 The native default dictionary permits multiple names for one PID and an administrative empty-name PID 0 entry. These extend the generic MS-OLEPS dictionary rules. Retain all alias entries. A name identifies a saved default value only when it selects one PID and that PID has one usable typed value. Names, whitespace and parenthesized suffixes remain exact source text. An alias with an empty or absent saved value does not select another PID by similarity. A name assigned to conflicting PIDs supplies no unique value. Saved values and formula companions are distinct records; a stored snapshot does not establish live calculation or cache freshness.
 
 ## 9. Units

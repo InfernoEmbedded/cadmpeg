@@ -47,6 +47,33 @@ fn owned_properties_keep_names_values_and_exact_float_bits() {
 }
 
 #[test]
+fn empty_saved_property_remains_read_only_and_distinct_from_a_blank_string() {
+    let bytes = outer_header();
+    let source_scan = scan(&bytes);
+    let mut original = CadIr::empty();
+    let mut row = property(
+        "sldprt:metadata:default_property#8:5:Empty",
+        "Empty",
+        AttributeValue::String(String::new()),
+    );
+    row.values.clear();
+    original.model.attributes.push(row);
+    assert!(validate(&original, &original, &source_scan).is_ok());
+    assert!(requires_guard(&original, None));
+    let mut changed = original.clone();
+    changed.model.attributes[0]
+        .values
+        .push(AttributeValue::String(String::new()));
+    assert!(validate(&changed, &original, &source_scan).is_err());
+    changed = original.clone();
+    changed.model.attributes[0].name = "Other".into();
+    assert!(validate(&changed, &original, &source_scan).is_err());
+    changed = original.clone();
+    changed.model.attributes.clear();
+    assert!(validate(&changed, &original, &source_scan).is_err());
+}
+
+#[test]
 fn retained_guard_detects_removed_added_renamed_and_reidentified_properties() {
     let bytes = outer_header();
     let source_scan = scan(&bytes);

@@ -135,7 +135,10 @@ fn project(
         } else if alias.pid <= 1 || start == stop {
             unusable[unusable_count] = alias.pid;
             unusable_count += 1;
-        } else if let Some(value) = table.values[start].value.as_ref() {
+        } else if table.values[start].value.is_some()
+            || matches!(table.values[start].source_type, "empty" | "null")
+        {
+            let value = table.values[start].value.as_ref();
             let encoded_length = alias_length(&alias.name)?;
             let id_length = ATTRIBUTE_PREFIX
                 .len()
@@ -149,8 +152,8 @@ fn project(
             let tag_length =
                 "saved_default_property:".len() + table.values[start].source_type.len();
             let value_bytes = match value {
-                AttributeValue::String(text) | AttributeValue::Reference(text) => text.len(),
-                AttributeValue::Vector(values) => {
+                Some(AttributeValue::String(text) | AttributeValue::Reference(text)) => text.len(),
+                Some(AttributeValue::Vector(values)) => {
                     values.len().checked_mul(size_of::<f64>()).ok_or_else(|| {
                         CodecError::malformed("saved property vector length overflow")
                     })?
@@ -162,7 +165,10 @@ fn project(
                 .and_then(|size| size.checked_add(value_bytes))
                 .and_then(|size| size.checked_add(tag_length))
                 .and_then(|size| {
-                    size.checked_add(size_of::<SourceAttribute>() + size_of::<AttributeValue>())
+                    size.checked_add(
+                        size_of::<SourceAttribute>()
+                            + value.map_or(0, |_| size_of::<AttributeValue>()),
+                    )
                 })
                 .ok_or_else(|| CodecError::malformed("default-property text length overflow"))?;
             ctx.retain_bytes(u64_from_index(retained), "retain saved default property")?;
@@ -171,9 +177,9 @@ fn project(
             let tag = format!("saved_default_property:{}", table.values[start].source_type);
             let id = AttributeId::compose(
                 &cadmpeg_ir::identity_namespace!("sldprt", "metadata", "default_property"),
-                IdentityKey::from(owner.ordinal()).colon(alias.pid).colon(
-                    IdentityKey::try_new(encoded).map_err(|error| CodecError::malformed(error))?,
-                ),
+                IdentityKey::from(owner.ordinal())
+                    .colon(alias.pid)
+                    .colon(IdentityKey::try_new(encoded).map_err(CodecError::malformed)?),
             );
             crate::annotations::note(
                 annotations,
@@ -187,7 +193,7 @@ fn project(
                 id,
                 target: AttributeTarget::Document,
                 name: alias.name.clone(),
-                values: vec![value.clone()],
+                values: value.cloned().into_iter().collect(),
             });
         } else {
             unusable[unusable_count] = alias.pid;
@@ -231,8 +237,8 @@ fn alias_length(name: &str) -> Result<usize, CodecError> {
 }
 
 fn encoded_alias(ctx: &DecodeContext<'_>, name: &str, length: usize) -> Result<String, CodecError> {
-    let mut bytes = ctx.alloc_filled(length, 0u8, "allocate default-property identity")?;
     const HEX: &[u8; 16] = b"0123456789ABCDEF";
+    let mut bytes = ctx.alloc_filled(length, 0u8, "allocate default-property identity")?;
     let mut cursor = 0;
     for byte in name.bytes() {
         if byte.is_ascii_alphanumeric() || b"._-/".contains(&byte) {

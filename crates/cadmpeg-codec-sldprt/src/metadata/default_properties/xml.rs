@@ -92,19 +92,17 @@ pub(super) fn table(ctx: &DecodeContext<'_>, payload: &[u8]) -> Result<Table, Co
                 let pid = property_identifier(node)?;
                 let mut typed = node.children().filter(roxmltree::Node::is_element);
                 let first = typed.next();
-                let value = if typed.next().is_none() {
+                let (value, source_type) = if typed.next().is_none() {
                     if let Some(first) =
                         first.filter(|child| child.tag_name().namespace() == Some(VALUE_NAMESPACE))
                     {
-                        scalar(ctx, first)?
+                        typed_value(ctx, first)?
                     } else {
-                        None
+                        (None, "unsupported")
                     }
                 } else {
-                    None
+                    (None, "unsupported")
                 };
-                let (value, source_type) =
-                    value.map_or((None, "unsupported"), |(value, kind)| (Some(value), kind));
                 table.values[value_index] = SavedValue {
                     pid,
                     value,
@@ -172,6 +170,29 @@ fn property_identifier(node: roxmltree::Node<'_, '_>) -> Result<u32, CodecError>
     node.attribute("pid")
         .and_then(|pid| pid.parse().ok())
         .ok_or_else(|| CodecError::malformed("default-property record has no valid PID"))
+}
+
+fn typed_value(
+    ctx: &DecodeContext<'_>,
+    node: roxmltree::Node<'_, '_>,
+) -> Result<(Option<AttributeValue>, &'static str), CodecError> {
+    let nil = match node.tag_name().name() {
+        "empty" => Some("empty"),
+        "null" => Some("null"),
+        _ => None,
+    };
+    if let Some(kind) = nil {
+        let valid = node.attributes().len() == 0
+            && node.children().all(|child| {
+                !child.is_element()
+                    && child.text().is_none_or(|text| {
+                        !child.is_text() || text.bytes().all(|byte| b" \t\r\n".contains(&byte))
+                    })
+            });
+        return Ok((None, if valid { kind } else { "unsupported" }));
+    }
+    scalar(ctx, node)
+        .map(|value| value.map_or((None, "unsupported"), |(value, kind)| (Some(value), kind)))
 }
 
 fn scalar(

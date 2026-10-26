@@ -29,7 +29,7 @@ fn saved_aliases_preserve_localized_names_blank_strings_and_scalar_types() {
         r#"<property pid="5" name="日期"><v:lpwstr>  2024/1/2  </v:lpwstr></property><propertyNameDictionaryElement pid="5" name="SW-Date"/><property pid="6" name="Blank"><v:lpstr/></property><property pid="7" name="Absent"><v:empty/></property><property pid="8" name="Integer"><v:i4>-37</v:i4></property><property pid="9" name="Flag"><v:bool>true</v:bool></property>"#,
     );
     let (rows, notes, losses) = properties(&[(MEMBER, source.as_bytes())]);
-    assert_eq!(rows.len(), 5);
+    assert_eq!(rows.len(), 6);
     let find = |name: &str| rows.iter().find(|row| row.name == name).unwrap();
     assert_eq!(
         find("日期").values,
@@ -45,9 +45,38 @@ fn saved_aliases_preserve_localized_names_blank_strings_and_scalar_types() {
     assert!(rows
         .iter()
         .all(|row| row.target == AttributeTarget::Document));
-    assert_eq!(notes.provenance.len(), 5);
-    assert_eq!(losses.len(), 1);
-    assert!(!rows.iter().any(|row| row.name == "Absent"));
+    assert_eq!(notes.provenance.len(), 6);
+    assert!(losses.is_empty());
+    assert!(find("Absent").values.is_empty());
+}
+
+#[test]
+fn explicit_nil_properties_preserve_identity_without_conflating_missing_values() {
+    let source = xml(
+        r#"<property pid="2" name="Empty"><v:empty/></property><property pid="3" name="Null"><v:null/></property><property pid="4" name="Blank"><v:lpwstr/></property><property pid="5" name="Missing"/><property pid="6" name="Unknown"><v:unassigned/></property><property pid="7" name="Payload"><v:empty>19</v:empty></property><property pid="8" name="Nested"><v:empty><v:i4>2</v:i4></v:empty></property><property pid="9" name="Attribute"><v:null other="x"/></property>"#,
+    );
+    let (rows, notes, losses) = properties(&[(MEMBER, source.as_bytes())]);
+    assert_eq!(rows.len(), 3);
+    for name in ["Empty", "Null"] {
+        let row = rows.iter().find(|row| row.name == name).unwrap();
+        assert!(row.values.is_empty());
+        assert_eq!(
+            notes.provenance[row.id.as_str()].tag.as_deref(),
+            Some(if name == "Empty" {
+                "saved_default_property:empty"
+            } else {
+                "saved_default_property:null"
+            })
+        );
+    }
+    assert_eq!(
+        rows.iter().find(|row| row.name == "Blank").unwrap().values,
+        vec![AttributeValue::String(String::new())]
+    );
+    assert_eq!(losses.len(), 5);
+    assert!(losses
+        .iter()
+        .all(|loss| loss.code.local_code() == "metadata.default-value-unsupported"));
 }
 #[test]
 fn default_namespace_requires_exact_physical_owner_and_xml_namespace() {
