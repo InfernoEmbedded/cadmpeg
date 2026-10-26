@@ -1,7 +1,8 @@
 //! Extrusion terminations, combine selections and sweep paths.
 
 use super::component_paths::{
-    component_path_features, component_path_terminal_feature, is_profile_feature_object,
+    component_feature_precedes, component_path_features, component_path_terminal_feature,
+    is_profile_feature_object,
 };
 use super::is_class_token;
 use super::parameters::value_only_scalar_offset;
@@ -1135,6 +1136,16 @@ pub(crate) fn project_compact_combine_paths(
             else {
                 return Ok(None);
             };
+            let Some(producer_feature) = history_features
+                .iter()
+                .copied()
+                .find(|feature| feature.id == producer)
+            else {
+                return Ok(None);
+            };
+            if !component_feature_precedes(producer_feature.into(), (*history_feature).into()) {
+                return Ok(None);
+            }
             let Some(id) = feature_ids_by_native.get(producer.as_str()) else {
                 return Ok(None);
             };
@@ -1166,6 +1177,16 @@ pub(crate) fn project_compact_combine_paths(
             ) else {
                 continue;
             };
+            let Some(producer) = history_features
+                .iter()
+                .copied()
+                .find(|feature| feature.id == native)
+            else {
+                continue;
+            };
+            if !component_feature_precedes(producer.into(), (*history_feature).into()) {
+                continue;
+            }
             if let Some(feature) = feature_ids_by_native.get(native.as_str()) {
                 dependencies.push(cadmpeg_ir::features::FeatureId::clone(feature));
             }
