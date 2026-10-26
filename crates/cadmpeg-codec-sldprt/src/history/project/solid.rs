@@ -198,6 +198,10 @@ pub(super) fn project_extrude(
         },
         Some(_) => one_sided(LinearTermination::Unresolved {}),
     };
+    let extent = explicit_second_termination(
+        extent,
+        feature.properties.get("EndCondition2").map(String::as_str),
+    )?;
     let direction = match feature.properties.get("Direction") {
         Some(value) => {
             let vector =
@@ -775,4 +779,136 @@ pub(super) fn hole_sketch_construction(
 
 pub(crate) fn is_hole_profile_construction(feature: &Feature) -> Result<bool, CodecError> {
     Ok(hole_sketch_construction(feature)?.is_some())
+}
+
+fn explicit_second_termination(
+    extent: ExtrudeExtent,
+    second_condition: Option<&str>,
+) -> Option<ExtrudeExtent> {
+    match (second_condition, extent) {
+        (None, extent) => Some(extent),
+        (Some("ThroughAll"), ExtrudeExtent::OneSided { side }) => Some(ExtrudeExtent::TwoSided {
+            first: side,
+            second: ExtrudeSide {
+                termination: LinearTermination::ThroughAll {},
+                draft: None,
+            },
+        }),
+        (
+            Some("ThroughAll"),
+            extent @ ExtrudeExtent::TwoSided {
+                second:
+                    ExtrudeSide {
+                        termination: LinearTermination::ThroughAll {},
+                        ..
+                    },
+                ..
+            },
+        ) => Some(extent),
+        (Some(_), _) => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn feature(second: Option<&str>) -> Feature {
+        let mut feature: Feature = serde_json::from_value(serde_json::json!({
+            "id":"feature", "parent":"history", "ordinal":0,
+            "name":"Extrude", "kind":"Extrude", "xml_tag":"Extrusion",
+            "input_class":"moExtrusion_c", "parameters":{"Depth":"10mm", "Draft":"1deg"},
+            "properties":{"EndCondition":"Blind"}
+        }))
+        .unwrap();
+        if let Some(second) = second {
+            feature.properties.insert(
+                cadmpeg_core::nonblank_literal!("EndCondition2"),
+                second.into(),
+            );
+        }
+        feature
+    }
+
+    #[test]
+    fn explicit_through_all_second_preserves_the_first_side_and_draft() {
+        let absent = project_extrude(&feature(None), &HashMap::new(), &HashMap::new()).unwrap();
+        let first = match absent {
+            FeatureDefinition::Operation(FeatureOperation::Extrude {
+                extent: ExtrudeExtent::OneSided { side },
+                ..
+            }) => side,
+            _ => panic!("ordinary one-sided extent"),
+        };
+        assert!(first.draft.is_some());
+        let projected = project_extrude(
+            &feature(Some("ThroughAll")),
+            &HashMap::new(),
+            &HashMap::new(),
+        )
+        .unwrap();
+        let FeatureDefinition::Operation(FeatureOperation::Extrude {
+            extent:
+                ExtrudeExtent::TwoSided {
+                    first: actual,
+                    second,
+                },
+            ..
+        }) = projected
+        else {
+            panic!("explicit second side retained");
+        };
+        assert_eq!(actual, first);
+        assert!(matches!(
+            second.termination,
+            LinearTermination::ThroughAll {}
+        ));
+        assert!(second.draft.is_none());
+    }
+
+    #[test]
+    fn explicit_unsupported_second_does_not_fall_back_to_one_sided() {
+        for second in ["Unknown", "ToFace", "Blind", ""] {
+            assert!(
+                project_extrude(&feature(Some(second)), &HashMap::new(), &HashMap::new()).is_none()
+            );
+        }
+    }
+
+    #[test]
+    fn explicit_second_requires_compatible_existing_extent() {
+        let first = ExtrudeSide {
+            termination: LinearTermination::ThroughAll {},
+            draft: None,
+        };
+        let both = ExtrudeExtent::TwoSided {
+            first: first.clone(),
+            second: first.clone(),
+        };
+        assert_eq!(
+            explicit_second_termination(both.clone(), Some("ThroughAll")),
+            Some(both)
+        );
+        assert!(explicit_second_termination(
+            ExtrudeExtent::Symmetric {
+                side: first.clone()
+            },
+            Some("ThroughAll")
+        )
+        .is_none());
+        let blind = ExtrudeSide {
+            termination: LinearTermination::Blind {
+                length: NonZeroLength::from(PositiveLength::new(2.0).unwrap()),
+            },
+            draft: None,
+        };
+        assert!(explicit_second_termination(
+            ExtrudeExtent::TwoSided {
+                first,
+                second: blind
+            },
+            Some("ThroughAll")
+        )
+        .is_none());
+    }
 }
