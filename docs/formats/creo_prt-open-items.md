@@ -780,13 +780,27 @@ current-boundary selector, operand namespace, or face-side action.
 
 **Need.** We must know the join to bind the restored loop to geometric edges.
 
-### TP-12. Shell-to-body assignment
+### TP-12. Complete body-owned material rosters
 
-**Question.** Which byte-backed relation assigns a shell to a body when face-adjacency components and body-count fields disagree?
+**Question.** Which complete source-owned material roster assigns all shell
+components to the same body identity and model scope?
 
-**Known.** Face adjacency gives connected shell components. A body-count field gives the expected body cardinality but not shell ownership. Legacy ASCII admission can identify eligible visible faces and retain a single admitted component; multiple admitted components still lack a shell-to-body join.
+**Known.** Connected face components are not material-body identities. A
+solid-root `next_geom_ptr` chain can cross disconnected shell components.
+Legacy `frst_geom_ptr` is separate from the quilt discriminator. Modern
+`body_array` rows distinguish `body_id` from their first material-geometry
+reference. An unmaterialized next target prevents a complete roster; equal
+opaque body-ID images alone do not establish a general multibody grammar.
 
-**Need.** We must know the relation to construct the correct body membership.
+**Need.** Parse and bind complete body/root records, every unique chain target,
+and the same-model material regime before assigning shells. Preserve missing
+or conflicting membership and distinguish solids from nonsolid quilts.
+
+**Conflict.** Current neutral grouping still uses declared body count,
+`first_quilt_ptr`, and adjacency-component cardinality as ownership gates and
+can merge nonempty components from a single-count discriminator. Those
+heuristics do not supply the missing complete owned roster. A retained Native
+graph or partial neutral output does not certify correct closed bodies.
 
 ### TP-13. Element-color side and instance ownership
 
@@ -899,18 +913,28 @@ prefix contradicts its declared field ownership.
 **Note.** The named prototype and compact six-scalar timestamp form do not
 define the complete heterogeneous event union.
 
-### TP-19. `lo_array` roster semantics
+### TP-19. Complete loop-array row framing and roster semantics
 
-**Question.** Which fields in a positional `lo_array` row bind its native
-roster entry to a face, contour chain, curve header, and traversal orientation?
+**Question.** Which enclosing object and auxiliary grammar bounds each
+`lo_array` row, and which owned state selects its face-side traversal action?
 
-**Known.** `creo_prt.md` §3.5 defines the `lo_array` frame header, named
-prototype fields, seven-field positional prefix, and bounded row body. The
-decoder retains complete frame and row bytes without assigning neutral loop or
-face meaning.
+**Known.** The positional prefix has seven compact integers, including
+attributes. The local lane admits three-byte integer images as well as one-
+and two-byte forms. Counted object and auxiliary bodies can contain nested
+compound closes; the first close is not the enclosing row boundary. A typed
+roster and a visible successor orbit remain separate evidence.
 
-**Need.** We must know the joins before `lo_array` rows can contribute to
-neutral loop ownership or face admission.
+**Need.** Consume the complete counted object/auxiliary production and preserve
+all complete rows and opaque fields before using a roster as an ownership
+oracle. Establish state-to-current-boundary and traversal joins independently;
+roster overlap, pointer ancestry, or a possible cyclic rotation is insufficient.
+
+**Conflict.** The current prefix reader treats attributes as one byte, omits
+the three-byte compact tier, and ends a row at the first compound close. It
+can misread fields, truncate bodies, and omit later rows. Its typed row output
+must not be treated as a complete framing or current-ownership proof. General
+row repair remains blocked on the complete enclosing grammar, rather than a
+global retokenization or guessed current-state selector.
 
 ## 5. Packed persistence data
 

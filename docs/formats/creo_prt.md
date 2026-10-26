@@ -2141,8 +2141,19 @@ not defined by this namespace.
 | DEPDB frame header    | `lo_array\0 f2 f8 <count> f7 <class> fb e3`                    |
 | Bare frame header     | `lo_array\0 f8 <count> f7 <class> fb e3`                       |
 | Named prototype       | Required fields `lo_id`, `lo_type`, `lo_subtype`, `feat_id`, `attributes`, `direction`, `next_lo_ptr`, and `object_data`; close `f1 f7 <class> e3` |
-| Positional row prefix | `<lo_id_ci> <lo_type_ci> <lo_subtype_ci> <feat_id_ci> <attributes> <direction_ci> <next_lo_ptr_ci>` |
+| Positional row prefix | `<lo_id_ci> <lo_type_ci> <lo_subtype_ci> <feat_id_ci> <attributes_ci> <direction_ci> <next_lo_ptr_ci>` |
 | Positional row body   | The bounded bytes after the prefix through the row-close `e3`. |
+
+All seven positional prefix fields use compact integers in this lane,
+including attributes. Its storage tiers are `00..7f`, `80..bf XX`, and
+`c0..df XX YY`, with values `head`, `(head - 80) * 256 + XX`, and
+`(head - c0) * 65536 + XX * 256 + YY`, respectively. This prefix grammar
+does not widen unrelated PSB reference or numeric lanes.
+
+A counted object body or typed auxiliary production can contain nested
+compound closes. Its first `e3` does not establish the enclosing row end.
+Consume the complete owned object and auxiliary productions before assigning
+that boundary; retained prefix fields alone do not prove a complete row.
 
 `<count>` is the frame slot extent. The frame ends at the next `crv_array`,
 `lo_array`, `qlt_array`, or `srf_array` label. A complete positional row must
@@ -2532,27 +2543,26 @@ semantics.
 
 Build the B-rep half-edge graph from the `crv_array` suffixes. A single-loop face has an outer boundary by topology. A two-edge loop is admissible only when its distinct edge carriers have typed non-linear geometry, complete native pcurve endpoint paths close in traversal order, and the resulting boundary is otherwise ordered by the same face rules. For multiple two-edge circular loops on a plane, complete circle carriers with a common center and distinct radii provide the outer-to-inner order. Two-edge line-only loops and ambiguous circular loop sets remain native. Multi-loop faces otherwise require parameter-space containment to distinguish outer from inner loops. When no placed surface chart is available, complete solved boundary vertices must prove one common plane before the same containment rule is applied. Native body components follow connected components of nonzero face references. In a legacy ASCII layout, a component is eligible for neutral admission when it contains at least one face whose visible surface carrier, boundary loops, edge carriers, and solved vertices all pass the admission gates. Only those eligible faces and edges enter the neutral body; references in the same component that do not pass the gates remain native. A component with no eligible visible face remains native. Neutral shells follow connected components of admitted face topology through shared edges or vertices.
 
-Use the following order to select a body count:
+A positive `Geomlists.n_bodies` states expected body cardinality. A null
+`first_quilt_ptr` distinguishes the absence of a quilt root; a face-adjacency
+component states connectivity. These facts do not independently assign shells
+to material bodies.
 
-1. A positive `Geomlists.n_bodies` value.
-2. `Geomlists.first_quilt_ptr == 0`, or legacy ASCII
-   `Sld_GeomDepend.first_quilt_ptr == 0`, as a single-body discriminator.
-3. Face-reference adjacency component count when it is the only byte-backed source.
+A source-owned solid geometry root and its complete `next_geom_ptr` roster
+can span several disconnected face components. Those components need not be
+separate bodies. Legacy `frst_geom_ptr` and `first_quilt_ptr` have distinct
+roles. A modern `body_array` row likewise separates `body_id` from its
+`first_geom_ptr` material-geometry reference. Establish the complete root,
+body identity, same-model scope, and material roster before joining shells.
+A missing target, repeated identity, incomplete chain, or unresolved owner
+leaves that membership unresolved; a count or the first component does not
+supply it.
 
-Emit neutral body and region ownership only when the selected count matches the
-body grouping derived from the metadata and every grouped component has an
-admitted face or a solved edge. An explicit single-body discriminator joins all
-non-empty admitted components into one body; their disconnected face groups
-remain separate shells. In legacy ASCII, a component with no eligible face is
-not admitted even when it has solved edges. When a legacy ASCII part has no
-body count or single-quilt discriminator, a multi-component admitted set has
-unresolved body ownership and remains native. Group admitted faces into shells
-by shared edges or vertices. A solved edge not used by an admitted face loop is
-a shell wire edge; a component containing wire edges is a `General` body. An
-admitted face group with no shared topology uses its own shell in the same
-region. A component with no admitted face or solved edge, or a body-count
-mismatch, leaves native topology records available without neutral body
-assignment.
+Within an independently owned material group, neutral shells follow admitted
+face connectivity through shared edges or vertices. Solved edges not used by
+an admitted face loop remain wire topology. Components without admitted faces
+or solved edges remain Native. Body cardinality and the independently proved
+grouping must agree before neutral body/region ownership is assigned.
 
 ND layouts share `var_arr`, `segtab`, `order_table`, `ent_tab`, and `vert_tab`, joined by `ext_id`.
 
