@@ -3292,6 +3292,20 @@ Parsed by:
 | 0 | 4 | `leading_word` | `u32` | little | spec | leading_word u32 LE at +0 is 1 · value `1` |
 | 4 | 4 | `stream_len` | `u32` | little | spec | stream_len u32 LE at +4 is the positive XT byte length |
 
+## `equation_manager_settings_prefix`
+
+Spec §2 · layout: byte offsets · size: 29 B
+
+Starts at the parsed post-relation settings boundary H, not at a fixed displacement from moRelMgr_c. The remainder of the settings object follows this prefix.
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 8 | `first_settings_scalar` | `f64` | little | spec | \| +0 \| f64 \| first_settings_scalar \| |
+| 8 | 9 | `settings_between_scalars` | `bytes[9]` | little | spec | \| +8 \| bytes[9] \| settings_between_scalars \| |
+| 17 | 8 | `second_settings_scalar` | `f64` | little | spec | \| +17 \| f64 \| second_settings_scalar \| |
+| 25 | 3 | `settings_before_mode` | `bytes[3]` | little | spec | \| +25 \| bytes[3] \| settings_before_mode \| |
+| 28 | 1 | `equation_angular_mode` | `u8` | little | spec | \| +28 \| u8 \| equation_angular_mode \| |
+
 ## Not tabulated
 
 | Area | Spec | Reason |

@@ -1099,6 +1099,20 @@ A bare integer Keywords dimension bound to a unique driving angular scalar denot
 
 A bare `0` or `1` Keywords dimension bound to a unique driving angular scalar denotes milliradians rather than a Boolean. The scalar supplies its evaluated angle in radians and native identity while the original expression remains unchanged.
 
+The equation angular-unit mode is the byte in the `moRelMgr_c` post-relation settings prefix. Let `H` be the first packed settings scalar after the complete variable-length relation list and any preceding drafting-standard text. The prefix through the mode byte is 29 bytes. `H` has no fixed displacement from the manager class declaration.
+
+| Offset from H | Type | Field |
+| --- | --- | --- |
+| +0 | f64 | first_settings_scalar |
+| +8 | bytes[9] | settings_between_scalars |
+| +17 | f64 | second_settings_scalar |
+| +25 | bytes[3] | settings_before_mode |
+| +28 | u8 | equation_angular_mode |
+
+The native mode values are `0` for Degrees and `1` for Radians. Other values supply no recognized mode. These native values differ from the public angular-equation API enum, whose Degrees and Radians values are `1` and `2`. The setting selects the angular unit for equation evaluation. An explicit angular unit remains part of its operand expression.
+
+The mode is document-wide and is replicated in configuration relation managers. All configuration copies must be present, parsed, recognized, and equal to establish a document mode. Missing or unparsed copies and disagreeing values establish no mode. The `moAngleUserUnits_c` display-angle record and the `moEqnFolder_c` feature-tree folder do not establish an equation angular-unit mode. The two settings scalars and neighboring settings bytes do not identify the mode or replace a parsed relation-list boundary.
+
 An otherwise untyped bare Keywords integer, including `0` and `1`, is a dimensionless integer. The case-insensitive literals `true` and `false` are Boolean values.
 
 A uniquely owned feature-input scalar is the evaluated value of the same-named Keywords dimension. Length-valued feature scalars store metres and angular feature scalars store radians. Keywords dimension text remains the parameter expression; its unitless numeric spelling does not replace the evaluated scalar. Feature operation semantics use the evaluated scalar converted to millimetres or radians.

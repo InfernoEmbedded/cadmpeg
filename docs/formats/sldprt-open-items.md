@@ -182,13 +182,17 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 **Need.** We must distinguish the remaining binders, comments, body folders, materials, notes, sensors, favorites, history, selection sets, and markups.
 
-### DI-02. Equation angular-unit mode
+### DI-02. Relation-manager settings boundary
 
-**Question.** Which native field stores the equation manager's angular-unit mode?
+**Question.** What complete relation-list and intervening-text grammar identifies the post-relation settings boundary for each supported relation-manager layout?
 
-**Known.** `sldprt.md` §2 "A bare integer Keywords dimension bound to a unique driving angular scalar denotes milliradians" through `sldprt.md` §2 "A nonempty Keywords parameter value with no scalar literal, operator, grouping delimiter," define expression identifiers and unit-bearing literals. An explicit angular unit determines the interpretation of a trigonometric operand.
+**Known.** `sldprt.md` §2 "The equation angular-unit mode is the byte" defines the settings-relative field and native Degrees/Radians encoding. The relation list contains a declared count of variable-length objects. Nested expressions and drafting-standard strings change the displacement of the settings prefix from the manager declaration. Display-angle units do not establish the equation mode.
 
-**Need.** We must know the document mode to evaluate a bare numeric trigonometric operand.
+**Need.** A counted parser must consume each complete relation and its nested expression objects, then frame any intervening text before it returns the settings prefix. It must distinguish unsupported manager layouts and missing configuration copies. Numeric signatures inside unparsed relation bytes do not establish that boundary.
+
+**Conflict.** None.
+
+**Note.** A field-relative layout does not define the preceding variable-length grammar. A mode value does not prove that a relation evaluator applied it to a bare angular operand.
 
 ### DI-03. Calculated default-property caches
 
