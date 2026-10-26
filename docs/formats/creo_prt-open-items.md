@@ -89,29 +89,13 @@ surface, or pcurve transition semantics apply.
 
 **Need.** We must know the remaining prefixes to construct the plane envelope and domain.
 
-### SE-11. Dimension-driven `00 XX YY` values
+### SE-11–SE-13. Short unresolved solver-body tails
 
-**Question.** What numeric value does a `var_arr` scalar of the form `00 XX YY` encode?
+**Question.** What solver identities or state do the tails of the bounded `00 <tail2>`, `01 <tail3>`, and `34 <tail2>` variable bodies retain?
 
-**Known.** `creo_prt.md` §2.3 "`<prefix> <tail6>` uses the prefix" defines its three-byte boundary. `creo_prt.md` §5 "Within each" defines the separate nine-byte dimension-driven sentinel.
+**Known.** `creo_prt.md` §5 defines their exact widths, independent value and guess lanes, and unresolved inline state. A complete enabled section graph can resolve a row value separately; equal short bodies do not establish equal numerical values across sections.
 
-**Need.** We must know the value to solve the section variable.
-
-### SE-12. Dimension-driven `01 XX YY ZZ` values
-
-**Question.** What numeric value does a `var_arr` scalar of the form `01 XX YY ZZ` encode?
-
-**Known.** `creo_prt.md` §2.3 "`<prefix> <tail6>` uses the prefix" defines its four-byte boundary.
-
-**Need.** We must know the value to solve the section variable.
-
-### SE-13. Dimension-driven `34 XX YY` values
-
-**Question.** What numeric value does a `var_arr` scalar of the form `34 XX YY` encode?
-
-**Known.** `creo_prt.md` §2.3 "`<prefix> <tail6>` uses the prefix" defines its three-byte boundary.
-
-**Need.** We must know the value to solve the section variable.
+**Need.** Define the owned tail fields and their joins before assigning additional solver semantics or replacing the unresolved lane state.
 
 ### SE-14. Other principal unit selectors
 
@@ -370,13 +354,13 @@ native.
 
 **Need.** We must know the referent to evaluate the relation.
 
-### SP-07. Solver sentinel
+### SP-07. Non-coordinate full-width solver roles
 
-**Question.** What solver state does `ed ba 10 0c 8d ee 90 b4 0c` encode?
+**Question.** What numerical or solver role does a complete `ed <tail8>` image have in a variable outside coordinate types `1` and `2`?
 
-**Known.** `creo_prt.md` §5 "Within each" defines the nine-byte `ed <tail8>` production as one dimension-driven sentinel slot.
+**Known.** `creo_prt.md` §5 "Within each" defines the complete nine-byte full-width image. Coordinate types `1` and `2` decode its finite binary64 payload; other variable types retain an opaque scalar role. The image alone does not establish a dimension-driven state.
 
-**Need.** We must know the state to evaluate or reject the affected variable correctly.
+**Need.** Define the complete owning field and variable-type contracts before numerically admitting an opaque full-width variable or assigning solver state to it.
 
 ### SP-08. Multiple `local_sys` frames
 

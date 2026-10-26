@@ -2447,6 +2447,13 @@ body and is the auxiliary field. The equation table ends before the following
 count are independent native values.
 
 Within each `var_arr` row, `value` and `guess` are independent scalar lanes.
+The unresolved forms `00 <tail2>` and `34 <tail2>` occupy three bytes;
+`01 <tail3>` occupies four. Each lane retains its complete body and has no
+inline scalar value. A complete, enabled section constraint graph can supply
+a separate row-level resolved value. That result does not rewrite either
+stored lane or assign a value to the independent guess lane. An unresolved
+`34` body does not use the numeric short-float rule of prefix `2a`.
+
 A section full-width scalar starts with `ed`, has an eight-byte payload at
 byte offset 1, and occupies exactly nine bytes. The complete owning field
 sets the boundary. For coordinate types `1` and `2`, the payload is a
