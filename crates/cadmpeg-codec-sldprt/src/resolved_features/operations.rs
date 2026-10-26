@@ -219,24 +219,29 @@ pub(crate) fn bind_sweep_operations(
                     break 'sweep_mode;
                 };
                 let mut operations = lane_names.iter().filter_map(|(lane, names)| {
-                    let name = names.of(history)?;
-                    match (
-                        history.input_class.as_deref(),
-                        feature_operation_code(
-                            lane,
-                            name,
-                            history.input_class.as_deref(),
-                            form_padding,
-                        )?,
-                    ) {
-                        (Some("moSweep_c"), 15) => Some(BooleanOp::Join),
-                        _ => None,
+                    if !names.has_candidate(history) {
+                        return None;
                     }
+                    Some((|| {
+                        let name = names.of(history)?;
+                        match (
+                            history.input_class.as_deref(),
+                            feature_operation_code(
+                                lane,
+                                name,
+                                history.input_class.as_deref(),
+                                form_padding,
+                            )?,
+                        ) {
+                            (Some("moSweep_c"), 15) => Some(BooleanOp::Join),
+                            _ => None,
+                        }
+                    })())
                 });
-                let Some(first) = operations.next() else {
+                let Some(Some(first)) = operations.next() else {
                     break 'sweep_mode;
                 };
-                if operations.all(|operation| operation == first) {
+                if operations.all(|operation| operation == Some(first)) {
                     let op = match first {
                         BooleanOp::Join => cadmpeg_ir::features::SolidSweepOperation::Join,
                         BooleanOp::Cut => cadmpeg_ir::features::SolidSweepOperation::Cut,

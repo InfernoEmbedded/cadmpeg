@@ -944,3 +944,5 @@ fn inline_long_zero_tail_requires_all_twelve_zeros_and_final_token() {
     lane.native_payload[14] = 2;
     assert_eq!(feature_inline_operation(&lane, &name), Some(BooleanOp::Cut));
 }
+
+mod sweep_consensus;

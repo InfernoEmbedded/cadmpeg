@@ -420,11 +420,11 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 ### DI-30. Other compact sweep Boolean codes
 
-**Question.** What Boolean operation does each compact sweep code other than join code `15` represent?
+**Question.** Which serialized carrier establishes the solid-sweep Merge Boolean independently of the compact class-form word?
 
-**Known.** Compact sweep code `15` joins the sweep result.
+**Known.** The Merge property is Boolean. An unrecognized compact word does not establish NewBody, Cut, or Intersect. A missing carrier does not establish Merge false. An owned unknown, malformed, or ambiguous operation cannot corroborate another lane.
 
-**Need.** We must know the other codes to construct the sweep result operation.
+**Need.** Bind the complete Merge carrier to its owning feature with independent true and false controls. Retain unresolved operations when the carrier is unavailable.
 
 ### DI-31. Native neutral-plane Draft outward flag
 
