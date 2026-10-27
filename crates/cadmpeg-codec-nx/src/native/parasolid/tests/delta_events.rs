@@ -70,29 +70,23 @@ fn deltas_events_retain_bounded_records_tombstones_and_revisions() {
         cadmpeg_core::decode::u64_from_index(type_45_offset)
     );
     assert_eq!(events.records[0].byte_len, 24);
-    assert_eq!(events.tombstones.len(), 1);
-    assert_eq!(events.tombstones[0].kind.name(), "POINT");
-    assert_eq!(events.tombstones[0].xmt, 11);
-    assert_eq!(
-        serde_json::to_value(&events.tombstones[0]).unwrap()["byte_len"],
-        6
-    );
-    assert_eq!(
-        events.tombstones[0].inflated_offset,
-        cadmpeg_core::decode::u64_from_index(tombstone_offset)
-    );
+    assert!(events.tombstones.is_empty());
     assert_eq!(events.residual_spans.len(), 2);
     assert_eq!(events.residual_spans[0].inflated_offset, 0);
     assert_eq!(events.residual_spans[0].byte_len, 3);
     assert_eq!(
-        events.residual_spans[0].sha256,
-        cadmpeg_ir::hash::digest::Sha256Digest::digest(&[0xaa, 0xbb, 0xcc])
-    );
-    assert_eq!(
         events.residual_spans[1].inflated_offset,
         cadmpeg_core::decode::u64_from_index(type_45_offset + 24)
     );
-    assert_eq!(events.residual_spans[1].byte_len, 2);
+    assert_eq!(events.residual_spans[1].byte_len, 8);
+    assert_eq!(
+        events.residual_spans[1].sha256,
+        cadmpeg_ir::hash::digest::Sha256Digest::digest(&streams[0].inflated[type_45_offset + 24..])
+    );
+    assert_eq!(
+        &streams[0].inflated[tombstone_offset..],
+        &[0, 29, 0, 11, 0, 1]
+    );
 }
 
 #[test]

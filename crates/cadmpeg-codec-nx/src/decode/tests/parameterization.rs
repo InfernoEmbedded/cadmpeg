@@ -651,30 +651,19 @@ fn decode_assigns_ext11_uv_lanes_by_unique_surface_evaluation() {
     let mut cur = Cursor::new(prt_with_ext11_intersection(&partition, &stream));
     let result = NxCodec.decode(&mut cur, &DecodeOptions::default()).unwrap();
 
-    let cadmpeg_ir::geometry::ProceduralCurveDefinition::Intersection { context, .. } =
-        &result.ir().model.procedural_curves[0].definition()
-    else {
-        panic!("typed intersection");
-    };
-    let [Some(PcurveGeometry::Nurbs { nurbs: first }), Some(PcurveGeometry::Nurbs { nurbs: second })] =
-        context
-            .sides()
-            .clone()
-            .map(|side| side.pcurve.map(|binding| binding.geometry))
-    else {
-        panic!("two ext11 pcurves");
-    };
+    let baseline = NxCodec
+        .decode(
+            &mut Cursor::new(prt_with_partition(&partition)),
+            &DecodeOptions::default(),
+        )
+        .unwrap();
     assert_eq!(
-        first.control_points(),
-        [Point2::new(0.0, 0.0), Point2::new(10.0, 0.0)]
-    );
-    assert_eq!(
-        second.control_points(),
-        [Point2::new(0.0, 0.0), Point2::new(0.0, 10.0)]
+        serde_json::to_value(&result.ir().model).unwrap(),
+        serde_json::to_value(&baseline.ir().model).unwrap()
     );
     assert!(
         cadmpeg_ir::validate::validate_neutral(result.ir(), Vec::new())
-            .expect("validate the neutral model")
+            .unwrap()
             .is_ok()
     );
 }

@@ -79,15 +79,19 @@
               "stream_ordinal": 0
             }
           ],
-          "parasolid_deltas_tombstones": [
+          "parasolid_deltas_tagged_reference_lanes": [
             {
               "byte_len": 6,
-              "family": "EDGE",
-              "id": "nx:s0:deltas-tombstone#120-48303",
+              "id": "nx:s0:deltas-tagged-reference-lane#120",
               "inflated_offset": 120,
-              "kind": 16,
-              "stream_ordinal": 0,
-              "xmt": 48303
+              "references": [
+                [
+                  16,
+                  48303
+                ]
+              ],
+              "sha256": "805f1adb62f4b48cbdfd87b39d4660931831eed00beb04a366d59cc9f723395f",
+              "stream_ordinal": 0
             }
           ],
           "unknowns": [
@@ -102,7 +106,7 @@
           "deltas.0.bytes_decoded": "56",
           "deltas.0.full.FACE": "1",
           "deltas.0.grammar": "typed_status_framed_records",
-          "deltas.0.tombstone.EDGE": "1",
+          "deltas.0.tagged_reference_lanes": "1",
           "deltas_streams": "1",
           "directory_entries": "1",
           "file_size": "211",
@@ -225,10 +229,10 @@
             "stream": "nx:s0",
             "tag": "DELTAS_RESIDUAL"
           },
-          "nx:s0:deltas-tombstone#120-48303": {
+          "nx:s0:deltas-tagged-reference-lane#120": {
             "offset": 120,
             "stream": "nx:s0",
-            "tag": "DELTAS_TOMBSTONE"
+            "tag": "DELTAS_TAGGED_REFERENCES"
           }
         }
       },
@@ -266,7 +270,7 @@
           "kind": "deltas",
           "records.body": "0",
           "records.delta.full.face": "1",
-          "records.delta.tombstone.edge": "1",
+          "records.delta.tagged_reference_lanes": "1",
           "records.edge": "0",
           "records.face": "0",
           "records.fin": "0",

@@ -77,6 +77,8 @@ loss_codes! {
     IntersectionPcurveCompletionBounded => ("intersection.pcurve-completion-bounded", Warning, ObjectRecordsUntransferred),
     /// Adaptive geometry certification reached its model-wide work bound.
     GeometryAdaptiveWorkBounded => ("geometry.adaptive-work-bounded", Warning, ObjectRecordsUntransferred),
+    /// Aggregate history lacks an established constituent edge and deletion frame.
+    DeltasStateUnresolved => ("deltas.state-unresolved", Warning, FeatureHistoryRetained),
     /// Parasolid deltas applied; every terminal tombstone resolved to a key.
     DeltasApplied => ("deltas.applied", Info, DecodeDiagnostic),
     /// Parasolid deltas applied; one or more terminal tombstones remain unmatched.
@@ -199,6 +201,7 @@ mod tests {
                 "intersection.records-opaque",
                 "intersection.pcurve-completion-bounded",
                 "geometry.adaptive-work-bounded",
+                "deltas.state-unresolved",
                 "deltas.applied",
                 "deltas.unmatched-tombstones",
                 "history.sub-body-composition-unresolved",

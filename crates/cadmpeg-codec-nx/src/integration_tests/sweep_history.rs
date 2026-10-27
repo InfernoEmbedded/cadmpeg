@@ -20,13 +20,15 @@ fn sweep_history_keeps_branches_and_body_links_without_inventing_policies() {
         .collect::<Vec<_>>();
     assert_eq!(sweeps.len(), 2);
     for sweep in sweeps {
-        assert_eq!(sweep.evaluation.outputs(), &[ir.model.bodies[0].id.clone()]);
+        assert!(sweep.evaluation.outputs().is_empty());
         assert!(matches!(sweep.evaluation.definition(),
             FeatureDefinition::Operation(FeatureOperation::Native { kind, .. }) if kind.as_str() == "SWP104"));
     }
     let arenas = ir.native.namespace("nx").unwrap().arenas();
     assert_eq!(arenas["feature_operation_body_writes"].len(), 2);
-    assert_eq!(arenas["feature_body_write_group_partition_uses"].len(), 2);
+    assert!(arenas
+        .get("feature_body_write_group_partition_uses")
+        .is_none_or(|uses| uses.is_empty()));
     let branches = serde_json::to_value(&arenas["feature_swp104_leading_branches"]).unwrap();
     assert_eq!(branches.as_array().unwrap().len(), 2);
     assert_eq!(branches[0]["parameter_class_index"], 17);

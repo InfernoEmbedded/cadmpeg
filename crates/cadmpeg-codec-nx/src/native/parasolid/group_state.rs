@@ -42,6 +42,9 @@ impl GroupState {
             Record(&'a ParasolidDeltasRecord),
             Tombstone(u32),
         }
+        if !crate::deltas::aggregate_replay_supported() {
+            return;
+        }
         let mut events = Vec::new();
         for record in records
             .iter()

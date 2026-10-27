@@ -4,13 +4,12 @@
 use super::record_kind::RecordKind;
 use super::tails::TerminalNullReferences;
 use super::{
-    body_revision_prefix, compact_tombstone, consume_fixed, consume_intersection_auxiliary,
-    consume_shared_record, consume_variable, first_complete_record, fixed_signature,
-    inline_schema_node, is_value_family, merged_event_spans, reference_marker_packets,
-    reference_type_map, reference_type_maps, tagged_reference_lanes, transmit_header,
-    uncovered_spans, BodyRevision, PartitionPrefix, PartitionPrefixState, PmarkPacket, Record,
-    ReferenceMarkerPacket, ReferenceTypeMap, ReferenceTypeMapLimit, SchemaNodeEvent,
-    TaggedReferenceLane, Tombstone, TransmitHeader,
+    body_revision_prefix, consume_fixed, consume_intersection_auxiliary, consume_shared_record,
+    consume_variable, first_complete_record, fixed_signature, inline_schema_node, is_value_family,
+    merged_event_spans, reference_marker_packets, reference_type_map, reference_type_maps,
+    tagged_reference_lanes, transmit_header, uncovered_spans, BodyRevision, PartitionPrefix,
+    PartitionPrefixState, PmarkPacket, Record, ReferenceMarkerPacket, ReferenceTypeMap,
+    ReferenceTypeMapLimit, SchemaNodeEvent, TaggedReferenceLane, Tombstone, TransmitHeader,
 };
 use cadmpeg_core::decode::View;
 use cadmpeg_core::CodecError;
@@ -269,7 +268,7 @@ pub(crate) fn walk(stream: &[u8]) -> Result<Census, CodecError> {
         let Some(kind) = View::u16_be_at(stream, offset) else {
             break;
         };
-        let Ok(record_kind) = RecordKind::try_from(kind) else {
+        let Ok(_) = RecordKind::try_from(kind) else {
             offset += 1;
             value_boundary = false;
             continue;
@@ -346,22 +345,6 @@ pub(crate) fn walk(stream: &[u8]) -> Result<Census, CodecError> {
             value_boundary = true;
             census.events.records.push(record);
             continue;
-        }
-        if let Some(xmt) = (kind != 98)
-            .then(|| compact_tombstone(stream, offset))
-            .flatten()
-        {
-            if xmt > 1 {
-                census.events.tombstones.push(Tombstone {
-                    kind: record_kind,
-                    xmt,
-                    offset,
-                });
-                census.bytes_decoded += 6;
-                offset += 6;
-                value_boundary = true;
-                continue;
-            }
         }
         offset += 1;
         value_boundary = false;

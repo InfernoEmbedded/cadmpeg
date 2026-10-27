@@ -1331,6 +1331,10 @@ opposite-aligned reading forms a descending sequence of apparent deletions.
 The node type, target identity, byte extent, and enclosing change state are
 independent requirements for a deletion relation.
 
+The reader withholds deletion admission from this shape. It retains the raw
+aggregate bytes and any separately established reference lanes; neither a
+short nor an extended apparent XMT certifies a deletion endpoint.
+
 ---
 
 ## 5. Topology
@@ -3161,6 +3165,16 @@ Within an identified change, a full node with an existing `(type, xmt)` key
 replaces that node; a previously absent key adds a node. Equal numeric XMT
 values in separate partition namespaces do not identify one node. An
 unestablished change boundary supplies no current-state selection.
+
+**Reader policy:** no supported aggregate parser establishes an owned, directed
+pmark edge and its input state. Physical stream pairing remains provenance.
+Aggregate records do not replace saved Partition or Plain image geometry,
+become standalone neutral geometry or semantic residuals, update primary
+GROUP membership, or establish appearance and operation-result bindings to
+those images. Raw history records and streams remain retained natively. The
+`nx/deltas.state-unresolved` warning reports withheld replay alongside transferred
+geometry. A saved image is not a certificate of regenerated current design;
+a future replay reader must establish the constituent frame and pmark edge.
 
 `RMFastLoad` stores the active object-id set alongside the partition and deltas body records. The membership table contains a little-endian `count:u32` followed by exactly `count` ordered `object_id:u32` words. FACE, EDGE, and VERTEX `node_id` values share this identity space. Membership assigns each represented body image independently; the set may select more than one body. A body image without active membership is retained unless another image has a decisive membership assignment.
 

@@ -46,7 +46,7 @@ fn prepare_topology_streams<'a>(
             delta_census: None,
         });
     }
-    let pairs = paired_delta_streams(scan);
+    let pairs = replay_eligible_delta_streams(scan);
     let paired_deltas = pairs.values().flatten().copied().collect::<BTreeSet<_>>();
     let mut merge =
         |partition: &[u8], deltas: &[u8], census: &Census| -> Result<Vec<u8>, CodecError> {
@@ -65,7 +65,10 @@ fn prepare_topology_streams<'a>(
     for (delta, stream) in scan.streams.iter().enumerate() {
         if stream.kind() == StreamKind::Deltas && !paired_deltas.contains(&delta) {
             let census = crate::deltas::census::walk(&stream.inflated)?;
-            if !census.records.is_empty() || !census.tombstones.is_empty() {
+            if !crate::deltas::aggregate_replay_supported()
+                || !census.records.is_empty()
+                || !census.tombstones.is_empty()
+            {
                 let merged = merge(&[], &stream.inflated, &census)?;
                 semantic[delta].bytes = Cow::Owned(merged);
             }
@@ -82,6 +85,15 @@ fn prepare_topology_streams<'a>(
         }
     }
     Ok(semantic)
+}
+
+/// Physical stream proximity is retained as provenance, not replay authority.
+pub(super) fn replay_eligible_delta_streams(scan: &Scan) -> BTreeMap<usize, Vec<usize>> {
+    if crate::deltas::aggregate_replay_supported() {
+        paired_delta_streams(scan)
+    } else {
+        BTreeMap::new()
+    }
 }
 
 pub(super) fn paired_delta_streams(scan: &Scan) -> BTreeMap<usize, Vec<usize>> {
@@ -289,7 +301,7 @@ impl<'a> ParsedStreams<'a> {
         let mut unmatched_tombstone_counts = BTreeMap::new();
         let mut topology_streams =
             prepare_topology_streams(scan, Some(&mut unmatched_tombstone_counts))?;
-        let delta_pairs = paired_delta_streams(scan);
+        let delta_pairs = replay_eligible_delta_streams(scan);
         let paired_deltas = delta_pairs
             .values()
             .flatten()
@@ -449,6 +461,58 @@ mod tests {
             stream(crate::parasolid::ParasolidSubtype::Partition, 0),
             stream(crate::parasolid::ParasolidSubtype::Deltas, 1),
         ]
+    }
+
+    #[test]
+    fn unselected_history_keeps_raw_views_but_cannot_supply_semantic_geometry() {
+        let mut streams = one_delta_pair();
+        streams[0].inflated = bspline_partition_stream();
+        streams[1].inflated = crate::test_support::test_deltas::status_framed_deltas_point_stream();
+        let scan = crate::decode::Scan {
+            container: crate::container::Container {
+                data: Vec::new().into(),
+                physical_size: 0,
+                layout: crate::container::test_modern_layout(0x06),
+                entries: Vec::new(),
+                fastload_table: None,
+                indexed_section_layouts: std::sync::OnceLock::new(),
+                om_section_cache: std::sync::OnceLock::new(),
+            },
+            streams,
+        };
+        assert_eq!(super::paired_delta_streams(&scan).get(&0), Some(&vec![1]));
+        let topology = topology_streams(&scan).expect("saved image selection");
+        assert_eq!(topology[0].as_ref(), scan.streams[0].inflated);
+        assert!(topology[1].is_empty());
+        let parsed = ParsedStreams::parse(&scan).expect("raw and semantic views");
+        assert_eq!(
+            parsed.streams[0].semantic_bytes.as_ref(),
+            scan.streams[0].inflated
+        );
+        assert_eq!(
+            parsed
+                .delta_census(1)
+                .expect("retained raw history")
+                .records
+                .len(),
+            1
+        );
+        assert!(parsed.streams[1].semantic_bytes.is_empty());
+        assert!(parsed.parse_nurbs(1).surfaces.is_empty());
+        let unpaired = crate::decode::Scan {
+            container: scan.container,
+            streams: vec![scan.streams[1].clone()],
+        };
+        let parsed = ParsedStreams::parse(&unpaired).expect("unpaired raw history");
+        assert_eq!(
+            parsed
+                .delta_census(0)
+                .expect("retained unpaired raw history")
+                .records
+                .len(),
+            1
+        );
+        assert!(parsed.streams[0].semantic_bytes.is_empty());
     }
 
     #[test]

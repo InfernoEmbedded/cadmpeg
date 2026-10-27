@@ -357,7 +357,14 @@ pub(super) fn build_geometry_report(
         adaptive_geometry_exhausted,
     );
 
-    if scan.count(StreamKind::Deltas) > 0 {
+    if scan.count(StreamKind::Deltas) > 0 && !crate::deltas::aggregate_replay_supported() {
+        push_report_loss(
+            &mut losses,
+            NxLossCode::DeltasStateUnresolved,
+            format_args!("Parasolid aggregate history is retained natively. Its constituent edge, direction and deletion framing are unresolved, so it is not replayed into saved partition images or used to replace their groups and appearance bindings. A saved image is not a regenerated-current-design certificate."),
+        );
+    }
+    if scan.count(StreamKind::Deltas) > 0 && crate::deltas::aggregate_replay_supported() {
         let unmatched_tombstones = unmatched_delta_tombstone_counts.values().sum::<usize>();
         let unmatched_tombstone_detail = JoinedCounts {
             counts: unmatched_delta_tombstone_counts,

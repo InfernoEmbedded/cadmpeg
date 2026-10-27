@@ -45,6 +45,12 @@ use crate::vec3_at::vec3_be_at;
 use cadmpeg_core::decode::View;
 use cadmpeg_core::CodecError;
 
+/// No supported reader establishes a constituent's owned directed pmark edge.
+/// Physical pairing and BODY bounds cannot enable aggregate state replay.
+pub(crate) const fn aggregate_replay_supported() -> bool {
+    false
+}
+
 /// One complete admitted deltas record.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Record {
@@ -88,7 +94,7 @@ pub(crate) struct Tombstone {
 pub(crate) struct BodyRevision {
     /// Stream-local BODY XMT identity.
     pub(crate) xmt: NonNullXmt,
-    /// Monotonic kernel revision identity.
+    /// The highest kernel node identifier, not an edit revision counter.
     pub(crate) node_id: u32,
     /// Eight ordered BODY references decoded from status-framed XMT fields.
     pub(crate) references: [u32; 8],
@@ -983,6 +989,9 @@ fn merge_records(
     census: &Census,
     unmatched_tombstones: Option<&mut BTreeMap<&'static str, usize>>,
 ) -> Result<Vec<u8>, CodecError> {
+    if !aggregate_replay_supported() {
+        return Ok(partition.to_vec());
+    }
     let current_scopes = ScopeIndex::new(&current_revision_scopes(census, deltas.len()));
     let mut replacements = BTreeMap::<(u8, u32), &Record>::new();
     let mut unmatched_events =
@@ -1121,6 +1130,9 @@ fn collect_unmatched_events(
     census: &Census,
     stream_len: usize,
 ) -> BTreeMap<(u8, u32), Vec<MergeEvent>> {
+    if !aggregate_replay_supported() {
+        return BTreeMap::new();
+    }
     let current_scopes = ScopeIndex::new(&current_revision_scopes(census, stream_len));
     let mut events = BTreeMap::<(u8, u32), Vec<MergeEvent>>::new();
     for record in census
@@ -1341,6 +1353,9 @@ pub(crate) fn semantic_residual(stream: &[u8]) -> Result<Vec<u8>, CodecError> {
 /// full walk of a large delta stream while keeping this transformation
 /// byte-for-byte identical to `semantic_residual`.
 pub(crate) fn semantic_residual_with_census(stream: &[u8], census: &Census) -> Vec<u8> {
+    if !aggregate_replay_supported() {
+        return Vec::new();
+    }
     let current_scopes = current_revision_scopes(census, stream.len());
     let scope_index = ScopeIndex::new(&current_scopes);
     // Mask the whole stream and restore each current-revision scope. Restoring
@@ -2196,16 +2211,6 @@ fn consume_nurbs_auxiliary(stream: &[u8], offset: usize) -> Option<Record> {
     )
 }
 
-fn compact_tombstone(stream: &[u8], offset: usize) -> Option<u32> {
-    let first = View::i16_be_at(stream, offset + 2)?;
-    if first < 0 {
-        let quotient = View::u16_be_at(stream, offset + 4)?;
-        return (quotient == 1)
-            .then_some(u32::from(quotient) * 32_767 + u32::from(first.unsigned_abs()));
-    }
-    (stream.get(offset + 4..offset + 6)? == [0, 1]).then_some(u32::try_from(first).ok()?)
-}
-
 fn fixed_signature(
     kind: u16,
     intersection_layout: intersection::IntersectionLayout,
@@ -2587,8 +2592,7 @@ mod nurbs_auxiliary_tests {
 #[cfg(test)]
 mod reference_type_map_tests {
     use super::census::walk;
-    use super::record_kind::RecordKind;
-    use super::{ReferenceTypeMap, Tombstone};
+    use super::ReferenceTypeMap;
     use std::num::NonZeroU16;
 
     fn map_bytes() -> Vec<u8> {
@@ -2730,31 +2734,11 @@ mod reference_type_map_tests {
 
         let census = walk(&bytes).unwrap();
 
-        assert_eq!(
-            census.reference_type_maps,
-            [ReferenceTypeMap {
-                entries: vec![(3, 81)].try_into().unwrap(),
-                terminal_word: None,
-                offset: 0,
-                end: 8,
-            }]
-        );
-        assert_eq!(
-            census.tombstones,
-            [Tombstone {
-                kind: RecordKind::Entity51,
-                xmt: 9,
-                offset: 6,
-            }]
-        );
-        assert_eq!(census.bytes_decoded(), bytes.len());
-
-        let mut incomplete_tombstone = bytes;
-        incomplete_tombstone[11] = 2;
-        assert!(walk(&incomplete_tombstone)
-            .unwrap()
-            .reference_type_maps
-            .is_empty());
+        assert!(census.reference_type_maps.is_empty());
+        assert!(census.tombstones.is_empty());
+        let mut changed = bytes;
+        changed[11] = 2;
+        assert!(walk(&changed).unwrap().reference_type_maps.is_empty());
     }
 
     #[test]
@@ -2910,3 +2894,39 @@ mod transmit_header_tests {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod history_refusal_tests {
+    #[test]
+    fn unselected_history_cannot_replace_saved_points_or_supply_a_residual() {
+        let partition = crate::test_support::test_streams::topology_partition_stream();
+        let mut aggregate = crate::test_support::test_deltas::status_framed_deltas_point_stream();
+        aggregate[2..4].copy_from_slice(&11u16.to_be_bytes());
+        let before = aggregate.clone();
+        let census = super::census::walk(&aggregate).expect("complete raw point");
+        assert_eq!(census.records.len(), 1);
+        assert_eq!(census.records[0].xmt, 11);
+        assert_eq!(
+            super::merge_full_records(&partition, &aggregate).expect("saved image"),
+            partition
+        );
+        assert!(super::merge_full_records(&[], &aggregate)
+            .expect("unpaired history")
+            .is_empty());
+        assert!(super::semantic_residual(&aggregate)
+            .expect("no semantic fallback")
+            .is_empty());
+        assert_eq!(aggregate, before);
+    }
+
+    #[test]
+    fn compact_deletion_shaped_bytes_are_not_a_source_certified_deletion() {
+        for bytes in [vec![0, 29, 0, 11, 0, 1], vec![0, 29, 0xff, 0, 11, 0, 0, 1]] {
+            let census = super::census::walk(&bytes).expect("opaque retained history");
+            assert!(census.tombstones.is_empty());
+            assert!(super::semantic_residual(&bytes)
+                .expect("no deletion fallback")
+                .is_empty());
+        }
+    }
+}

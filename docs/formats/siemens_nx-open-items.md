@@ -183,6 +183,15 @@ extended deletion forms. Keep bounded rival interpretations separate from a
 certified deletion grammar. Neither six-byte nor eight-byte extent follows
 from the apparent tag and XMT alone.
 
+**Conflict.** The former fixed six-byte rule consumed an extended XMT quotient
+as though it also proved a terminal word. It could also preempt a complete
+reference lane. Neither interpretation supplies a certified deletion frame.
+
+**Note.** Shape-only deletion admission is withheld. Raw history remains
+retained, and existing complete enclosing-record checks remain in force. This
+refusal does not supply the missing deletion grammar or reproduce historical
+whole-corpus census totals.
+
 ### PS-29. Aggregate pmark-edge selection
 
 **Question.** How does an aggregate deltas transmit bind each change's source
@@ -194,6 +203,15 @@ and target pmarks to the owning partition's current state?
 pmark, target pmark, and partition ownership. Apply only edges that lead to
 the selected current state, including branches, undone changes, and multiple
 bodies. Keep an unestablished edge selection unresolved. This includes repeated type-38 intersection states: first-use and subsequent record spelling must not select their chart or carrier relations.
+
+**Conflict.** First or last BODY blocks, XMT 3, monotonic bounds, physical
+pairing, and repeated carrier spellings cannot select an aggregate change.
+
+**Note.** The reader withholds unselected history across topology, semantic
+residuals, GROUP updates and derived appearance or operation-result bindings.
+It preserves the saved images and raw history separately. This resolves an
+unsafe replay fallback, not the unknown constituent grammar, pmark ownership,
+or regenerated current-design selection.
 
 ### PS-33. MESH FILE chart layout
 

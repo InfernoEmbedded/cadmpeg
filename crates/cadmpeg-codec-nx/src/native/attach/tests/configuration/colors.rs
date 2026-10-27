@@ -62,7 +62,7 @@ fn rm_face_identity_lookup_deduplicates_faces() {
 }
 
 #[test]
-fn rm_face_colors_require_unique_palette_topology_and_stream_joins() {
+fn rm_face_colors_withhold_unproved_history_even_with_unique_physical_joins() {
     let definition = crate::native::om::PartColorDefinition {
         id: "nx:test:color#201".into(),
         color_table: "nx:test:table#0".into(),
@@ -123,10 +123,7 @@ fn rm_face_colors_require_unique_palette_topology_and_stream_joins() {
             &pairs,
         )
         .expect("valid colors"),
-        vec![(
-            "nx:s0:face#99".into(),
-            Color::new(0.25, 0.5, 0.75, 1.0).expect("valid color"),
-        )]
+        Vec::new()
     );
 
     assert_eq!(
@@ -137,11 +134,7 @@ fn rm_face_colors_require_unique_palette_topology_and_stream_joins() {
             std::slice::from_ref(&record),
             &pairs,
         ),
-        vec![RmFaceColorBinding {
-            face_id: "nx:s0:face#99".into(),
-            color_definition: definition.id.clone(),
-            source_offset: 20,
-        }]
+        Vec::new()
     );
 
     let mut target_assignment = assignment.clone();
@@ -167,10 +160,7 @@ fn rm_face_colors_require_unique_palette_topology_and_stream_joins() {
             &pairs,
         )
         .expect("valid colors"),
-        vec![(
-            "nx:s0:face#99".into(),
-            Color::new(0.25, 0.5, 0.75, 1.0).expect("valid color"),
-        )]
+        Vec::new()
     );
 
     let mut conflicting = assignment;
@@ -289,7 +279,7 @@ fn pairwise_rm_face_color_bindings(
 }
 
 #[test]
-fn rm_face_color_bindings_match_the_pairwise_join_on_many_assignments() {
+fn rm_face_color_bindings_refuse_many_previously_joinable_history_assignments() {
     let definition = |index: u32| crate::native::om::PartColorDefinition {
         id: format!("nx:test:color#{index}"),
         color_table: "nx:test:table#0".into(),
@@ -412,7 +402,7 @@ fn rm_face_color_bindings_match_the_pairwise_join_on_many_assignments() {
             &records,
             &delta_pairs,
         ),
-        expected
+        Vec::new()
     );
 }
 

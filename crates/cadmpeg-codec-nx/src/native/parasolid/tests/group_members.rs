@@ -138,7 +138,7 @@ fn group_members_follow_complete_bidirectional_type_91_chain() {
 }
 
 #[test]
-fn group_members_reuse_cached_delta_events_without_losing_order_or_ambiguity() {
+fn group_members_withhold_unproved_history_updates_and_preserve_primary_ambiguity() {
     use crate::deltas::record_family::RecordFamily;
     use crate::deltas::record_kind::RecordKind;
     use crate::native::parasolid::{ParasolidDeltasRecord, ParasolidDeltasTombstone};
@@ -176,12 +176,13 @@ fn group_members_reuse_cached_delta_events_without_losing_order_or_ambiguity() {
         let mut members = Vec::new();
         state.append_members(4, &mut members);
         assert_eq!(members.len(), 1);
-        assert_eq!(members[0].target.node_id, 51);
+        assert_eq!(members[0].target.node_id, 50);
         let mut deleted = crate::native::parasolid::group_state::GroupState::from_records(&primary);
         deleted.apply_deltas(1, &replacements[1..2], &tombstones);
         let mut removed = Vec::new();
         deleted.append_members(4, &mut removed);
-        assert!(removed.is_empty());
+        assert_eq!(removed.len(), 1);
+        assert_eq!(removed[0].target.node_id, 50);
         let mut ambiguous = primary.to_vec();
         ambiguous.push(membership_record(14, 100, Some(53), Vec::new()));
         let mut state = crate::native::parasolid::group_state::GroupState::from_records(&ambiguous);

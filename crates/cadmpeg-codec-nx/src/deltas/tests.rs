@@ -28,8 +28,6 @@ use crate::test_support::test_streams::partial_ext11_charted_intersection_curve_
 use crate::test_support::test_streams::topology_partition_stream;
 use crate::test_support::test_streams::two_support_ext11_charted_intersection_curve_stream;
 
-const EPS_SAME_DECODED_POINT: f64 = 1.0e-12;
-
 fn analytic_points(stream: &[u8]) -> Vec<cadmpeg_ir::features::FinitePoint3> {
     crate::geometry::points(stream)
 }
@@ -77,12 +75,9 @@ fn deltas_walks_complete_status_prefixed_entity_51_records() {
     assert_eq!(census.records[0].end, entity_len);
     assert_eq!(census.full_counts()["ENTITY_51"], 1);
     assert_eq!(census.bytes_decoded(), stream.len());
-    let residual = crate::deltas::semantic_residual(&stream).unwrap();
-    let retained = crate::parasolid::entity_51_records(&residual);
-    assert_eq!(retained.len(), 1);
-    assert_eq!(u32::from(retained[0].xmt), 10);
-    assert!(residual[..stream.len()].iter().all(|byte| *byte == 0xff));
-
+    assert!(crate::deltas::semantic_residual(&stream)
+        .unwrap()
+        .is_empty());
     stream[entity_len - 1] = 1;
     assert_eq!(
         crate::deltas::census::walk(&stream)
@@ -135,11 +130,9 @@ fn deltas_walks_attribute_records_that_share_a_terminal_zero() {
     assert_eq!(census.records[1].offset, census.records[0].end - 1);
     assert_eq!(census.records[2].offset, census.records[1].end - 1);
     assert_eq!(census.bytes_decoded(), stream.len());
-    assert!(
-        crate::deltas::semantic_residual(&stream).unwrap()[..stream.len()]
-            .iter()
-            .all(|byte| *byte == 0xff)
-    );
+    assert!(crate::deltas::semantic_residual(&stream)
+        .unwrap()
+        .is_empty());
 }
 
 #[test]
@@ -306,9 +299,13 @@ fn deltas_walks_complete_entity_value_records() {
     assert_eq!(census.full_counts()["ENTITY_54"], 1);
     assert_eq!(census.bytes_decoded(), decoded_len);
     let residual = crate::deltas::semantic_residual(&stream).unwrap();
-    assert!(residual[..decoded_len].iter().all(|byte| *byte == 0xff));
-    assert_eq!(&residual[decoded_len..stream.len()], &[0xfe, 0xdc, 0xba]);
-    let value_records = crate::parasolid::value_records::entity_value_records(&residual).unwrap();
+    assert!(residual.is_empty());
+    let retained: Vec<u8> = census
+        .records
+        .iter()
+        .flat_map(|record| record.canonical_bytes.iter().copied())
+        .collect();
+    let value_records = crate::parasolid::value_records::entity_value_records(&retained).unwrap();
     assert_eq!(value_records.integers[0].value.as_slice(), [u32::MAX]);
     assert_eq!(value_records.doubles[0].value.raw_values(), [0.25]);
     assert_eq!(value_records.strings[0].value.as_str(), "abc");
@@ -445,11 +442,9 @@ fn deltas_walks_complete_type_91_records() {
     assert_eq!(census.full_counts()["TYPE_91"], 4);
     assert_eq!(census.bytes_decoded(), record_len);
 
-    let residual = crate::deltas::semantic_residual(&stream).unwrap();
-    assert!(residual[..record_len].iter().all(|byte| *byte == 0xff));
-    assert_eq!(&residual[record_len..stream.len()], &[0xfe, 0xdc]);
-    assert!(residual.ends_with(&stream[..record_len]));
-
+    assert!(crate::deltas::semantic_residual(&stream)
+        .unwrap()
+        .is_empty());
     let mut invalid = direct;
     invalid[4..8].copy_from_slice(&2u32.to_be_bytes());
     let admitted = crate::deltas::census::walk(&invalid).unwrap();
@@ -487,10 +482,9 @@ fn deltas_walks_complete_group_records() {
     assert_eq!(census.full_counts()["GROUP"], 1);
     assert_eq!(census.bytes_decoded(), direct_len);
 
-    let residual = crate::deltas::semantic_residual(&direct).unwrap();
-    assert!(residual[..direct_len].iter().all(|byte| *byte == 0xff));
-    assert_eq!(&residual[direct_len..], &[0xfe, 0xdc]);
-
+    assert!(crate::deltas::semantic_residual(&direct)
+        .unwrap()
+        .is_empty());
     let mut escaped = vec![0, 90, 0xff];
     escaped.extend_from_slice(&10u16.to_be_bytes());
     escaped.extend_from_slice(&11u32.to_be_bytes());
@@ -553,10 +547,9 @@ fn deltas_walks_group_records_without_leading_statuses() {
     assert_eq!(census.full_counts()["GROUP"], 1);
     assert_eq!(census.bytes_decoded(), direct_len);
 
-    let residual = crate::deltas::semantic_residual(&direct).unwrap();
-    assert!(residual[..direct_len].iter().all(|byte| *byte == 0xff));
-    assert_eq!(&residual[direct_len..], &[0xfe, 0xdc]);
-
+    assert!(crate::deltas::semantic_residual(&direct)
+        .unwrap()
+        .is_empty());
     let mut escaped = vec![0, 90, 0xff];
     escaped.extend_from_slice(&10u16.to_be_bytes());
     escaped.extend_from_slice(&11u32.to_be_bytes());
@@ -606,12 +599,9 @@ fn deltas_walks_complete_pointer_list_blocks() {
     );
     assert_eq!(census.bytes_decoded(), direct_len);
 
-    let residual =
-        crate::test_support::with_decode_context(|_ctx| crate::deltas::semantic_residual(&direct))
-            .unwrap();
-    assert!(residual[..direct_len].iter().all(|byte| *byte == 0xff));
-    assert_eq!(&residual[direct_len..], &[0xfe, 0xdc]);
-
+    assert!(crate::deltas::semantic_residual(&direct)
+        .unwrap()
+        .is_empty());
     let mut escaped = vec![0, 74, 0xff];
     escaped.extend_from_slice(&2u32.to_be_bytes());
     escaped.extend_from_slice(&11u16.to_be_bytes());
@@ -675,15 +665,9 @@ fn deltas_walks_complete_declared_world_records() {
     );
     assert_eq!(census.bytes_decoded(), direct_len);
 
-    let residual =
-        crate::test_support::with_decode_context(|_ctx| crate::deltas::semantic_residual(&direct))
-            .unwrap();
-    assert_eq!(&residual[..declaration_len], &direct[..declaration_len]);
-    assert!(residual[declaration_len..direct_len]
-        .iter()
-        .all(|byte| *byte == 0xff));
-    assert_eq!(&residual[direct_len..], &[0xfe, 0xdc]);
-
+    assert!(crate::deltas::semantic_residual(&direct)
+        .unwrap()
+        .is_empty());
     let mut escaped = crate::test_support::world::first_node(19);
     escaped.extend_from_slice(&world_record(true));
     assert_eq!(
@@ -713,7 +697,7 @@ fn deltas_walks_complete_declared_world_records() {
 }
 
 #[test]
-fn deltas_walks_auxiliary_family_tombstones() {
+fn auxiliary_six_byte_shapes_do_not_certify_deletions() {
     let mut stream = Vec::new();
     for kind in [41u16, 45, 125, 136, 141, 204] {
         stream.extend_from_slice(&kind.to_be_bytes());
@@ -723,26 +707,11 @@ fn deltas_walks_auxiliary_family_tombstones() {
 
     let census = crate::deltas::census::walk(&stream).unwrap();
     assert_eq!(census.records.len(), 0);
-    assert_eq!(census.tombstones.len(), 6);
-    assert!(census
-        .tombstones
-        .iter()
-        .all(|tombstone| tombstone.xmt == 32_769));
-    for family in [
-        "TERM_USE",
-        "TYPE_45",
-        "B_SURFACE_DATA",
-        "B_CURVE_DESCRIPTOR",
-        "GEOMETRIC_OWNER",
-        "SUPPORT_UV",
-    ] {
-        assert_eq!(census.tombstone_counts()[family], 1);
-    }
-    assert_eq!(census.bytes_decoded(), stream.len());
+    assert!(census.tombstones.is_empty());
+    assert!(census.tombstone_counts().is_empty());
     assert!(crate::deltas::semantic_residual(&stream)
         .unwrap()
-        .iter()
-        .all(|byte| *byte == 0xff));
+        .is_empty());
 }
 
 #[test]
@@ -860,10 +829,9 @@ fn deltas_walks_complete_type_45_records() {
     assert_eq!(census.records[1].canonical_bytes, escaped);
     assert_eq!(census.records[1].xmt, 40_000);
 
-    let residual = crate::deltas::semantic_residual(&stream).unwrap();
-    assert!(residual[..decoded_len].iter().all(|byte| *byte == 0xff));
-    assert!(residual.ends_with(&[direct, escaped].concat()));
-
+    assert!(crate::deltas::semantic_residual(&stream)
+        .unwrap()
+        .is_empty());
     let mut counted = record(false, 41_000, &[1.0, 2.0, 3.0]);
     let counted_end = counted.len();
     let mut surface_header = 125u16.to_be_bytes().to_vec();
@@ -1154,16 +1122,17 @@ fn deltas_fixed_records_accept_direct_extended_and_escaped_envelopes() {
 mod fixed_envelopes;
 
 #[test]
-fn merged_deltas_full_record_replaces_partition_node() {
+fn unselected_full_record_preserves_saved_partition_point() {
     let partition = topology_partition_stream();
     let mut deltas = status_framed_deltas_point_stream();
     deltas[2..4].copy_from_slice(&11u16.to_be_bytes());
     let merged = crate::deltas::merge_full_records(&partition, &deltas).unwrap();
     let points = analytic_points(&merged);
     assert_eq!(points.len(), 1);
-    assert_eq!(points[0].x, 12.5);
-    assert_eq!(points[0].y, -2.0);
-    assert_eq!(points[0].z, 4.0);
+    assert_eq!(merged, partition);
+    assert_eq!(points[0].x, 10.0);
+    assert_eq!(points[0].y, 20.0);
+    assert_eq!(points[0].z, 30.0);
     assert!(crate::topology::Graph::parse(&merged)
         .get(NodeKind::Point, 11)
         .is_some());
@@ -1177,9 +1146,7 @@ fn merged_tombstone_preserves_a_topology_referenced_carrier() {
     tombstone.extend_from_slice(&11u16.to_be_bytes());
     tombstone.extend_from_slice(&[0, 1]);
     let census = crate::deltas::census::walk(&tombstone).unwrap();
-    assert_eq!(census.tombstones.len(), 1);
-    assert_eq!(census.tombstones[0].kind.code(), 29);
-    assert_eq!(census.tombstones[0].xmt, 11);
+    assert!(census.tombstones.is_empty());
     let merged = crate::deltas::merge_full_records(&partition, &tombstone).unwrap();
     assert!(crate::topology::Graph::parse(&merged)
         .get(NodeKind::Point, 11)
@@ -1188,7 +1155,7 @@ fn merged_tombstone_preserves_a_topology_referenced_carrier() {
 }
 
 #[test]
-fn merged_exact_key_tombstone_removes_unreferenced_partition_node() {
+fn unframed_deletion_shape_preserves_unreferenced_saved_point() {
     let mut partition = record(29, 40);
     put_ref(&mut partition, 2, 11);
     put_vec3(&mut partition, 16, [0.01, 0.02, 0.03]);
@@ -1196,11 +1163,11 @@ fn merged_exact_key_tombstone_removes_unreferenced_partition_node() {
     let merged = crate::deltas::merge_full_records(&partition, &tombstone).unwrap();
     assert!(crate::topology::Graph::parse(&merged)
         .get(NodeKind::Point, 11)
-        .is_none());
+        .is_some());
 }
 
 #[test]
-fn merged_deltas_uses_last_full_or_tombstone_event() {
+fn neither_physical_history_order_authorizes_point_replacement() {
     let partition = topology_partition_stream();
     let tombstone = [0, 29, 0, 11, 0, 1];
     let mut full = status_framed_deltas_point_stream();
@@ -1209,7 +1176,7 @@ fn merged_deltas_uses_last_full_or_tombstone_event() {
     let mut delete_then_replace = tombstone.to_vec();
     delete_then_replace.extend_from_slice(&full);
     let merged = crate::deltas::merge_full_records(&partition, &delete_then_replace).unwrap();
-    assert_eq!(analytic_points(&merged)[0].x, 12.5);
+    assert_eq!(analytic_points(&merged)[0].x, 10.0);
 
     let mut replace_then_delete = full;
     replace_then_delete.extend_from_slice(&tombstone);
@@ -1218,7 +1185,7 @@ fn merged_deltas_uses_last_full_or_tombstone_event() {
 }
 
 #[test]
-fn final_body_revision_scopes_deltas_overlay_events() {
+fn body_bounds_do_not_authorize_deletions() {
     let mut partition = record(29, 40);
     put_ref(&mut partition, 2, 11);
     put_vec3(&mut partition, 16, [0.01, 0.02, 0.03]);
@@ -1237,11 +1204,11 @@ fn final_body_revision_scopes_deltas_overlay_events() {
     let merged = crate::deltas::merge_full_records(&partition, &current_delete).unwrap();
     assert!(crate::topology::Graph::parse(&merged)
         .get(NodeKind::Point, 11)
-        .is_none());
+        .is_some());
 }
 
 #[test]
-fn body_revision_scopes_keep_each_monotonic_sequence_current() {
+fn increasing_body_bounds_do_not_select_a_current_history_edge() {
     let mut deltas = deltas_body_revision(1);
     deltas.extend(deltas_point(50, 0.001));
     deltas.extend(deltas_body_revision(2));
@@ -1251,27 +1218,19 @@ fn body_revision_scopes_keep_each_monotonic_sequence_current() {
     deltas.extend(deltas_body_revision(2));
     deltas.extend(deltas_point(51, 0.004));
 
-    let merged = crate::deltas::merge_full_records(&[], &deltas).unwrap();
-    let graph = crate::topology::Graph::parse(&merged);
-    assert!(graph.get(NodeKind::Point, 50).is_some());
-    assert!(graph.get(NodeKind::Point, 51).is_some());
-    let points = analytic_points(&merged);
-    assert!(points
-        .iter()
-        .any(|point| (point.x - 2.0).abs() <= EPS_SAME_DECODED_POINT));
-    assert!(points
-        .iter()
-        .any(|point| (point.x - 4.0).abs() <= EPS_SAME_DECODED_POINT));
-    assert!(!points
-        .iter()
-        .any(|point| (point.x - 1.0).abs() <= EPS_SAME_DECODED_POINT));
-    assert!(!points
-        .iter()
-        .any(|point| (point.x - 3.0).abs() <= EPS_SAME_DECODED_POINT));
+    let census = crate::deltas::census::walk(&deltas).unwrap();
+    assert_eq!(census.body_revisions.len(), 4);
+    assert_eq!(census.full_counts().get("POINT"), Some(&4));
+    assert!(crate::deltas::merge_full_records(&[], &deltas)
+        .unwrap()
+        .is_empty());
+    assert!(crate::deltas::semantic_residual(&deltas)
+        .unwrap()
+        .is_empty());
 }
 
 #[test]
-fn body_revision_scopes_accept_reverse_serialized_counter_direction() {
+fn decreasing_body_bounds_do_not_select_a_current_history_edge() {
     let mut deltas = deltas_body_revision(4);
     deltas.extend(deltas_point(50, 0.001));
     deltas.extend(deltas_body_revision(3));
@@ -1281,23 +1240,15 @@ fn body_revision_scopes_accept_reverse_serialized_counter_direction() {
     deltas.extend(deltas_body_revision(3));
     deltas.extend(deltas_point(51, 0.004));
 
-    let merged = crate::deltas::merge_full_records(&[], &deltas).unwrap();
-    let graph = crate::topology::Graph::parse(&merged);
-    assert!(graph.get(NodeKind::Point, 50).is_some());
-    assert!(graph.get(NodeKind::Point, 51).is_some());
-    let points = analytic_points(&merged);
-    assert!(points
-        .iter()
-        .any(|point| (point.x - 2.0).abs() <= EPS_SAME_DECODED_POINT));
-    assert!(points
-        .iter()
-        .any(|point| (point.x - 4.0).abs() <= EPS_SAME_DECODED_POINT));
-    assert!(!points
-        .iter()
-        .any(|point| (point.x - 1.0).abs() <= EPS_SAME_DECODED_POINT));
-    assert!(!points
-        .iter()
-        .any(|point| (point.x - 3.0).abs() <= EPS_SAME_DECODED_POINT));
+    let census = crate::deltas::census::walk(&deltas).unwrap();
+    assert_eq!(census.body_revisions.len(), 4);
+    assert_eq!(census.full_counts().get("POINT"), Some(&4));
+    assert!(crate::deltas::merge_full_records(&[], &deltas)
+        .unwrap()
+        .is_empty());
+    assert!(crate::deltas::semantic_residual(&deltas)
+        .unwrap()
+        .is_empty());
 }
 
 #[test]
@@ -1315,7 +1266,7 @@ fn unmatched_tombstones_are_scoped_to_the_final_body_revision() {
     historical_delete.extend_from_slice(&unknown_tombstone);
     assert_eq!(
         crate::deltas::unmatched_terminal_tombstones(&partition, &historical_delete).unwrap(),
-        1
+        0
     );
 }
 
@@ -1334,29 +1285,33 @@ fn unmatched_tombstones_are_scoped_per_body_revision_sequence() {
 
     assert_eq!(
         crate::deltas::unmatched_terminal_tombstones(&partition, &deltas).unwrap(),
-        1
+        0
     );
     assert_eq!(
         crate::deltas::unmatched_terminal_tombstones_by_family(&partition, &deltas)
             .unwrap()
             .get("POINT"),
-        Some(&1)
+        None
     );
 }
 
 #[test]
 fn semantic_residual_masks_historical_body_revisions() {
     let mut deltas = deltas_body_revision(1);
-    let historical_len = deltas.len();
     deltas.extend_from_slice(&[0, 38, 0xaa, 0xbb, 0xcc]);
     deltas.extend_from_slice(&deltas_body_revision(2));
     deltas.extend_from_slice(&[0, 38, 0x11, 0x22, 0x33]);
 
-    let residual = crate::deltas::semantic_residual(&deltas).unwrap();
-    assert!(residual[..historical_len + 5]
-        .iter()
-        .all(|byte| *byte == 0xff));
-    assert!(residual.ends_with(&[0, 38, 0x11, 0x22, 0x33]));
+    assert!(crate::deltas::semantic_residual(&deltas)
+        .unwrap()
+        .is_empty());
+    assert_eq!(
+        crate::deltas::census::walk(&deltas)
+            .unwrap()
+            .body_revisions
+            .len(),
+        2
+    );
 }
 
 #[test]
@@ -1374,7 +1329,7 @@ fn semantic_residual_with_census_matches_the_standalone_transform() {
 }
 
 #[test]
-fn merge_masks_historical_interleaved_body_sequences() {
+fn interleaved_body_bounds_do_not_authorize_unpaired_geometry() {
     let mut first_historical = status_framed_deltas_point_stream();
     first_historical[4..8].copy_from_slice(&1u32.to_be_bytes());
     let mut first_current = status_framed_deltas_point_stream();
@@ -1394,23 +1349,15 @@ fn merge_masks_historical_interleaved_body_sequences() {
     deltas.extend_from_slice(&deltas_body_revision(2));
     deltas.extend_from_slice(&second_current);
 
-    let merged = crate::deltas::merge_full_records(&[], &deltas).unwrap();
-    let mut expected = crate::deltas::census::walk(&first_current).unwrap().records[0]
-        .canonical_bytes
-        .clone();
-    expected.extend_from_slice(
-        &{ crate::deltas::census::walk(&second_current) }
-            .unwrap()
-            .records[0]
-            .canonical_bytes,
-    );
-    assert!(merged.ends_with(&expected));
-    assert!(!merged
-        .windows(first_historical.len())
-        .any(|window| window == first_historical));
-    assert!(!merged
-        .windows(second_historical.len())
-        .any(|window| window == second_historical));
+    let census = crate::deltas::census::walk(&deltas).unwrap();
+    assert_eq!(census.body_revisions.len(), 4);
+    assert_eq!(census.full_counts().get("POINT"), Some(&4));
+    assert!(crate::deltas::merge_full_records(&[], &deltas)
+        .unwrap()
+        .is_empty());
+    assert!(crate::deltas::semantic_residual(&deltas)
+        .unwrap()
+        .is_empty());
 }
 
 #[test]
@@ -1424,13 +1371,13 @@ fn unmatched_delta_tombstones_follow_exact_last_event_identity() {
     );
     assert_eq!(
         crate::deltas::unmatched_terminal_tombstones(&partition, &unknown).unwrap(),
-        1
+        0
     );
     assert_eq!(
         crate::deltas::unmatched_terminal_tombstones_by_family(&partition, &unknown)
             .unwrap()
             .get("POINT"),
-        Some(&1)
+        None
     );
 
     let mut full = status_framed_deltas_point_stream();
@@ -1486,12 +1433,19 @@ fn merged_result_preserves_tombstone_accounting() {
 mod reference_and_tombstone_packets;
 
 #[test]
-fn census_accumulates_overlapping_tombstone_and_terminal_trailer_bytes() {
+fn census_retains_terminal_trailer_without_an_unframed_deletion() {
     let stream = [0, 29, 0, 11, 0, 1, 0, 1];
     let census = crate::deltas::census::walk(&stream).unwrap();
-    assert_eq!(census.tombstones.len(), 1);
+    assert!(census.tombstones.is_empty());
     assert_eq!(census.terminal_null_references.unwrap().offset(), 4);
-    assert_eq!(census.bytes_decoded(), 6 + 4);
+    assert_eq!(census.tagged_reference_lanes.len(), 1);
+    assert_eq!(
+        Vec::<(u16, u32)>::from(census.tagged_reference_lanes[0].references.clone()),
+        [(29, 11)]
+    );
+    assert_eq!(census.tagged_reference_lanes[0].offset, 0);
+    assert_eq!(census.tagged_reference_lanes[0].end, 4);
+    assert_eq!(census.bytes_decoded(), 8);
     assert_eq!(census.covered_spans(), vec![(0, stream.len())]);
 }
 

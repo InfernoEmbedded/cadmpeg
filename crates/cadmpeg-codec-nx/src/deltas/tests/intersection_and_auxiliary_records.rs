@@ -97,8 +97,7 @@ fn unselected_intersection_tombstone_preserves_both_partition_spellings() {
     let census =
         crate::test_support::with_decode_context(|_ctx| crate::deltas::census::walk(&deltas))
             .unwrap();
-    assert_eq!(census.tombstones.len(), 1);
-    assert_eq!(census.tombstones[0].kind.code(), 38);
+    assert!(census.tombstones.is_empty());
     for current in [partition, declared] {
         let merged = crate::test_support::with_decode_context(|_ctx| {
             crate::deltas::merge_full_records(&current, &deltas)
@@ -130,7 +129,7 @@ fn semantic_residual_does_not_reemit_historical_intersection_data() {
 
     let residual = crate::deltas::semantic_residual(&stream).unwrap();
 
-    assert_eq!(residual.len(), stream.len());
+    assert!(residual.is_empty());
 }
 
 #[test]
@@ -306,8 +305,7 @@ fn deltas_walks_complete_intersection_auxiliary_records() {
             crate::deltas::semantic_residual(&stream)
         })
         .unwrap();
-        assert!(residual[..bytes.len()].iter().all(|byte| *byte == 0xff));
-        assert!(residual.ends_with(bytes));
+        assert!(residual.is_empty());
     }
 }
 
@@ -394,8 +392,7 @@ fn deltas_walks_complete_nurbs_auxiliary_records() {
         assert_eq!(census.bytes_decoded(), bytes.len());
 
         let residual = crate::deltas::semantic_residual(&stream).unwrap();
-        assert!(residual[..bytes.len()].iter().all(|byte| *byte == 0xff));
-        assert!(residual.ends_with(bytes));
+        assert!(residual.is_empty());
     }
 }
 
@@ -581,8 +578,7 @@ fn deltas_walks_complete_geometric_owner_records() {
     let residual =
         crate::test_support::with_decode_context(|_ctx| crate::deltas::semantic_residual(&stream))
             .unwrap();
-    assert!(residual[..decoded_len].iter().all(|byte| *byte == 0xff));
-    assert!(residual.ends_with(&[direct, direct_extended, escaped, ambiguous_escaped].concat()));
+    assert!(residual.is_empty());
 
     for escape in [false, true] {
         for boundary_statuses in [[0, 0], [0, 1], [1, 0], [1, 1]] {

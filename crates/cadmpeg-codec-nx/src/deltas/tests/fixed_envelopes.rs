@@ -50,7 +50,7 @@ fn ambiguous_fixed_payload_does_not_expose_a_tombstone_pattern() {
     }
     assert!(super::super::fixed_layout(&stream, 0, 13, super::super::SHELL, 0).is_some());
     assert!(super::super::fixed_layout(&stream, 0, 13, super::super::SHELL, 1).is_some());
-    assert_eq!(super::super::compact_tombstone(&stream, 15), Some(257));
+    // These interior bytes do not establish a deletion production.
     let census =
         crate::test_support::with_decode_context(|_ctx| crate::deltas::census::walk(&stream))
             .unwrap();

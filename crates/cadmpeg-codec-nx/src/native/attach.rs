@@ -686,7 +686,7 @@ fn attach_rm_face_colors(
         &model.om.rm_display_color_assignments,
         &model.om.part_color_definitions,
         &model.parasolid.deltas_records,
-        &super::substrate::paired_delta_streams(scan),
+        &super::substrate::replay_eligible_delta_streams(scan),
     )?;
     let last_face_positions = ir
         .model
@@ -742,7 +742,7 @@ fn attach_rm_appearances(
         &model.om.rm_display_color_assignments,
         &model.om.part_color_definitions,
         &model.parasolid.deltas_records,
-        &super::substrate::paired_delta_streams(scan),
+        &super::substrate::replay_eligible_delta_streams(scan),
     );
     if source_bindings.is_empty() && face_bindings.is_empty() {
         return Ok(());
@@ -1069,6 +1069,9 @@ fn resolve_rm_face_color_bindings(
         }
     }
     let face_records = group_pairs(records.iter().filter_map(|record| {
+        if !crate::deltas::aggregate_replay_supported() {
+            return None;
+        }
         let crate::deltas::record_family::RecordFamily::Face { node_id, .. } = &record.family
         else {
             return None;
