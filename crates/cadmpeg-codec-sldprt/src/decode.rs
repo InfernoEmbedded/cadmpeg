@@ -3653,7 +3653,7 @@ fn build_geometry_report(
             ),
         );
     }
-    append_parasolid_probe_losses(scan, &mut losses);
+    append_parasolid_container_losses(scan, &mut losses);
     append_swift_pmi_losses(ctx, scan, &mut losses)?;
     classification.append_losses(&mut losses);
     Ok(DecodeBody {
@@ -5255,7 +5255,7 @@ fn build_container_report(
             ),
         );
     }
-    append_parasolid_probe_losses(scan, &mut losses);
+    append_parasolid_container_losses(scan, &mut losses);
     append_swift_pmi_losses(ctx, scan, &mut losses)?;
     classification.append_losses(&mut losses);
 
@@ -5268,10 +5268,18 @@ fn build_container_report(
     })
 }
 
-fn append_parasolid_probe_losses(
+fn append_parasolid_container_losses(
     scan: &ContainerScan<'_>,
     losses: &mut Vec<cadmpeg_ir::report::loss::LossNote>,
 ) {
+    for section in scan.sections() {
+        if let Some(reason) = section.ps_auxiliary_refusal() {
+            losses.push(SldprtLossCode::ContainerAuxiliaryParasolidRefused.note(format!(
+                "Optional Parasolid owner {} is malformed: {reason}. Its complete source bytes remain retained; no fallback scan or entry resynchronization followed this refusal.",
+                section.source_stream().as_str(),
+            )));
+        }
+    }
     let mut capped = crate::loss::NamedCount::default();
     for section in scan.sections().filter(|section| section.ps_probe_capped()) {
         capped.push(section.source_stream().as_str());

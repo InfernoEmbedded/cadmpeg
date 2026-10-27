@@ -158,6 +158,8 @@ pub(crate) struct Block {
     pub(crate) ps_streams: Vec<crate::parasolid::ExtractedStream>,
     /// The legacy zlib probe stopped at its work limit in this block.
     pub(crate) ps_probe_capped: bool,
+    /// Malformed optional auxiliary extraction retained without interpretation.
+    pub(crate) ps_auxiliary_refusal: Option<String>,
 }
 
 impl Block {
@@ -211,6 +213,8 @@ pub(crate) struct CompoundStream {
     pub(crate) ps_streams: Vec<crate::parasolid::ExtractedStream>,
     /// The legacy zlib probe stopped at its work limit in this stream.
     pub(crate) ps_probe_capped: bool,
+    /// Malformed optional auxiliary extraction retained without interpretation.
+    pub(crate) ps_auxiliary_refusal: Option<String>,
 }
 
 /// Complete result of an outer-container scan.
@@ -309,6 +313,13 @@ impl<'a> Section<'a> {
         match self {
             Self::Block(block) => &block.ps_streams,
             Self::Compound(stream) => &stream.ps_streams,
+        }
+    }
+
+    pub(crate) fn ps_auxiliary_refusal(self) -> Option<&'a str> {
+        match self {
+            Self::Block(block) => block.ps_auxiliary_refusal.as_deref(),
+            Self::Compound(stream) => stream.ps_auxiliary_refusal.as_deref(),
         }
     }
 
@@ -468,6 +479,33 @@ fn walk_native_markers(
     })
 }
 
+fn extract_streams_for_owner(
+    payload: &[u8],
+    section: Option<&str>,
+    ctx: &DecodeContext<'_>,
+) -> Result<(crate::parasolid::ExtractedStreams, Option<String>), CodecError> {
+    contain_optional_parasolid_refusal(
+        section,
+        crate::parasolid::extract_streams_in_section(payload, section, ctx),
+    )
+}
+
+fn contain_optional_parasolid_refusal(
+    section: Option<&str>,
+    result: Result<crate::parasolid::ExtractedStreams, CodecError>,
+) -> Result<(crate::parasolid::ExtractedStreams, Option<String>), CodecError> {
+    match result {
+        Err(CodecError::Malformed(reason)) if section == Some("ThirdPty/WELDMENT_STORAGE") => Ok((
+            crate::parasolid::ExtractedStreams {
+                streams: Vec::new(),
+                probe_capped: false,
+            },
+            Some(reason),
+        )),
+        result => result.map(|streams| (streams, None)),
+    }
+}
+
 fn compound_stream(
     ctx: &DecodeContext<'_>,
     path: String,
@@ -477,8 +515,8 @@ fn compound_stream(
     decoded_bytes: Option<Vec<u8>>,
 ) -> Result<CompoundStream, CodecError> {
     let semantic_payload = decoded_bytes.as_deref().unwrap_or(&bytes);
-    let extracted =
-        crate::parasolid::extract_streams_in_section(semantic_payload, Some(path.as_str()), ctx)?;
+    let (extracted, ps_auxiliary_refusal) =
+        extract_streams_for_owner(semantic_payload, Some(path.as_str()), ctx)?;
     let path = match cadmpeg_ir::StreamName::try_from(path) {
         Ok(path) => path,
         Err(_) => cadmpeg_ir::stream_name!("compound@").with_suffix(directory_id),
@@ -491,6 +529,7 @@ fn compound_stream(
         decoded_payload: decoded_bytes,
         ps_streams: extracted.streams,
         ps_probe_capped: extracted.probe_capped,
+        ps_auxiliary_refusal,
     })
 }
 
@@ -625,6 +664,7 @@ struct RawBlock {
     payload: Vec<u8>,
     ps_streams: Vec<crate::parasolid::ExtractedStream>,
     ps_probe_capped: bool,
+    ps_auxiliary_refusal: Option<String>,
 }
 
 impl RawBlock {
@@ -649,6 +689,7 @@ impl RawBlock {
             payload: self.payload,
             ps_streams: self.ps_streams,
             ps_probe_capped: self.ps_probe_capped,
+            ps_auxiliary_refusal: self.ps_auxiliary_refusal,
         }
     }
 }
@@ -713,8 +754,8 @@ fn block_from_inflated(
     // A Parasolid block is one from which a `PS\0\0` stream can be extracted (in
     // plain, wrapped, or nested form); otherwise fall back to a byte-signature
     // family label.
-    let extracted =
-        crate::parasolid::extract_streams_in_section(&inflated, section.as_deref(), ctx)?;
+    let (extracted, ps_auxiliary_refusal) =
+        extract_streams_for_owner(&inflated, section.as_deref(), ctx)?;
     let family = if extracted.streams.is_empty() {
         payload_family(&inflated)
     } else {
@@ -731,6 +772,7 @@ fn block_from_inflated(
         payload: inflated,
         ps_streams: extracted.streams,
         ps_probe_capped: extracted.probe_capped,
+        ps_auxiliary_refusal,
     }))
 }
 

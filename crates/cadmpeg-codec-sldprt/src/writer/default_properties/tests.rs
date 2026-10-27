@@ -236,6 +236,7 @@ fn semantic_writer_refuses_unrepresentable_compound_default_streams() {
             decoded_payload: None,
             ps_streams: Vec::new(),
             ps_probe_capped: false,
+            ps_auxiliary_refusal: None,
         });
     assert!(
         matches!(super::validate_retention(&scan,&[],&Default::default()),Err(cadmpeg_core::CodecError::NotImplemented(message))if message.contains("retained compound writer"))

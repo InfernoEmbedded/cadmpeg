@@ -115,6 +115,14 @@ pub(crate) fn write_semantic_with_records(
         .as_ref()
         .map(|(ctx, root)| crate::container::scan(ctx, *root))
         .transpose()?;
+    if source_scan.as_ref().is_some_and(|scan| {
+        scan.sections()
+            .any(|section| section.ps_auxiliary_refusal().is_some())
+    }) {
+        return Err(CodecError::NotImplemented(
+            "SLDPRT semantic writes require parsed retained auxiliary Parasolid owners".into(),
+        ));
+    }
     let mut source_baseline = None;
     if default_properties::requires_guard(&normalized, source_scan.as_ref()) {
         let scan = source_scan.as_ref().ok_or_else(|| {

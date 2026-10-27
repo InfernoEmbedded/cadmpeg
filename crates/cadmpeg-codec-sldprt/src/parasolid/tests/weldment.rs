@@ -83,7 +83,15 @@ fn weldment_entry_rejects_invalid_declared_extents_and_endpoint_wire() {
     let mut bad_terminal = valid.clone();
     *bad_terminal.last_mut().unwrap() = 2;
     for payload in [zero, overflow, short, bad_header, bad_terminal] {
-        assert!(scan("ThirdPty/WELDMENT_STORAGE", &payload).is_err());
+        let arena = DecodeArena::new();
+        let (ctx, _) =
+            DecodeContext::from_root_bytes(&payload, &arena, &DecodePolicy::service()).unwrap();
+        assert!(crate::parasolid::extract_streams_in_section(
+            &payload,
+            Some("ThirdPty/WELDMENT_STORAGE"),
+            &ctx
+        )
+        .is_err());
     }
 }
 

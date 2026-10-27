@@ -104,6 +104,7 @@ fn site_keys_use_outer_container_identity() {
         payload: Vec::new(),
         ps_streams: Vec::new(),
         ps_probe_capped: false,
+        ps_auxiliary_refusal: None,
     };
     let second = Block {
         offset: 200,
@@ -123,6 +124,7 @@ fn site_keys_use_outer_container_identity() {
         decoded_payload: None,
         ps_streams: Vec::new(),
         ps_probe_capped: false,
+        ps_auxiliary_refusal: None,
     };
     assert_eq!(Section::Compound(&compound).site_key(), "compound@300");
 }
@@ -741,3 +743,5 @@ fn present_unknown_native_version_preserves_declared_value() {
 }
 
 mod weldment;
+
+mod auxiliary_refusal;
