@@ -84,6 +84,18 @@ instance from adjacent rollback or change-state packets?
 **Need.** Identify each packet's start, complete field cardinalities, and
 relation to the owning pmark edge before assigning body change-state roles.
 
+### PS-10. Compact NURBS descriptor roles and alias ownership
+
+**Question.** Which compact-header fields establish a control array's rational layout, and which declaration owns repeated descriptor identities?
+
+**Known.** Complete status-reference descriptors declare vertex dimension and rational state. Non-rational UV and XYZ use dimensions two and three; rational UVW and XYZW use three and four. Positive weights and the declared count product constrain each control grouping.
+
+**Need.** Establish the compact-field grammar and a shared declaration owner before treating compact and explicit descriptors as equivalent.
+
+**Conflict.** Unknown compact metadata does not equal an explicit rational state. Equal XMT values alone do not resolve repeated declaration ownership.
+
+**Note.** Retain raw descriptors and control arrays; withhold a typed selection when their declared roles cannot be reconciled.
+
 ### PS-13. Deltas type 90 `GROUP`
 
 **Question.** Which Deltas sequence establishes ownership of a status-framed type-90 GROUP, and what change-state role does its final reference status carry?

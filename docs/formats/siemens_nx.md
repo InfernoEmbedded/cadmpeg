@@ -1031,7 +1031,7 @@ V varies fastest. Each consecutive `vertex_dim` scalars forms one control
 vertex. Non-rational dimension-2 vertices are surface parameters; non-rational
 dimension-3 vertices are model-space coordinates. Rational vertices carry one
 extra dimension: dimension 3 is `(u*w, v*w, w)` and dimension 4 is
-`(x*w, y*w, z*w, w)`. Divide the coordinate lanes by the nonzero weight before
+`(x*w, y*w, z*w, w)`. Divide the coordinate lanes by the positive weight before
 applying length conversion to model-space coordinates. Surface-parameter
 coordinates keep their support's parameter units. An array without a unique
 compatible descriptor has no assigned coordinate grouping.
@@ -1519,7 +1519,7 @@ B_SURFACE / B_CURVE are compact: header through sense `+18`, then `nurbs` ref `+
 | Type | Tag    | Role                                                                                                                                                        |
 | ---: | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |  125 | `007d` | B-surface control-grid payload (`double_count` near `+91`, then values)                                                                                     |
-|  126 | `007e` | B-surface descriptor: `u_periodic +4`, `v_periodic +5`, `u_degree +6`, `v_degree +8`, `u_pole_count +10`, `v_pole_count +14`, U/V knot types `+18/+19`, distinct-knot counts `+20/+24`, mult/knot refs |
+|  126 | `007e` | B-surface descriptor: `u_periodic +4`, `v_periodic +5`, `u_degree +6`, `v_degree +8`, `u_pole_count +10`, `v_pole_count +14`, U/V knot types `+18/+19`, distinct-knot counts `+20/+24`, rational `+28`, U/V closed `+29/+30`, form `+31`, vertex dimension `+32`, mult/knot refs |
 |  127 | `007f` | multiplicity arrays (`alloc`, ref, `alloc × u16`)                                                                                                           |
 |  128 | `0080` | knot arrays (`alloc`, ref, `alloc × f64`)                                                                                                                   |
 |  135 | `0087` | B-curve control payload                                                                                                                                     |
@@ -3226,7 +3226,7 @@ Type 127 stores `00 7f [ff], count:u32 BE, xmt, value[count]:u16 BE`. Type 128 u
 
 Degrees and individual knot multiplicities use 16-bit fields. Pole counts, distinct-knot counts, and variable-node element counts use 32-bit fields. The declared count determines the complete value-lane length in units of the element width. The complete lane lies within its owning stream.
 
-The B-spline knot type does not determine whether a control grid is rational or periodic. The control-grid stride determines the representation: stride 3 stores xyz and stride 4 stores xyzw.
+The B-spline knot type does not determine whether a control grid is rational or periodic. A complete status-reference descriptor's vertex dimension and rational logical select its control representation. Non-rational dimensions 2 and 3 store UV and XYZ respectively. Rational dimensions 3 and 4 store UVW and XYZW respectively, with a positive final weight. The declared control-array count equals the pole count times the complete vertex dimension; a surface uses the product of its U and V pole counts. A contradictory count, dimension, or rational flag has no neutral control grouping.
 
 The knot-type byte is `SCH_knot_type_t` metadata. The order is the degree plus one.
 

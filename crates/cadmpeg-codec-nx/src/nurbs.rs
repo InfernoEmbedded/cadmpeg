@@ -93,7 +93,13 @@ fn decode_surfaces(
             let value_count = payload.value_count();
             let stride = value_count.checked_div(poles)?;
             let expected_values = poles.checked_mul(stride)?;
-            if !(stride == 3 || stride == 4) || value_count != expected_values {
+            let compatible = descriptor.vertex_layout.map_or(
+                stride == 3 || stride == 4,
+                |(dimension, rational)| {
+                    matches!((dimension, stride, rational), (3, 3, false) | (4, 4, true))
+                },
+            );
+            if !compatible || value_count != expected_values {
                 return None;
             }
             let u_mult = arrays
@@ -135,6 +141,13 @@ fn decode_surfaces(
                 } else {
                     1.0
                 })?;
+                if descriptor
+                    .vertex_layout
+                    .is_some_and(|(_, rational)| rational)
+                    && weight.get() <= 0.0
+                {
+                    return None;
+                }
                 let point = weighted_mm_point(
                     [
                         payload.value_at(base)?,
@@ -232,12 +245,20 @@ fn decode_pcurves(
         let candidate = (|| {
             let refs = node.compact_tail_references::<2>()?;
             let descriptor = descriptors.get(&refs[0])?.as_ref()?;
-            (descriptor.basis.dimension == 2).then_some(())?;
+            matches!(
+                (descriptor.basis.dimension, descriptor.basis.rational),
+                (2, None | Some(false)) | (3, Some(true))
+            )
+            .then_some(())?;
             let control = controls.get(&refs[1])?.as_ref()?;
             let value_count = control.value_count();
             let stride = value_count.checked_div(descriptor.basis.poles)?;
             let expected_values = descriptor.basis.poles.checked_mul(stride)?;
-            if !(stride == 2 || stride == 3) || value_count != expected_values {
+            if !(stride == 2 || stride == 3)
+                || value_count != expected_values
+                || (descriptor.basis.rational.is_some()
+                    && stride != usize::from(descriptor.basis.dimension))
+            {
                 return None;
             }
             let mult = arrays
@@ -263,6 +284,9 @@ fn decode_pcurves(
                 } else {
                     1.0
                 })?;
+                if descriptor.basis.rational == Some(true) && weight.get() <= 0.0 {
+                    return None;
+                }
                 let point = weighted_point2(
                     [
                         control.value_at(base)?,
@@ -347,9 +371,14 @@ fn decode_curves(
             let value_count = control.value_count();
             let stride = value_count.checked_div(descriptor.basis.poles)?;
             let expected_values = descriptor.basis.poles.checked_mul(stride)?;
-            if !matches!((descriptor.basis.dimension, stride), (3, 3 | 4) | (4, 4))
-                || value_count != expected_values
-            {
+            let compatible = match descriptor.basis.rational {
+                Some(rational) => matches!(
+                    (descriptor.basis.dimension, stride, rational),
+                    (3, 3, false) | (4, 4, true)
+                ),
+                None => matches!((descriptor.basis.dimension, stride), (3, 3 | 4) | (4, 4)),
+            };
+            if !compatible || value_count != expected_values {
                 return None;
             }
             let mult = arrays
@@ -375,6 +404,9 @@ fn decode_curves(
                 } else {
                     1.0
                 })?;
+                if descriptor.basis.rational == Some(true) && weight.get() <= 0.0 {
+                    return None;
+                }
                 let point = weighted_mm_point(
                     [
                         control.value_at(base)?,
@@ -773,6 +805,7 @@ struct SurfaceDescriptor {
     u_knots: u32,
     v_knots: u32,
     payload: Option<u32>,
+    vertex_layout: Option<(u16, bool)>,
 }
 
 fn surface_descriptors(bytes: &[u8]) -> RecordIndex<SurfaceDescriptor> {
@@ -858,6 +891,7 @@ fn surface_descriptor_at(bytes: &[u8], pos: usize) -> Option<(u32, SurfaceDescri
         && (u_distinct > 0)
         && (v_distinct > 0))
         .then_some(())?;
+    let mut vertex_layout = None;
     let short = View::u16_be_at(bytes, pos + 44 + shift) == Some(125);
     let (u_mult, v_mult, u_knots, v_knots, payload, end) = if short {
         let payload_at = pos + 46 + shift;
@@ -901,6 +935,10 @@ fn surface_descriptor_at(bytes: &[u8], pos: usize) -> Option<(u32, SurfaceDescri
                 (bytes.get(at) == Some(&0)).then_some(())?;
                 at += 1;
             }
+            vertex_layout = Some((
+                View::u16_be_at(bytes, pos + surf_desc::DIMENSION + shift)?,
+                logical_at(bytes, pos + surf_desc::RATIONAL + shift)?,
+            ));
             (refs[1], refs[2], refs[3], refs[4], None, at)
         }
     };
@@ -922,6 +960,7 @@ fn surface_descriptor_at(bytes: &[u8], pos: usize) -> Option<(u32, SurfaceDescri
             u_knots,
             v_knots,
             payload,
+            vertex_layout,
         },
         end,
     ))
@@ -938,6 +977,7 @@ struct CurveBasis {
     degree: u16,
     poles: usize,
     dimension: u16,
+    rational: Option<bool>,
     distinct: usize,
     knot_type: u8,
     periodic: bool,
@@ -1028,6 +1068,7 @@ fn curve_descriptor_at(
                         degree,
                         poles,
                         dimension,
+                        rational: Some(flags[2] != 0),
                         distinct,
                         knot_type,
                         periodic,
@@ -1050,6 +1091,7 @@ fn curve_descriptor_at(
                 degree,
                 poles,
                 dimension,
+                rational: None,
                 distinct,
                 knot_type,
                 periodic,
