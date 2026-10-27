@@ -82,6 +82,35 @@ role of each additional form before extending the model grammar. An absent
 width rule must leave the table unresolved; generic scalar widths and values
 do not apply by prefix alone.
 
+**Note.** The former SE-08 variable-length `e5` question is tracked here.
+The defined model-heap repetition rule does not settle additional heap forms
+or scalar roles in other fields.
+
+### SE-09. Remaining plane-envelope scalar forms
+
+**Question.** Which complete encodings, numeric values, and state transitions
+apply to the remaining positional plane-envelope and bounded outline forms?
+
+**Known.** `creo_prt.md` §3.4 defines the standard, compact, held-coordinate,
+and planar-envelope forms. Section 8.1 defines the bounded datum-outline
+`73` and `bb` mappings to IEEE high words `3f e8` and `bf e8`. Those two
+mappings do not define every scalar prefix or every envelope field.
+
+**Need.** Establish each remaining field's complete owner, token width,
+logical slot count, numeric high word, and transition state. Validate its
+value against independently owned geometry or a controlled native output.
+Resolve the meaning of `e4` in each bounded envelope lane before applying a
+literal or repetition rule from another lane.
+
+**Conflict.** A generic scalar reader accepting a prefix does not establish
+that prefix's meaning in every plane-envelope field. Complete field
+consumption, retained opaque bytes, and a numerically plausible value do not
+by themselves prove the field's numeric interpretation.
+
+**Note.** The settled `73`/`bb` rule remains in the specification. This
+question retains the other scalar and envelope roles; it does not define a
+replacement prefix map or a global `e4` repetition rule.
+
 ### SE-11. Unresolved `00 <tail2>` solver-body tail
 
 **Question.** Which solver identity or state does the tail of the bounded `00 <tail2>` variable body retain?
