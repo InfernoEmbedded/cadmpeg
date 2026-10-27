@@ -91,6 +91,8 @@ pub(crate) enum CreoLossCode {
     VisibGeomCurveUntransferred,
     /// Cross-section curve parameter bodies retain unclassified bytes.
     CrossSectionCurveBodyOpaque,
+    /// A generated round entry has no independently owned surface carrier.
+    RoundCarrierOwnerUnresolved,
     /// A legacy ASCII surface carrier refused a lane, so its geometry stays a
     /// structural record.
     LegacySurfaceCarrierUnresolved,
@@ -236,6 +238,7 @@ impl CreoLossCode {
             Self::VisibGeomSurfaceUntransferred => "geometry.visibgeom-surface-untransferred",
             Self::VisibGeomCurveUntransferred => "geometry.visibgeom-curve-untransferred",
             Self::CrossSectionCurveBodyOpaque => "curve.cross-section-body-opaque",
+            Self::RoundCarrierOwnerUnresolved => "geometry.round-carrier-owner-unresolved",
             Self::LegacySurfaceCarrierUnresolved => "geometry.legacy-surface-carrier-unresolved",
             Self::NurbsBoundaryCarrierUnresolved => "geometry.nurbs-boundary-carrier-unresolved",
             Self::VisibGeomSurfaceAmbiguous => "geometry.visibgeom-surface-ambiguous",
@@ -348,6 +351,7 @@ impl CreoLossCode {
             | Self::VisibGeomSurfaceUntransferred
             | Self::VisibGeomCurveUntransferred
             | Self::CrossSectionCurveBodyOpaque
+            | Self::RoundCarrierOwnerUnresolved
             | Self::LegacySurfaceCarrierUnresolved
             | Self::NurbsBoundaryCarrierUnresolved
             | Self::SectionSegmentGeometryUnresolved
@@ -427,6 +431,7 @@ impl CreoLossCode {
             | Self::VisibGeomSurfaceUntransferred
             | Self::VisibGeomCurveUntransferred
             | Self::CrossSectionCurveBodyOpaque
+            | Self::RoundCarrierOwnerUnresolved
             | Self::LegacySurfaceCarrierUnresolved
             | Self::NurbsBoundaryCarrierUnresolved
             | Self::VisibGeomSurfaceAmbiguous
@@ -528,6 +533,7 @@ mod tests {
                 "geometry.visibgeom-surface-untransferred",
                 "geometry.visibgeom-curve-untransferred",
                 "curve.cross-section-body-opaque",
+                "geometry.round-carrier-owner-unresolved",
                 "geometry.legacy-surface-carrier-unresolved",
                 "geometry.nurbs-boundary-carrier-unresolved",
                 "geometry.visibgeom-surface-ambiguous",

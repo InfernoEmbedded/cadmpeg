@@ -2,7 +2,6 @@
 //! Tests: generated source.
 
 use super::{simple_drilled_recipe_surface_rows, simple_drilled_recipe_table, surface_row};
-use crate::decode::analytic::carriers::rowless_round_face_orientations;
 use crate::decode::feature_history::draft::schema_feature_definition;
 use crate::decode::feature_history::link::{
     analytic_surface_id_for_feature, generated_surface_id_for_feature,
@@ -23,7 +22,7 @@ use crate::decode::holes::drilled::{
     simple_drilled_hole_recipe, stepped_hole_form, SimpleDrilledDimensionFamily,
 };
 
-use crate::decode::surfaces::cylinders::rowless_round_cylinder_pairs;
+use crate::decode::surfaces::cylinders::rowless_round_table_candidates;
 
 use crate::feature::schema::SchemaClass;
 use cadmpeg_ir::document::CadIr;
@@ -1486,7 +1485,7 @@ fn counterbore_corner_envelopes_define_the_directed_stepped_span() {
 }
 
 #[test]
-fn rowless_round_cylinder_requires_the_four_entry_sibling_layout() {
+fn unresolved_round_diagnostic_requires_the_four_entry_layout() {
     let row = |id, kind: crate::surface::SurfaceKind| crate::surface::SurfaceRow {
         id,
         kind,
@@ -1496,7 +1495,7 @@ fn rowless_round_cylinder_requires_the_four_entry_sibling_layout() {
         next_surface: 0,
         offset: 0,
     };
-    let mut rows = vec![
+    let rows = vec![
         row(10, crate::surface::SurfaceKind::Plane),
         row(11, crate::surface::SurfaceKind::Plane),
         row(13, crate::surface::SurfaceKind::Cylinder),
@@ -1515,34 +1514,17 @@ fn rowless_round_cylinder_requires_the_four_entry_sibling_layout() {
     )
     .with_surface_ids([10, 11, 13]);
     assert_eq!(
-        rowless_round_cylinder_pairs(&BTreeSet::from([23]), std::slice::from_ref(&table), &rows),
+        rowless_round_table_candidates(&BTreeSet::from([23]), std::slice::from_ref(&table), &rows),
         vec![(12, 13, 47)]
     );
     assert!(
-        rowless_round_cylinder_pairs(&BTreeSet::new(), std::slice::from_ref(&table), &rows)
+        rowless_round_table_candidates(&BTreeSet::new(), std::slice::from_ref(&table), &rows)
             .is_empty()
     );
-    rows[2].reversed = true;
-    assert_eq!(
-        rowless_round_face_orientations(
-            &BTreeSet::from([23]),
-            std::slice::from_ref(&table),
-            &rows,
-            &BTreeSet::from([12])
-        ),
-        BTreeMap::from([(12, true)])
-    );
-    assert!(rowless_round_face_orientations(
-        &BTreeSet::from([23]),
-        std::slice::from_ref(&table),
-        &rows,
-        &BTreeSet::new()
-    )
-    .is_empty());
     let mut materialized_rowless = rows;
     materialized_rowless.push(row(12, crate::surface::SurfaceKind::Cylinder));
     assert!(
-        rowless_round_cylinder_pairs(&BTreeSet::from([23]), &[table], &materialized_rowless)
+        rowless_round_table_candidates(&BTreeSet::from([23]), &[table], &materialized_rowless)
             .is_empty()
     );
 }

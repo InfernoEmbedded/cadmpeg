@@ -1049,7 +1049,7 @@ fn constrained_slot_fillet_rejects_conflicting_model_plane_carriers() {
 }
 
 #[test]
-fn rowless_round_cylinder_rejects_duplicate_sibling_model_surfaces() {
+fn unresolved_round_diagnostic_preserves_neighboring_model_surfaces() {
     let row = |id, kind: crate::surface::SurfaceKind| crate::surface::SurfaceRow {
         id,
         kind,
@@ -1093,17 +1093,9 @@ fn rowless_round_cylinder_rejects_duplicate_sibling_model_surfaces() {
         .surfaces
         .extend([model_cylinder(13, 2.0), model_cylinder(13, 3.0)]);
 
-    assert_eq!(
-        crate::decode::with_service_context(|ctx| super::transfer_rowless_round_cylinders(
-            ctx,
-            &scan,
-            &mut ir,
-            &mut cadmpeg_ir::annotations::AnnotationBuilder::new(),
-            &mut crate::decode::source_carriers::SourceUnitCarriers::default(),
-        ))
-        .expect("valid source object identity"),
-        0
-    );
+    let mut losses = Vec::new();
+    super::report_unresolved_round_carriers(&scan, &ir, &mut losses);
+    assert_eq!(losses.len(), 1);
     assert_eq!(ir.model.surfaces.len(), 2);
 }
 
@@ -1155,30 +1147,19 @@ fn rowless_round_identity_input() -> (
 }
 
 #[test]
-fn rowless_round_cylinder_identity_preserves_service_geometry() {
-    let (scan, mut ir) = rowless_round_identity_input();
-    let count = crate::decode::with_service_context(|ctx| {
-        super::transfer_rowless_round_cylinders(
-            ctx,
-            &scan,
-            &mut ir,
-            &mut cadmpeg_ir::annotations::AnnotationBuilder::new(),
-            &mut crate::decode::source_carriers::SourceUnitCarriers::default(),
-        )
-    })
-    .expect("rowless round cylinder admitted");
-    assert_eq!(count, 1);
+fn rowless_round_entry_stays_unresolved_without_owned_geometry() {
+    let (scan, ir) = rowless_round_identity_input();
+    let mut losses = Vec::new();
+    super::report_unresolved_round_carriers(&scan, &ir, &mut losses);
+    assert_eq!(losses.len(), 1);
     assert_eq!(
-        ir.model.surfaces[1].id.as_str(),
-        "creo:visibgeom:surface#12"
+        losses[0].code.local_code(),
+        "geometry.round-carrier-owner-unresolved"
     );
+    assert_eq!(ir.model.surfaces.len(), 1);
     assert_eq!(
-        ir.model.surfaces[1]
-            .source_object
-            .as_ref()
-            .expect("source object")
-            .object_id,
-        "AllFeatur:12"
+        ir.model.surfaces[0].id.as_str(),
+        "creo:visibgeom:surface#13"
     );
 }
 
@@ -1213,7 +1194,7 @@ fn rowless_round_cylinder_rejects_duplicate_materialized_source_rows() {
         row(13, crate::surface::SurfaceKind::Cylinder),
     ];
 
-    assert!(super::rowless_round_cylinder_pairs(
+    assert!(super::rowless_round_table_candidates(
         &std::collections::BTreeSet::from([23]),
         &[table],
         &rows
@@ -1281,3 +1262,5 @@ fn split_outline_rejects_conflicting_model_plane_carrier() {
     );
 }
 mod identities;
+
+mod sibling_refusal;

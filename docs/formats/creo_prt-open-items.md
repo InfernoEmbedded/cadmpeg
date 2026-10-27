@@ -699,9 +699,9 @@ place an orbit whose existing evidence does not select one point.
 
 ### TP-05. General rowless face-use binding
 
-**Question.** Which fields bind a rowless face-use reference to its face, loop, edge, and orientation outside the round-feature rowless-cylinder table? Which stored curve incidences belong to the complete current face boundary?
+**Question.** Which fields bind a rowless face-use reference to its face, loop, edge, and orientation? Which stored curve incidences belong to the complete current face boundary?
 
-**Known.** `creo_prt.md` §6 "Classes 913" through `creo_prt.md` §6 "For a class-913 cylindrical slot fillet, the first two `geoms_affected`" define the round-feature rowless-cylinder special case. Raw side rows and closed successor cycles are distinct retained facts. Neither a closed cycle nor coverage of every raw side proves current trim ownership.
+**Known.** `creo_prt.md` §6 "Classes 913" through `creo_prt.md` §6 "For a class-913 cylindrical slot fillet, the first two `geoms_affected`" define independently constrained cylindrical slot fillets. The four-entry round-table shape does not establish rowless carrier inheritance or face sense. Raw side rows and closed successor cycles are distinct retained facts. Neither a closed cycle nor coverage of every raw side proves current trim ownership.
 
 **Need.** Establish that general binding with complete owner-qualified
 incidence, a unique carrier, directed endpoint geometry, and independent
