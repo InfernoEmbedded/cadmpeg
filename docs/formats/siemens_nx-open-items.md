@@ -131,6 +131,10 @@ order or `highest_node_id`.
 
 **Conflict.** Primary GROUP and MEMBER_OF_GROUP records have schema-owned boundaries and distinct member and entity chains. Those primary relations do not establish a Deltas update's identity key or revision lifetime. Topology snapshot replay uses typed keys and BODY revision scopes; that rule does not by itself assign the same semantics to GROUP updates.
 
+**Note.** Valid pointer domains alone do not establish a Deltas record start
+or update lifetime. Preserve unsupported layouts and unassigned status roles
+until their enclosing sequence is established.
+
 ### PS-18. Deltas tagged-reference lanes
 
 **Question.** Which record owns each deltas tagged-reference lane, and what does each field mean?
