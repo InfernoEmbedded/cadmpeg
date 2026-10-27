@@ -1284,8 +1284,10 @@ identity. Each Hvec consumes its complete eleven-double carrier. The two
 character fields and the count remain independent; they are not a fixed
 `4c3f` marker followed by an uncounted numeric tail.
 
-The TRANSFORM list is `node_id, owner, next, previous, rotation_matrix[9],
-translation_vector, scale, flag, perspective_vector, precision`.
+The base TRANSFORM list has nine transmitted fields: `node_id, owner, next,
+previous, rotation_matrix[9], translation_vector, scale, flag,
+perspective_vector`. The base `max_scale` field is not transmitted.
+An appended `precision` pointer produces a ten-field list.
 `translation_vector` and `perspective_vector` are three-double vectors.
 `precision` is a status-framed pointer. Neither a constant matrix nor a
 sentinel perspective vector changes those field roles.

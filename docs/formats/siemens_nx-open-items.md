@@ -62,13 +62,17 @@ and pmark scope before applying any unmatched key.
 
 **Need.** We must know the identity relation to evaluate and transfer the spine as exact geometry.
 
-### PS-06. Other deltas node families
+### PS-06. Unbound deltas schema state
 
-**Question.** What complete record grammar and semantics does each deltas node family that the specification does not define use?
+**Question.** Which enclosing first-use state selects a schema-match `ff` for a base TRANSFORM, and which complete grammars own the remaining unbound node spans?
 
-**Known.** `siemens_nx.md` §4.2 "A deltas stream is a schema-framed incremental edit log paired with a partition." and `siemens_nx.md` §4.2 "After complete typed node frames, complete enclosing packets, and complete" define the admitted deltas record families and their byte boundaries. A remaining byte region has no typed node grammar.
+**Known.** SWEPT_SURF uses a SURFACE_OWNER pointer and positive or negative sense. The base TRANSFORM has nine transmitted fields; appending `precision` makes ten. A schema declaration and complete field list do not alone identify an unbound instance head.
 
-**Need.** We must know each grammar to delimit and transfer the remaining deltas records as typed data.
+**Need.** An owned enclosing record cursor and first-use schema state for each unbound instance.
+
+**Conflict.** `ff` can mark a schema match or begin an extended XMT. A local field-shaped match does not choose that namespace.
+
+**Note.** Preserve unbound bytes without assigning an identity or forcing a base TRANSFORM instance.
 
 ### PS-08. BODY-associated change-state packets
 
