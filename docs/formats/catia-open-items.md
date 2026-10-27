@@ -354,11 +354,32 @@ terminal meaning remain unresolved. Exact framing does not supply those roles.
 
 ### OS-05. Object-stream outward-shell sign
 
-**Question.** Which source ownership and chart relations assign outward orientation outside a uniquely closed planar domain?
+**Question.** Which source ownership and chart relations assign absolute
+face-to-carrier orientation, and how do loop controls and signed shell members
+participate in that relation?
 
-**Known.** `catia.md` §6.7 "For a selected plane face" defines the class-`61` signed member and native-to-neutral chart composition for a unique source-closed ownership chain covering the selected face domain. Membership belongs to a face occurrence in that chain. Radial orientation equations separately select a consistent neutral shell gauge.
+**Known.** `catia.md` §6.7 defines the separate loop-location controls,
+source-closed ownership payloads, and the bounded selected-plane signed-member
+and chart composition. A loop's first control alone does not establish
+outward face sense. Native outer-cylinder and negative-X-cap records supply
+counterexamples to a universal primary-control rule. A raw loop control,
+chart handedness, face occurrence, and outward shell orientation are distinct
+relations. The selected standard-plane rule does not establish a universal
+member-sign rule for other carriers or owners.
 
-**Need.** We must identify the complete selected owner when ownership chains are partial or conflicting, and establish the corresponding chart composition for non-planar carriers.
+**Need.** Establish the complete selected owner, occurrence, and chart
+composition for each supported domain. Preserve the bounded standard-plane
+mapping. Determine an independent absolute orientation before transferring
+B5 face sense; do not invert all primary controls or replace them with an
+unqualified signed-member rule.
+
+**Conflict.** B5 `native_carrier_face_sense` still assigns neutral face sense
+from the unique outer loop's first control across its admitted carriers,
+with an additional cone chart-parity factor. That positive rule lacks a
+complete outward-orientation contract. The authored cylinder, NURBS,
+revolution, and torus controls exercise the implementation hypothesis; they
+do not prove it as a native format law. Standard-family topology can use a
+different, independently constrained orientation route.
 
 ### OS-06. Object-stream edge terminal controls
 

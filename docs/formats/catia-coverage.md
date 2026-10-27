@@ -847,24 +847,28 @@ B5 face transfer uses the second loop control to select the unique outer loop
 and each inner loop. Classification applies to analytic, freeform and opaque
 carriers and does not require planar pcurves or a containment calculation.
 Absent or multiple outer selections leave the loop roles unspecified.
-The first loop control retains face-to-carrier orientation independently;
-shell orientation and neutral chart conversion remain separate relations.
+The first loop control is retained independently. Its relation to absolute
+face-to-carrier orientation is unresolved; shell orientation and neutral chart
+conversion are separate relations.
 
-Face sense uses the primary control of the unique outer loop for native planes,
-positive-scale cylinders, direct NURBS carriers whose normal is not reversed,
-and revolutions with a retained profile whose complete parameter interval
-matches the carrier interval bit for bit. Primary `03` emits reversed sense;
-primary `05` emits forward sense. All owned loops must repeat the face carrier,
-and transfer must preserve their native traversal order. The carrier geometry
-is unchanged. Other carrier kinds do not use this transfer rule.
+The current B5 transfer maps the unique outer loop's primary `03` to reversed
+sense and `05` to forward sense for native planes, positive-scale cylinders,
+tori, direct NURBS carriers whose normal is not reversed, and revolutions with
+matching complete profile intervals. Its cone path also composes this control
+with chart handedness. This implementation rule does not establish outward
+face sense. Raw native faces can have the same primary control and opposite
+outward relations to their carriers. All owned loops must repeat the face
+carrier, and transfer must preserve native traversal order. The carrier
+geometry is unchanged. The unresolved ownership and orientation relation is
+tracked in OS-05.
 
-Four source fixtures exercise positive and negative cylinder and direct NURBS
+Four authored controls exercise positive and negative cylinder and direct NURBS
 faces. Each has one three-edge outer loop. The negative fixtures reverse UV
 winding and select primary `03`; the positive fixtures select primary `05`.
 Their carrier surfaces are equal across each pair. The NURBS fixture does not
 establish complete boundary-length geometry.
 
-Four further source fixtures retain line and arc revolution profiles with
+Four further authored controls retain line and arc revolution profiles with
 positive and negative loop controls. The line pair transfers one four-edge face
 and preserves equal carrier and construction payloads across the pair. The arc
 pair preserves its existing topology refusal. Revolution measurements retain
