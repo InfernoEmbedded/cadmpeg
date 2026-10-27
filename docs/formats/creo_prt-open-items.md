@@ -953,11 +953,15 @@ all complete rows and opaque fields before using a roster as an ownership
 oracle. Establish state-to-current-boundary and traversal joins independently;
 roster overlap, pointer ancestry, or a possible cyclic rotation is insufficient.
 
-**Conflict.** The current prefix reader treats attributes as one byte, omits
-the three-byte compact tier, and ends a row at the first compound close. It
-can misread fields, truncate bodies, and omit later rows. Its typed row output
-must not be treated as a complete framing or current-ownership proof. General
-row repair remains blocked on the complete enclosing grammar, rather than a
+**Conflict.** The prefix reader consumes one- and two-byte attributes with
+the same compact-integer grammar as its other fields, but still omits the
+three-byte tier and ends a row at the first compound close. In
+`headset-hook-holder.prt`, the prefix at `0xc183` has attributes `513`,
+direction `84`, and next-loop pointer `196`; correcting those fields does
+not resolve its nested auxiliary body or recover the full declared roster.
+Bodies can remain truncated and later rows omitted. Typed row output must
+not be treated as a complete framing or current-ownership proof. General row
+repair remains blocked on the complete enclosing grammar, rather than a
 global retokenization or guessed current-state selector.
 
 ## 5. Packed persistence data

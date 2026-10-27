@@ -405,7 +405,7 @@ pub(super) struct CreoLoopArrayRecord<'a> {
     lo_type: u32,
     lo_subtype: u32,
     feature_id: u32,
-    attributes: u8,
+    attributes: u32,
     direction: u32,
     next_lo_ptr: u32,
     body: cadmpeg_ir::native::bytes::NativeBytes<&'a [u8]>,
