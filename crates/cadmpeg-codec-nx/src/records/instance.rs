@@ -217,5 +217,94 @@ impl SchemaNode {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct RegionInstance {
+    pub(crate) xmt: NonNullXmt,
+    pub(crate) node_id: u32,
+    pub(crate) references: [u32; 4],
+    pub(crate) canonical_bytes: Vec<u8>,
+    pub(crate) end: usize,
+}
+
+impl EmbeddedSchema {
+    pub(crate) fn read_region_instance(
+        &self,
+        stream: &[u8],
+        offset: usize,
+    ) -> Option<RegionInstance> {
+        if self.plan.kind != 19 || View::u16_be_at(stream, offset)? != 19 {
+            return None;
+        }
+        let transmitted = self.plan.fields.iter().filter(|field| field.transmit);
+        let base = [
+            ("node_id", DataType::Integer, 0),
+            ("attributes_features", DataType::Pointer, 1019),
+            ("body", DataType::Pointer, 12),
+            ("next", DataType::Pointer, 19),
+            ("previous", DataType::Pointer, 19),
+            ("shell", DataType::Pointer, 13),
+        ];
+        let terminal = [
+            ("type", DataType::Char, 0),
+            ("owner", DataType::Pointer, 12),
+        ];
+        let has_frame = if self.matches_fields(19, base.into_iter().chain(terminal)) {
+            false
+        } else if self.matches_fields(
+            19,
+            base.into_iter()
+                .chain([("frame", DataType::Pointer, 230)])
+                .chain(terminal),
+        ) {
+            true
+        } else {
+            return None;
+        };
+        let mut at = offset.checked_add(2)?;
+        let xmt = NonNullXmt::try_from(read_and_advance(stream, &mut at)?).ok()?;
+        let mut canonical_bytes = stream.get(offset..at)?.to_vec();
+        let mut view = View::over_retained(stream);
+        view.seek(at)?;
+        let mut node_id = None;
+        let mut references = [0; 4];
+        let mut pointer_index = 0;
+        for field in transmitted {
+            if field.n_elements != 0 {
+                return None;
+            }
+            let start = view.position();
+            let value = FieldValue::read(field.data_type, stream, &mut view)?;
+            match (field.name.as_str(), value) {
+                ("node_id", FieldValue::Integer(value)) => node_id = Some(value),
+                ("type", FieldValue::Char(b'S' | b'V')) => {}
+                (name, FieldValue::Pointer { target, .. })
+                    if name != "node_id" && name != "type" =>
+                {
+                    if name == "frame" && (!has_frame || field.pointer_class != 230) {
+                        return None;
+                    }
+                    if name == "owner" && field.pointer_class != 12 {
+                        return None;
+                    }
+                    if pointer_index < references.len() {
+                        references[pointer_index] = target.get();
+                    }
+                    pointer_index += 1;
+                }
+                _ => return None,
+            }
+            let end = view.position() - usize::from(field.data_type == DataType::Pointer);
+            canonical_bytes.extend_from_slice(stream.get(start..end)?);
+        }
+        Some(RegionInstance {
+            xmt,
+            node_id: node_id?,
+            references,
+            canonical_bytes,
+            end: view.position(),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests;

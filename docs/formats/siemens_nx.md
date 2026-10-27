@@ -1173,10 +1173,21 @@ There is no separate schema-reference preamble between the leading PARTITION
 and current PMARK. Their fields end at the full PMARK identifier. A following
 reference/type map or schema declaration owns its own bytes.
 
-One reference-marker packet is `ref 01, ref(1) 01, marker:u8, ref(1) 01`.
-The leading reference is non-null and uses compact or extended XMT encoding.
-`marker` is `53` or `56`. The two remaining references are the null XMT value
-`1`. The packet ends after the final status byte.
+A REGION instance starts with its XMT identity and `node_id:u32 BE`, then
+`attributes_features`, `body`, `next`, `previous`, and `shell` reference/status
+fields. Its declared effective schema selects the remaining fields. REGION-8
+continues with `type:char` and an appended `owner` reference/status field of
+pointer class 12. REGION-9 inserts a `frame` reference/status field of pointer
+class 230 before `type`. Region type `S` denotes a solid region; `V` denotes a
+void region. The instance ends after its complete declared field list. Complete REGION
+framing requires an established value boundary; a local field-shape match
+after an ambiguous enclosing envelope does not establish that boundary.
+
+The REGION-9 terminal lane `shell, frame, type, owner` belongs to that REGION.
+When `frame` and `owner` are null, it has the shape
+`ref 01, ref(1) 01, marker:u8, ref(1) 01`, with marker `53` or `56`.
+REGION-8 has no `frame` field. A shape match alone does not establish the
+containing node or its schema.
 
 A PLANE record starts with the two-byte node type `0032`. Its `node_id` is
 one four-byte field. A low identifier byte `96` does not begin a separate

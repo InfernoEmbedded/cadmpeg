@@ -128,6 +128,7 @@ pub(crate) fn walk(stream: &[u8]) -> Result<Census, CodecError> {
     let mut value_boundary = true;
     let mut referenced_value_offsets = None::<BTreeSet<usize>>;
 
+    let mut region_schema = None;
     let mut world_layout = None;
     let mut schema_seen = [false; 102];
     let supported_base = census
@@ -158,6 +159,9 @@ pub(crate) fn walk(stream: &[u8]) -> Result<Census, CodecError> {
             None
         };
         if let Some(declaration) = declaration {
+            if declaration.fields.kind() == 19 && value_boundary {
+                region_schema = Some(declaration.fields.definition().clone());
+            }
             if declaration.fields.kind() == 38 {
                 intersection_layout = super::intersection::IntersectionLayout::from_schema(
                     declaration.fields.definition(),
@@ -180,6 +184,35 @@ pub(crate) fn walk(stream: &[u8]) -> Result<Census, CodecError> {
             value_boundary = true;
             census.events.reference_type_maps.push(map);
             continue;
+        }
+        if View::u16_be_at(stream, offset) == Some(19) {
+            if let Some(schema) = region_schema.as_ref() {
+                let region = if value_boundary {
+                    schema.read_region_instance(stream, offset)
+                } else {
+                    None
+                };
+                if let Some(region) = region {
+                    let record = super::Record {
+                        family: super::RecordFamily::Region {
+                            references: region.references,
+                            node_id: region.node_id,
+                        },
+                        xmt: region.xmt.into(),
+                        canonical_bytes: region.canonical_bytes,
+                        offset,
+                        end: region.end,
+                    };
+                    census.bytes_decoded += record.end - offset;
+                    offset = record.end;
+                    value_boundary = true;
+                    census.events.records.push(record);
+                    continue;
+                }
+                offset += 1;
+                value_boundary = false;
+                continue;
+            }
         }
         let shared_head = census.records.last().and_then(|previous| {
             (previous.end == offset && super::has_shareable_terminal(stream, previous))
@@ -485,6 +518,7 @@ fn extend_covered_spans(
 
 #[cfg(test)]
 mod tests {
+    mod region_framing;
     use super::{extend_covered_spans, value_is_owned};
     use std::collections::BTreeSet;
 

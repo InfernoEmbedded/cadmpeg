@@ -106,13 +106,17 @@ relation to the owning pmark edge before assigning body change-state roles.
 
 **Need.** Establish complete enclosing Deltas sequence ownership, the preceding and succeeding state relation, the exact typed create/modify/delete key sets, and the terminal word's namespace before applying a map to entities.
 
-### PS-22. Deltas reference-marker packets
+### PS-22. Unbound reference-marker shapes
 
-**Question.** Which record owns each deltas reference-marker packet, and what do its references and marker mean?
+**Question.** Which field production owns a reference-marker-shaped span when no complete REGION schema and instance are established?
 
-**Known.** `siemens_nx.md` §4.2 "One reference-marker packet is" defines the packet grammar, marker values, and boundary.
+**Known.** A complete REGION-9 declares shell, frame, type, and owner as its terminal fields. REGION-8 omits frame. Shape-only spans retain their references, marker, and source extent without a REGION owner.
 
-**Need.** We must know ownership and marker semantics to attach the packet to typed state.
+**Need.** An established declaration, owned value boundary, and complete containing instance for an unbound span.
+
+**Conflict.** A byte-shape match does not identify its containing node or effective schema.
+
+**Note.** Preserve unresolved spans without assigning REGION ownership from proximity.
 
 ### PS-25. Inline type-12 `BODY` instance state
 
