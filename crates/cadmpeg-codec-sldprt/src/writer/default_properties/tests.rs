@@ -213,7 +213,7 @@ fn emitted_default_carrier_cannot_be_dropped_renamed_changed_or_duplicated() {
         "docProps/ISolidWorksInformation.xml".to_owned(),
         b"<authored/>".to_vec(),
     );
-    assert!(super::validate_emitted(&scan, &[section.clone()]).is_ok());
+    assert!(super::validate_emitted(&scan, std::slice::from_ref(&section)).is_ok());
     for sections in [
         vec![],
         vec![("docProps/custom.xml".into(), section.1.clone())],
@@ -239,7 +239,7 @@ fn semantic_writer_refuses_unrepresentable_compound_default_streams() {
             ps_auxiliary_refusal: None,
         });
     assert!(
-        matches!(super::validate_retention(&scan,&[],&Default::default()),Err(cadmpeg_core::CodecError::NotImplemented(message))if message.contains("retained compound writer"))
+        matches!(super::validate_retention(&scan,&[],&cadmpeg_ir::annotations::Annotations::default()),Err(cadmpeg_core::CodecError::NotImplemented(message))if message.contains("retained compound writer"))
     );
     assert!(super::validate_emitted(&scan, &[]).is_err());
 }

@@ -1381,7 +1381,7 @@ fn compact_edge_terminal_must_resolve_before_predecessor_filtering() {
         (114, None),
         (999, Some("old")),
     ] {
-        let mut payload = source.to_vec();
+        let mut payload = source.clone();
         payload[terminal_offset..terminal_offset + 4].copy_from_slice(&terminal.to_le_bytes());
         let components = compact_edge_component_path_at(&ctx, &payload, 12)
             .unwrap()

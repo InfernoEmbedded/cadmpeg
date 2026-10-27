@@ -66,7 +66,7 @@ fn selected_plane_source(ambiguous: bool, invalid_sign: bool) -> Vec<u8> {
     let (mut main, surfaces) = complete_streams();
     record(&mut main, 0x65, 10, &[0x81, 0x8b, 0x05, 0x0d]);
     record(&mut main, 0x60, 11, &[0x81, 0x8c]);
-    let sign = if invalid_sign { 0 } else { 1 };
+    let sign = u8::from(!invalid_sign);
     record(
         &mut main,
         0x61,

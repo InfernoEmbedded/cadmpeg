@@ -16,7 +16,7 @@ pub(crate) fn fixture(count: u32, wide_marker: bool, form: TailForm) -> (Vec<u8>
         let prefix = super::test_bytes::compact_uint_bytes(count).len() * 2 + 1;
         let marker = 8 + prefix;
         assert_eq!(bytes[marker], 0x0c);
-        bytes.splice(marker..marker + 1, [0x08, 0x09]);
+        bytes.splice(marker..=marker, [0x08, 0x09]);
     }
     let tail_start = bytes.len();
     for value in [0.25_f64, 0.75, -0.0, 2.0, 2.0] {

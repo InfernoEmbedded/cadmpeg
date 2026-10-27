@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use super::bind;
 use crate::native::{CatiaDesignObject, CatiaNative, CatiaObjectRecord};
 use crate::test_support::test_sketch_bindings::{
@@ -130,14 +131,14 @@ fn sketch_bindings_require_exact_owner_declaration() {
                     .class
                     .as_mut()
                     .expect("class")
-                    .name = Some("PRTSketch".to_owned())
+                    .name = Some("PRTSketch".to_owned());
             }
             "class-entry" => {
                 record_mut(&mut native, 1)
                     .class
                     .as_mut()
                     .expect("class")
-                    .entry = None
+                    .entry = None;
             }
             "owner-record" => {
                 native
@@ -145,13 +146,13 @@ fn sketch_bindings_require_exact_owner_declaration() {
                     .iter_mut()
                     .find(|g| g.owner_entity_id == 1)
                     .expect("group")
-                    .owner_record = None
+                    .owner_record = None;
             }
             "head-owner" => {
-                record_mut(&mut native, 1).head[2] = crate::object_graph::HeadToken::Reference(77)
+                record_mut(&mut native, 1).head[2] = crate::object_graph::HeadToken::Reference(77);
             }
             "head-class" => {
-                record_mut(&mut native, 1).head[3] = crate::object_graph::HeadToken::Reference(5)
+                record_mut(&mut native, 1).head[3] = crate::object_graph::HeadToken::Reference(5);
             }
             _ => unreachable!("named control"),
         }
@@ -192,7 +193,7 @@ fn sketch_bindings_require_unique_pairs_and_complete_groups() {
                 .entity_records
                 .push(native.entity_records[index].clone()),
             "source-graph" | "target-graph" => {
-                native.entity_records[index].object_graph.push_str(":other")
+                native.entity_records[index].object_graph.push_str(":other");
             }
             "source-pair" | "target-pair" => native.entity_records[index]
                 .object_record
@@ -405,7 +406,7 @@ fn local_point_pairs_require_unique_same_graph_ownership() {
                 .entity_records
                 .push(native.entity_records[index].clone()),
             "point-graph" | "owner-graph" => {
-                native.entity_records[index].object_graph.push_str(":other")
+                native.entity_records[index].object_graph.push_str(":other");
             }
             "point-pair" | "owner-pair" => native.entity_records[index]
                 .object_record
@@ -420,7 +421,7 @@ fn local_point_pairs_require_unique_same_graph_ownership() {
                     .iter_mut()
                     .find(|g| g.owner_entity_id == 3)
                     .expect("group")
-                    .owner_record = None
+                    .owner_record = None;
             }
             "group-fields" => {
                 native
@@ -437,7 +438,7 @@ fn local_point_pairs_require_unique_same_graph_ownership() {
                 native.design_objects.push(duplicate);
             }
             "head-owner" => {
-                record_mut(&mut native, 4).head[2] = crate::object_graph::HeadToken::Reference(77)
+                record_mut(&mut native, 4).head[2] = crate::object_graph::HeadToken::Reference(77);
             }
             _ => unreachable!("named control"),
         }
@@ -449,11 +450,7 @@ fn local_point_pairs_require_unique_same_graph_ownership() {
                 .all(|p| p.point_entity != rejected_point),
             "{control}"
         );
-        let expected_max = if control.starts_with("point-") || control == "head-owner" {
-            1
-        } else {
-            0
-        };
+        let expected_max = usize::from(control.starts_with("point-") || control == "head-owner");
         assert!(
             group(&native, 3).local_point_pairs.len() <= expected_max,
             "{control}"
@@ -486,8 +483,8 @@ fn sketch_bindings_roundtrip_and_reject_forged_native_metadata() {
                 match control {
                     "omit-membership" => g.sketch_membership = None,
                     "item-offset" => {
-                        g.sketch_membership.as_mut().expect("membership").items[0].payload_offset +=
-                            1
+                        g.sketch_membership.as_mut().expect("membership").items[0]
+                            .payload_offset += 1;
                     }
                     "group-summary" => g
                         .sketch_membership

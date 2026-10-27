@@ -18,6 +18,7 @@ This table does not describe every entity-level admission rule.
 | CATIA | `container::scan_bytes` returns a fallible container scan. Magic, directory fields, and segment bounds gate payload discovery; optional summary records are collected independently. |
 | Creo | `container::scan_bytes` returns a fallible section scan. Header and section framing locate payloads; downstream semantic admission and optional model-name collection have separate boundaries. |
 | NX | `container::scan_bytes` validates directory offsets, overlap, and file spans. These locate payloads; they are not descriptive header fields. |
+| Creo View | `package::Package::open` admits the archive through `ArchiveSnapshot`. An unreadable central directory recovers the members from their local headers and reports `pvz/container.directory-recovered`. Exactly one `.pvs` member remains required. A structure member that declares no known signature or XML version is read on the residual path as `pvz:unknown` with `pvz/source.dialect-unverified`. A structure member that does not decode reports `pvz/structure.member-malformed` and keeps the package metadata. A property stream applies whole or not at all: a stream that does not decode reports `pvz/structure.property-stream-malformed`, and the other streams survive. A directory stream of an undefined type reports `pvz/structure.stream-undecoded`. Each geometry member opens and decodes independently: a member that does not open or decode reports `pvz/geometry.member-malformed`, and an exact-geometry stream that does not decode reports `pvz/geometry.exact-undecoded` and keeps the member's tessellation. Resource failures propagate. |
 | SAT/ASM | `sat::parse_header` recovers malformed newline-framed product metadata, unused record-count declarations, and optional tolerances. Counted binary product strings advance by byte length independently of text encoding. Decode retains exact noncanonical header bytes and reports defaults for unresolved tolerances. Unit scale, record-stream framing, and reference width remain required interpretation fields. |
 
 Successful decode is not a valid IR. Decoder and export gates use documented
@@ -118,11 +119,28 @@ source image, which holds every quarantined card.
 `cadmpeg check` / convert validation =
 
 1. `validate_neutral` (or `validate_neutral_with_source_fidelity`)
-2. plus every registered native validator whose namespace is present
+2. plus every registered native validator whose namespace is present, with the
+   loaded document's optional `SourceFidelity`
 3. plus the measurement findings `cadmpeg_measure::findings`: `RingOrder`
    and `Orientation` warnings ([measurement.md](measurement.md#check-findings))
 
 No route above lists `RingOrder` or `Orientation`, and no decoder runs
 measurement, so decoding and export admission never refuse on them.
+
+NX native validation admits Deltas structure, then compares all six Deltas
+arenas with the projection derived from retained inflated stream bytes. This
+comparison requires exact record identities, complete record sets, field
+values, effective schemas, custom metadata, headers, prefixes, and residual
+spans. A stopped stream reports `NativeLinks` `Info` with its stop offset and
+reason. Its bounded prefix was parsed, and its residual range and digest were
+compared.
+
+Without a sidecar, each claimed Deltas stream reports structural-only
+`NativeLinks` `Info`. A digest-only retained stream reports the same limit.
+A present sidecar missing a claimed stream reports `NativeLinks` `Error`.
+When any Deltas arena contains records, inline canonical retained Deltas
+streams also enter comparison, including a stream whose native records were
+deleted. Empty Deltas arenas make no source claim and produce no Deltas source
+finding. Resource refusals remain typed check-stage errors.
 
 Encoders count rows with `CadIr::census`, not validation.

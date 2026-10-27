@@ -53,7 +53,7 @@ fn independent_header_width_and_flag_preserve_raw_values() {
     for (width, token, encoded_width) in [
         (1, 0x05, ConsolidatedFrameWidth::One),
         (2, 0x1234, ConsolidatedFrameWidth::Two),
-        (3, 0x123456, ConsolidatedFrameWidth::Three),
+        (3, 0x0012_3456, ConsolidatedFrameWidth::Three),
     ] {
         for (flag, encoded_flag) in [
             (3, ConsolidatedFrameFlag::Flag03),
@@ -157,7 +157,7 @@ fn bounded_sources_keep_logical_offsets_and_physical_frame_identity() {
     bytes.extend_from_slice(&frame);
     let records = crate::wire::records::consolidated_records_in_range_sources(
         &bytes,
-        [vec![3..second], vec![second..bytes.len()]],
+        [Some(3..second), Some(second..bytes.len())],
     );
     let rows = crate::test_support::with_service_context(|ctx| derive(ctx, &bytes, &records))
         .expect("source admission");

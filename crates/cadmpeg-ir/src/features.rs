@@ -3195,6 +3195,39 @@ pub enum FeatureOperation {
         /// Distribution of thickness relative to the profile plane.
         side: SheetMetalThicknessSide,
     },
+    /// Flat plate attached to an existing sheet edge.
+    /// Replay the plate before its paired `SheetMetalBend`. The bend builds the joining region.
+    SheetMetalAttachedPlate {
+        /// Closed profile in the attached plate's sketch plane.
+        profile: PlanarProfileRef,
+        /// Finished sheet thickness.
+        thickness: PositiveLength,
+        /// Distribution of thickness relative to the profile plane.
+        side: SheetMetalThicknessSide,
+        /// Selected edges of the existing sheet.
+        attachment: EdgeSelection,
+    },
+    /// Bend region joining a separate flat plate to the selected sheet edge.
+    /// Replay after the paired `SheetMetalAttachedPlate`. Bend dimensions belong to this operation.
+    SheetMetalBend {
+        /// Preceding attached plate that supplies the planar profile and thickness.
+        plate: FeatureId,
+        /// Selected edges of the existing sheet, in this bend's input topology.
+        attachment: EdgeSelection,
+        /// Inside bend radius.
+        inside_radius: PositiveLength,
+        /// Relief form and evaluated length operands.
+        relief: SheetMetalRelief,
+        /// Transition form and evaluated radius.
+        transition: SheetMetalTransition,
+    },
+    /// Corner evaluation on a bend with an explicit geometric effect.
+    SheetMetalCorner {
+        /// Bend on which the corner is evaluated.
+        bend: FeatureId,
+        /// Effect on the input body.
+        effect: SheetMetalCornerEffect,
+    },
     /// Sheet-metal wall grown from selected edges of an existing sheet body.
     SheetMetalEdgeFlange {
         /// Edges the flange is grown from.
@@ -3977,6 +4010,8 @@ impl FeatureOperation {
                 | UnresolvedFamily::BoundarySurface
                 | UnresolvedFamily::Draft => None,
             },
+            Self::SheetMetalAttachedPlate { .. } => Some("sheet metal attached plate"),
+            Self::SheetMetalBend { .. } => Some("sheet metal bend"),
             Self::Block { .. } => Some("block"),
             Self::Sphere { .. } => Some("sphere"),
             Self::ExtractBody { .. } => Some("extract body"),
@@ -5780,6 +5815,52 @@ pub enum ThickenSide {
     Both,
 }
 
+/// Relief form selected by the document's sheet-metal rule.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum SheetMetalReliefForm {
+    /// Use the active document rule's bend-relief form.
+    StyleDefault,
+}
+
+/// Bend-relief operands with lengths in millimetres.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct SheetMetalRelief {
+    /// Construction form.
+    pub form: SheetMetalReliefForm,
+    /// Evaluated relief width.
+    pub width: PositiveLength,
+    /// Evaluated relief depth.
+    pub depth: PositiveLength,
+    /// Minimum material remnant.
+    pub minimum_remnant: crate::scalar::NonNegativeLength,
+    /// Gap between adjacent sheet edges.
+    pub seam_gap: crate::scalar::NonNegativeLength,
+}
+
+/// Transition form selected by the document's sheet-metal rule.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum SheetMetalTransitionForm {
+    /// Use the active document rule's transition form.
+    StyleDefault,
+}
+
+/// Sheet-metal transition operands with lengths in millimetres.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct SheetMetalTransition {
+    /// Construction form.
+    pub form: SheetMetalTransitionForm,
+    /// Evaluated transition radius.
+    pub radius: crate::scalar::NonNegativeLength,
+}
+
 /// Face pair a sheet-metal flange height is measured from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(JsonSchema))]
@@ -5790,6 +5871,16 @@ pub enum SheetMetalHeightDatum {
     InnerFaces,
     /// The height is measured from the outer faces of the sheet.
     OuterFaces,
+}
+
+/// Geometric effect of a sheet-metal corner evaluation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
+pub enum SheetMetalCornerEffect {
+    /// The output body equals the input body, including its topology.
+    Unchanged,
 }
 
 /// Placement of a sheet-metal bend region against its selected edge.
@@ -7022,6 +7113,13 @@ pub enum ExtrudeStart {
         )]
         offset: Option<Length>,
     },
+    /// Begin on a selected plane that has no face identity.
+    FromPlane {
+        /// Model-space frame of the start plane.
+        plane: FeatureSupportPlaneFrame,
+        /// Native record that stores the plane.
+        native: NonBlankString,
+    },
 }
 
 /// One-sided termination law of a linear sweep. Sidedness around the profile
@@ -7061,6 +7159,13 @@ pub enum LinearTermination {
     ToVertex {
         /// Vertex terminating the operation.
         vertex: VertexSelection,
+    },
+    /// Extends until it reaches a target plane that has no face identity.
+    ToPlane {
+        /// Model-space frame of the terminating plane.
+        plane: FeatureSupportPlaneFrame,
+        /// Native record that stores the plane.
+        native: NonBlankString,
     },
     /// Extends to a fixed offset from a target face.
     OffsetFromFace {

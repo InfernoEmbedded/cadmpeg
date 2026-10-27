@@ -9,7 +9,9 @@ use cadmpeg_core::CodecError;
 
 use crate::container::ContainerScan;
 use crate::design::{design_feature_family, DesignFeatureFamily};
-use crate::records::feature::joint_motion::{DesignJointLimitLanes, DesignJointMotion};
+use crate::records::feature::joint_motion::{
+    DesignJointFreedomWord, DesignJointLimitLanes, DesignJointMotion, DesignJointRest,
+};
 use crate::records::feature::scope::DesignParameterScope;
 use crate::records::identity::Located;
 use cadmpeg_core::container::ContainerRole;
@@ -17,15 +19,28 @@ use cadmpeg_core::container::ContainerRole;
 use super::scopes::shared_frames::marked_record_reference;
 use super::sketch::{indexed_record_offsets, IndexedRecordOffsets};
 
-/// A freedom entry before its code: byte `1`, f64 `0`, f64 π, and u32 `3`.
-const FREEDOM_ENTRY_PREFIX: [u8; 21] = [
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0x18, 0x2d, 0x44, 0x54, 0xfb, 0x21, 0x09, 0x40, 3, 0, 0, 0,
+/// A freedom entry before its word: byte `1`, f64 `0`, and f64 π. The u32
+/// word, `1` or `3`, and the u32 code follow; a word-`1` entry then stores an
+/// f64.
+const FREEDOM_ENTRY_PREFIX: [u8; 17] = [
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0x18, 0x2d, 0x44, 0x54, 0xfb, 0x21, 0x09, 0x40,
 ];
+/// A word-`1` freedom entry whose second f64 is `0` rather than π.
+const ZERO_LANE_FREEDOM_ENTRY_PREFIX: [u8; 17] =
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+/// The words a freedom entry stores before its code.
+const FREEDOM_ENTRY_WORDS: [u32; 2] = [1, 3];
+/// The freedom entries of one record: each code with its word.
+type FreedomEntries = Vec<(Located<u32>, DesignJointFreedomWord)>;
 /// Offset of the joint reference in a current-generation motion record.
 const MOTION_JOINT_REFERENCE: usize = 24;
 /// Offsets after the joint record's self-reference marker.
 const LIMIT_FLAGS_AFTER_SELF_REFERENCE: usize = 11;
 const LIMIT_VALUES_AFTER_SELF_REFERENCE: usize = 23;
+/// The rest flag follows the two limit flags; the rest value follows the
+/// minimum.
+const REST_FLAG_AFTER_SELF_REFERENCE: usize = 13;
+const REST_VALUE_AFTER_SELF_REFERENCE: usize = 39;
 
 /// Decode the motion of every joint whose motion record carries freedom
 /// entries, in every Design `BulkStream`.
@@ -75,11 +90,32 @@ pub(super) fn decode_stream(
             .map_or(bytes.len(), |(offset, _)| *offset)
     };
     // Freedom entries grouped by the record that holds them.
-    let mut by_record: Vec<(usize, u32, Vec<Located<u32>>)> = Vec::new();
-    for at in memchr::memmem::find_iter(bytes, &FREEDOM_ENTRY_PREFIX) {
-        let code_at = at + FREEDOM_ENTRY_PREFIX.len();
-        let Some(code) = View::u32_le_at(bytes, code_at) else {
+    let mut by_record: Vec<(usize, u32, FreedomEntries)> = Vec::new();
+    let mut starts = memchr::memmem::find_iter(bytes, &FREEDOM_ENTRY_PREFIX)
+        .map(|at| (at, false))
+        .chain(
+            memchr::memmem::find_iter(bytes, &ZERO_LANE_FREEDOM_ENTRY_PREFIX).map(|at| (at, true)),
+        )
+        .collect::<Vec<_>>();
+    starts.sort_unstable();
+    for (at, zero_second_value) in starts {
+        let word_at = at + FREEDOM_ENTRY_PREFIX.len();
+        let code_at = word_at + 4;
+        let (Some(word), Some(code)) = (
+            View::u32_le_at(bytes, word_at),
+            View::u32_le_at(bytes, code_at),
+        ) else {
             continue;
+        };
+        if !FREEDOM_ENTRY_WORDS.contains(&word) || (zero_second_value && word != 1) {
+            continue;
+        }
+        let value = match word {
+            1 => match crate::bytes::f64s_at::<1>(bytes, code_at + 4) {
+                Some([value]) if value.is_finite() => Some(value),
+                _ => continue,
+            },
+            _ => None,
         };
         let position = headers.partition_point(|(offset, _)| *offset <= at);
         let Some(&(record_start, record_index)) =
@@ -91,13 +127,25 @@ pub(super) fn decode_stream(
             value: code,
             offset: u64_from_index(code_at),
         };
+        let entry = (
+            located,
+            DesignJointFreedomWord {
+                word,
+                zero_second_value,
+                value,
+            },
+        );
         match by_record.last_mut() {
-            Some((start, _, codes)) if *start == record_start => codes.push(located),
-            _ => by_record.push((record_start, record_index, vec![located])),
+            Some((start, _, entries)) if *start == record_start => entries.push(entry),
+            _ => by_record.push((record_start, record_index, vec![entry])),
         }
     }
     let mut out = Vec::new();
-    for (motion_start, motion_index, freedoms) in by_record {
+    for (motion_start, motion_index, mut entries) in by_record {
+        // A record with π entries stores no zero-lane entry.
+        if entries.iter().any(|(_, entry)| !entry.zero_second_value) {
+            entries.retain(|(_, entry)| !entry.zero_second_value);
+        }
         let motion = MotionRecord {
             start: motion_start,
             end: record_end(motion_start),
@@ -111,6 +159,8 @@ pub(super) fn decode_stream(
         let Some(&joint_start) = records.offsets(joint_index).first() else {
             continue;
         };
+        let (freedoms, words): (Vec<_>, Vec<_>) = entries.into_iter().unzip();
+        let usual = words.iter().all(|entry| entry.word == 3);
         out.push(DesignJointMotion {
             id: format!("f3d:{entry_name}:design-joint-motion#{motion_start}"),
             joint_record_index: joint_index,
@@ -118,6 +168,7 @@ pub(super) fn decode_stream(
             motion_record_index: motion_index,
             motion_byte_offset: u64_from_index(motion_start),
             freedoms,
+            entry_words: if usual { Vec::new() } else { words },
             limits: joint_limits(bytes, joint_start, record_end(joint_start), joint_index),
         });
     }
@@ -187,7 +238,8 @@ fn joint_limits(
     joint_end: usize,
     joint_index: u32,
 ) -> Option<DesignJointLimitLanes> {
-    let window = bytes.get(joint_start + 11..joint_end)?;
+    let bytes = bytes.get(..joint_end)?;
+    let window = bytes.get(joint_start + 11..)?;
     let mut needle = [0u8; 5];
     needle[0] = 1;
     needle[1..].copy_from_slice(&joint_index.to_le_bytes());
@@ -195,7 +247,9 @@ fn joint_limits(
         .find(|&at| marked_record_reference(window, at) == Some(joint_index))?;
     let marker = joint_start + 11 + marker;
     let flags_at = marker + LIMIT_FLAGS_AFTER_SELF_REFERENCE;
-    let (first_flag, second_flag) = (*bytes.get(flags_at)?, *bytes.get(flags_at + 1)?);
+    let mut fields = View::over_retained(bytes);
+    fields.seek(flags_at)?;
+    let (first_flag, second_flag) = (fields.u8()?, fields.u8()?);
     if first_flag > 1 || second_flag > 1 {
         return None;
     }
@@ -204,6 +258,16 @@ fn joint_limits(
     if !maximum.is_finite() || !minimum.is_finite() || values_at + 16 > joint_end {
         return None;
     }
+    let rest_value_at = marker + REST_VALUE_AFTER_SELF_REFERENCE;
+    let stored_rest = fields
+        .seek(marker + REST_FLAG_AFTER_SELF_REFERENCE)
+        .and_then(|()| fields.u8())
+        .zip(View::f64_le_at(bytes, rest_value_at))
+        .filter(|(flag, value)| *flag <= 1 && value.is_finite());
+    let rest_malformed = stored_rest.is_none();
+    let rest = stored_rest.and_then(|(flag, value)| {
+        (flag != 0 || value.to_bits() != 0).then_some(DesignJointRest { flag, value })
+    });
     Some(DesignJointLimitLanes {
         flags_offset: u64_from_index(flags_at),
         first_flag,
@@ -211,6 +275,8 @@ fn joint_limits(
         maximum,
         minimum,
         values_offset: u64_from_index(values_at),
+        rest,
+        rest_malformed,
     })
 }
 

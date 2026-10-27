@@ -8,12 +8,109 @@ belong in [creo_prt.md](creo_prt.md); unresolved byte meanings belong in
 ## Envelope
 
 The implemented format band is `#UGC:2` PSB part documents using the legacy
-ASCII, ND, or DEPDB section layouts recognized by the container scanner. This
-is not yet a
-closed support envelope: supported Creo release bounds, required and optional
-section combinations, and the admitted geometry and feature-family matrix have
-not been fixed. Until that matrix is closed and exercised by representative
+ASCII, ND, or DEPDB section layouts recognized by the container scanner. The
+evidenced release bounds for the ND section layout below are Creo 7 through
+13. This evidence is one part re-saved in Creo 7 through 13. It establishes
+release coverage for that directory layout, not every part made by those
+releases. It does not extend the ASCII or DEPDB release bounds.
+
+The full support envelope remains open: required and optional section
+combinations and the admitted geometry and feature-family matrix have not
+been fixed. Until that matrix is closed and exercised by representative
 fixtures, scores above L1 remain blocked.
+
+### Release checks
+
+All seven saves select `creo:nd`. Each has three `ND:0:<Name>:1` entries for
+`Model_L05_PX`, `UnitSystemDef_L03`, and `PDMTrail_L03`, eight `ModelView`
+entries, and undecorated material-geometry and feature sections. None has a
+header-adjacent ASCII object or a `DEPDB_DATA` section. The first TOC has 32
+rows, including `NEXT_TOC_ENTRY`; the continuation has the row count below,
+including its unused row. Both use 81-byte rows.
+
+| Creo build | Valid sections | Continuation rows | Change in section names from preceding release | Expanded sections |
+| --- | ---: | ---: | --- | ---: |
+| `7.0.12.0` | 52 | 22 | Initial directory | 5 |
+| `8.0.12.0` | 54 | 24 | Adds `IdsGenAllRepsDb`, `IdsGenSimpRepDb` | 6 |
+| `9.0.12.0` | 54 | 24 | None | 6 |
+| `10.0.11.0` | 55 | 25 | Adds `SldRegenRevInfo` | 7 |
+| `11.0.9.0` | 55 | 25 | None | 7 |
+| `12.4.5.0` | 55 | 25 | None | 7 |
+| `13.4.2.0` | 55 | 25 | None | 7 |
+
+The producer and banner declarations are tabulated in `creo_prt.md` §1.1.
+The header's `VERS 0 0`, `REVS 0,`, and `RELL 0,` declarations do not change
+in these saves. Counted model names and object identities remain source data.
+The reader reports the first UGC line as `version_line`; the Creo banner and
+nested version strings were inspected separately. `MdlStatus` retains older
+`Proe_version` strings across the release changes.
+Section offsets and payload lengths change. The following stored lengths
+include each section's header; they are byte counts.
+
+| Creo release | `VisibGeom` | `AllFeatur` | `MdlStatus` | `FeatDefs` | `DispDataTable` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 7 | 7021 | 10811 | 3279 | 7889 | 1056 |
+| 8 | 7021 | 10850 | 3424 | 8080 | 1127 |
+| 9 | 7021 | 10778 | 3424 | 8080 | 1127 |
+| 10 | 7021 | 10866 | 3447 | 8100 | 1193 |
+| 11 | 7053 | 10882 | 3446 | 8137 | 1195 |
+| 12 | 7053 | 10906 | 3761 | 8092 | 1228 |
+| 13 | 7053 | 10906 | 3761 | 8139 | 1228 |
+
+The release checks below used the reader before the extended order-table fix.
+`dump`, `query`, and native `check` complete for every release. `check` has no
+findings. Every decode has 393 coverage counters and 20 loss notes.
+The visible namespace contains 19 surface rows and 48 curve-topology rows.
+Five surface carriers and 20 curve carriers remain untransferred. Face
+admission retains nine faces and rejects ten: five lack a surface carrier and
+five lack resolved boundary vertices. The neutral model has one general body,
+two open shells, 30 edges, 23 vertices, eight history features, and one sketch.
+Seven section segments retain native geometry. One sweep, one recognized
+non-sweep operation, one native definition, and one explicitly unresolved
+construction remain incomplete.
+
+| Creo release | Generated-entity rows | Stored order-table rows | Affected-geometry replay records |
+| --- | ---: | ---: | ---: |
+| 7 | 179 | 3 | 1 |
+| 8 | 180 | 3 | 1 |
+| 9 | 176 | 3 | 0 |
+| 10 | 176 | 3 | 0 |
+| 11 | 177 | 0 | 0 |
+| 12 | 177 | 0 | 0 |
+| 13 | 177 | 0 | 0 |
+
+Creo 11 through 13 add a null `rg_ref_id` field to the order-table prototype
+and each stored row. The reader now accepts that declared form and requires
+the null slot on every row. Synthetic tests cover named and positional
+prototypes, both table forms, incomplete rows, and undeclared or non-null
+slots. A rebuilt CLI must confirm three retained order rows in those releases
+and repeat geometry, feature, and loss comparisons. The single authorized CLI
+build preceded this fix.
+
+`Model_L05_PX`, `UnitSystemDef_L03`, `PDMTrail_L03`, `SolidPersistTable`, and
+`SolidPrimdata` expand in every release. `IdsGenSimpRepDb` also expands from
+Creo 8, and `SldRegenRevInfo` also expands from Creo 10. These two additions
+remain native expanded records. `DispDataTable` remains compressed in every
+release: Creo 7 through 11 report invalid or incomplete LZW framing; Creo 12
+and 13 report an undefined LZW code. The source bytes remain retained.
+`VisibGeom`, `NovisGeom`, and `ActDatums` retain opaque source sections, and
+the thumbnail remains a retained auxiliary asset. Display tessellation and
+appearance do not transfer.
+
+All six `cadmpeg diff --geometry` comparisons against the Creo 7 decode report
+`agree`. The compared body signatures and measured vertex boxes agree; area,
+volume, centroid, and the complete body box remain unavailable. Feature
+identities, order, dependencies, and definitions agree. Source offsets,
+offset-based references, native generated-entry counts, and retained feature
+source properties change. Thus the neutral documents are not byte-identical.
+
+The recipe's analytic solid is not verified. `cadmpeg measure` reports
+`volume.shell-open` and `boundary.coedge-unresolved`; its measured vertex box
+does not agree with the recipe's box. The retained operation set also exceeds
+the recipe's single extrusion. Source-to-recipe confirmation and complete
+carrier and boundary transfer are required before geometry correctness can
+pass. Release agreement and a successful structural check do not satisfy
+that gate.
 
 ## Cumulative gates
 
@@ -178,6 +275,12 @@ fixtures, scores above L1 remain blocked.
   is supported. Retained
   unknown rows in the same plane, cylinder, or extrusion family do not
   invalidate this proof; every materialized carrier and cap must still agree.
+- The four-entry circular sweep table binds its non-surface source circle to
+  the owning sketch profile when both cap planes and the cylinder have unique
+  same-feature rows. Competing tables and duplicate identities remain native.
+- Cap tables with mixed profile entries retain unproved profile and extent joins
+  outside the defined circular forms. Independently resolved carriers remain
+  available (`SP-44`).
 - Unbound `geom_type = 2c` rows with a complete direction prefix and
   lane-specific six-slot straight-directrix frame transfer as unbounded plane
   carriers. Rows owned by a cubic replay remain on the replay-bound path.
@@ -442,10 +545,14 @@ fixtures, scores above L1 remain blocked.
 - Positional `ActDatums` outlines require exactly one held coordinate. Outlines
   with zero or multiple held coordinate pairs remain unresolved instead of
   selecting an arbitrary plane normal.
-- Bounded plane-support prefixes `0f 18 e6 0f 18 10 18` and
-  `18 e4 10 e4 18 e5 0f 18` transfer their X-normal rank-two charts and three
-  following origin coordinates. Incomplete frames and frames with trailing
-  bytes remain unresolved.
+- Bounded positional `A 18 e6 B 18 C 18` plane images transfer their signed
+  X parameter and Y normal directions. The four eight-byte X-axis images
+  retain both signed in-plane support directions. Both families require
+  three following origin coordinates. Incomplete frames and frames with
+  trailing bytes remain unresolved.
+- Compact X-normal and Z-normal plane images retain their stored parameter
+  and normal signs. Native loop transfer reverses successor order and both
+  coedge senses to produce neutral boundary traversal.
 - Named and positional `ActDatums` outlines decode their shared bounded
   model-coordinate forms, including `73`, `9f`, `a5`, and `bb`, into complete
   corner coordinates. Both forms retain `45` and `5c` tokens as bounded slots
@@ -559,9 +666,15 @@ fixtures, scores above L1 remain blocked.
   resolves to a type-three or type-four dimension uses the neutral radius or
   diameter form; all other bindings remain native.
 - Type-five arc-radius and type-fourteen circular-size relations accept every
-  linear dimension type. Type four propagates a diameter as half its stored
-  value; the other linear types propagate a radius. Angular and schema-defined
-  dimensions remain native.
+  linear dimension type. Type four propagates its stored radius and uses twice
+  that value for the neutral diameter parameter; the other linear types propagate
+  a radius. Angular and schema-defined dimensions remain native.
+- Type-four dimension parameters and literal expressions use twice the stored
+  radius. Native dimension values and encoded value bodies remain unchanged. A
+  non-finite doubled value retains an unresolved neutral parameter and reports
+  `creo/section.diameter-value-unresolved`. Active neutral diameter constraints
+  with resolved circular geometry and length parameters are checked against twice
+  the radius by `cadmpeg-ir` sketch geometric-consistency validation.
 - A complete endpoint-selection or type-35 incidence whose non-target operand
   resolves to a point locus establishes its sense-zero operand's line role
   independently of solver activity. A unique unary type-one or type-two
@@ -746,3 +859,9 @@ until every cumulative gate through their level passes for a closed envelope.
   promote an axis, radius, chart direction, or face binding. Pcurve-derived
   carriers and endpoint evidence that depend on a withheld visible chart stay
   unresolved; an ordinary missing chart remains a separate case.
+
+Same-ID operation candidates project only when the family, recipe, root schema
+class, and parent identifier agree. Disagreement retains the native candidates
+and reports `creo/feature.state-selection-unresolved`. Coverage and source
+metadata record `unresolved_feature_state_selection_count`. A consensus does
+not mark a repeated native candidate as current.

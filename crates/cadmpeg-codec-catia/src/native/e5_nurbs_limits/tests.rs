@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+#![allow(clippy::unwrap_used)]
 use super::{derive, records, CatiaE5NurbsLimitRecord, LimitProgram};
 use crate::test_support::{test_e5::append_e5_record, with_entity_limit, with_service_context};
 

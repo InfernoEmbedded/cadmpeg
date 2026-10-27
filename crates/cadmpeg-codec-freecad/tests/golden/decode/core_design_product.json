@@ -1,7 +1,7 @@
 {
   "ir": {
     "decode_depth": "full",
-    "ir_version": "8",
+    "ir_version": "9",
     "model": {
       "appearance_bindings": [],
       "appearances": [],
@@ -27,26 +27,6 @@
           "kind": "solid",
           "regions": [
             "fcstd:model:region#Cylinder:Shape:Cylinder.Shape.brp:9%40location1"
-          ],
-          "transform": [
-            [
-              1.0,
-              0.0,
-              0.0,
-              15.0
-            ],
-            [
-              0.0,
-              1.0,
-              0.0,
-              10.0
-            ],
-            [
-              0.0,
-              0.0,
-              1.0,
-              0.0
-            ]
           ]
         },
         {
@@ -3508,9 +3488,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:10%40location1%3A1%3A1",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:10%40location1%3A1%3A2",
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:10%40location1%3A1%3A4",
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:10%40location1%3A1%3A3",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:10%40location1%3A1%3A4"
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:10%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3521,9 +3501,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:20%40location1%3A1%3A1",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:20%40location1%3A1%3A2",
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:20%40location1%3A1%3A4",
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:20%40location1%3A1%3A3",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:20%40location1%3A1%3A4"
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:20%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3534,9 +3514,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:24%40location1%3A1%3A1",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:24%40location1%3A1%3A2",
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:24%40location1%3A1%3A4",
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:24%40location1%3A1%3A3",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:24%40location1%3A1%3A4"
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:24%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3547,9 +3527,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:28%40location1%3A1%3A1",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:28%40location1%3A1%3A2",
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:28%40location1%3A1%3A4",
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:28%40location1%3A1%3A3",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:28%40location1%3A1%3A4"
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:28%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3560,9 +3540,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:30%40location1%3A1%3A1",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:30%40location1%3A1%3A2",
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:30%40location1%3A1%3A4",
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:30%40location1%3A1%3A3",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:30%40location1%3A1%3A4"
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:30%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3573,9 +3553,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:32%40location1%3A1%3A1",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:32%40location1%3A1%3A2",
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:32%40location1%3A1%3A4",
               "fcstd:model:coedge#Box:Shape:Box.Shape.brp:32%40location1%3A1%3A3",
-              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:32%40location1%3A1%3A4"
+              "fcstd:model:coedge#Box:Shape:Box.Shape.brp:32%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3586,9 +3566,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:10%40location13%3A1%3A1",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:10%40location13%3A1%3A2",
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:10%40location13%3A1%3A4",
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:10%40location13%3A1%3A3",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:10%40location13%3A1%3A4"
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:10%40location13%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3599,9 +3579,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:17%40location13%3A1%3A1",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:17%40location13%3A1%3A2",
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:17%40location13%3A1%3A4",
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:17%40location13%3A1%3A3",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:17%40location13%3A1%3A4"
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:17%40location13%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3612,9 +3592,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:25%40location1%3A1%3A1",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:25%40location1%3A1%3A2",
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:25%40location1%3A1%3A3",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:25%40location1%3A1%3A4"
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:25%40location1%3A1%3A4",
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:25%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3635,9 +3615,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:30%40location13%3A1%3A1",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:30%40location13%3A1%3A2",
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:30%40location13%3A1%3A4",
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:30%40location13%3A1%3A3",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:30%40location13%3A1%3A4"
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:30%40location13%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3649,8 +3629,8 @@
             "coedges": [
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:36%40location1%3A1%3A1",
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:36%40location1%3A1%3A2",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:36%40location1%3A1%3A3",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:36%40location1%3A1%3A4"
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:36%40location1%3A1%3A4",
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:36%40location1%3A1%3A3"
             ],
             "kind": "ring"
           },
@@ -3671,9 +3651,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:38%40location13%3A1%3A1",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:38%40location13%3A1%3A2",
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:38%40location13%3A1%3A4",
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:38%40location13%3A1%3A3",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:38%40location13%3A1%3A4"
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:38%40location13%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3684,9 +3664,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:41%40location1%3A1%3A1",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:41%40location1%3A1%3A2",
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:41%40location1%3A1%3A4",
               "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:41%40location1%3A1%3A3",
-              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:41%40location1%3A1%3A4"
+              "fcstd:model:coedge#Cut:Shape:Cut.Shape.brp:41%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3697,9 +3677,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#Cylinder:Shape:Cylinder.Shape.brp:5%40location1%3A1%3A1",
+              "fcstd:model:coedge#Cylinder:Shape:Cylinder.Shape.brp:5%40location1%3A1%3A4",
               "fcstd:model:coedge#Cylinder:Shape:Cylinder.Shape.brp:5%40location1%3A1%3A2",
-              "fcstd:model:coedge#Cylinder:Shape:Cylinder.Shape.brp:5%40location1%3A1%3A3",
-              "fcstd:model:coedge#Cylinder:Shape:Cylinder.Shape.brp:5%40location1%3A1%3A4"
+              "fcstd:model:coedge#Cylinder:Shape:Cylinder.Shape.brp:5%40location1%3A1%3A3"
             ],
             "kind": "ring"
           },
@@ -3730,9 +3710,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:10%40location1%3A1%3A1",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:10%40location1%3A1%3A2",
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:10%40location1%3A1%3A4",
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:10%40location1%3A1%3A3",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:10%40location1%3A1%3A4"
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:10%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3743,9 +3723,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:20%40location1%3A1%3A1",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:20%40location1%3A1%3A2",
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:20%40location1%3A1%3A4",
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:20%40location1%3A1%3A3",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:20%40location1%3A1%3A4"
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:20%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3756,9 +3736,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:24%40location1%3A1%3A1",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:24%40location1%3A1%3A2",
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:24%40location1%3A1%3A4",
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:24%40location1%3A1%3A3",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:24%40location1%3A1%3A4"
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:24%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3769,9 +3749,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:28%40location1%3A1%3A1",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:28%40location1%3A1%3A2",
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:28%40location1%3A1%3A4",
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:28%40location1%3A1%3A3",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:28%40location1%3A1%3A4"
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:28%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3782,9 +3762,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:30%40location1%3A1%3A1",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:30%40location1%3A1%3A2",
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:30%40location1%3A1%3A4",
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:30%40location1%3A1%3A3",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:30%40location1%3A1%3A4"
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:30%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },
@@ -3795,9 +3775,9 @@
           "boundary": {
             "coedges": [
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:32%40location1%3A1%3A1",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:32%40location1%3A1%3A2",
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:32%40location1%3A1%3A4",
               "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:32%40location1%3A1%3A3",
-              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:32%40location1%3A1%3A4"
+              "fcstd:model:coedge#DesignedFeature:Shape:DesignedFeature.Shape.brp:32%40location1%3A1%3A2"
             ],
             "kind": "ring"
           },

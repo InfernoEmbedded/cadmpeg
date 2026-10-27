@@ -30,7 +30,10 @@ fn block_appended_after_completed_native_directory_remains_malformed() {
     let mut bytes = sldprt_with_body_and_envelope(&triangle_body());
     bytes.extend(make_block(0x43, MEMBER, XML));
     assert!(crate::SldprtCodec
-        .decode(&mut std::io::Cursor::new(bytes), &Default::default())
+        .decode(
+            &mut std::io::Cursor::new(bytes),
+            &cadmpeg_ir::codec::DecodeOptions::default()
+        )
         .is_err());
 }
 fn is_property(row: &&mut SourceAttribute) -> bool {
@@ -199,7 +202,7 @@ fn source_less_writer_refuses_saved_properties() {
     });
     let mut bytes = Vec::new();
     assert!(
-        matches!(crate::writer::write_semantic_with_records(&ir, &Default::default(), &[], &mut bytes), Err(CodecError::NotImplemented(message)) if message.contains("SLDPRT default"))
+        matches!(crate::writer::write_semantic_with_records(&ir, &cadmpeg_ir::annotations::Annotations::default(), &[], &mut bytes), Err(CodecError::NotImplemented(message)) if message.contains("SLDPRT default"))
     );
     assert!(bytes.is_empty());
 }

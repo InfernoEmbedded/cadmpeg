@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+#![allow(clippy::unwrap_used)]
 use super::*;
 use crate::container::{outer_container_declarations, outer_container_for_extent};
 

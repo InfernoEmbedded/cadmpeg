@@ -1517,7 +1517,7 @@ pub(crate) fn hidden_body_geometry_and_visibility_round_trip() {
     );
     let transformed_text = export(&transformed);
     assert!(transformed_text.contains("MAPPED_ITEM"));
-    assert!(!transformed_text.contains("ADVANCED_BREP_SHAPE_REPRESENTATION"));
+    assert!(transformed_text.contains("ADVANCED_BREP_SHAPE_REPRESENTATION"));
     let decoded = StepCodec::default()
         .decode(
             &mut Cursor::new(transformed_text),
@@ -1719,6 +1719,7 @@ fn presentation_layer_round_trips_product_occurrence_and_pmi_items() {
         ProductDefinitionId::mint("test:model:product#child").expect("identity grammar");
     ir.model.product_definitions.extend([
         ProductDefinition {
+            sketches: Vec::default(),
             id: parent_product.clone(),
             kind: cadmpeg_ir::products::ProductDefinitionKind::Part,
             source_name: Some("Parent assembly".into()),
@@ -1730,6 +1731,7 @@ fn presentation_layer_round_trips_product_occurrence_and_pmi_items() {
             native_ref: None,
         },
         ProductDefinition {
+            sketches: Vec::default(),
             id: child_product.clone(),
             kind: cadmpeg_ir::products::ProductDefinitionKind::Part,
             source_name: Some("Child part".into()),

@@ -1237,6 +1237,20 @@ invalid surface carrier is omitted and reports
 the header. This is a CADIR export-admission rule for malformed neutral input;
 it does not assign a STEP meaning to a missing pole.
 
+The AP203 edition 2, AP214, and AP242 simple-instance parameter sequence for
+`CARTESIAN_TRANSFORMATION_OPERATOR_2D` is `representation_item.name`,
+`functionally_defined_transformation.name`,
+`functionally_defined_transformation.description`, `axis1`, `axis2`,
+`local_origin`, and `scale`. The first two attributes are labels; description
+is optional text. `CARTESIAN_TRANSFORMATION_OPERATOR_3D` adds `axis3` after
+`scale`. The simple instances therefore have seven and eight parameters,
+respectively. The two inherited name attributes occupy separate positions.
+AP203 edition 1 has no `CARTESIAN_TRANSFORMATION_OPERATOR_2D` subtype. Its
+non-abstract `CARTESIAN_TRANSFORMATION_OPERATOR` carries the same seven
+parameters and supplies a two-dimensional replica transform when its origin
+and axes are two-dimensional. Its inherited transformation description is
+required text; an empty string is valid.
+
 `CARTESIAN_TRANSFORMATION_OPERATOR_3D` stores a required local origin and
 optional axis1, axis2, axis3, and scale attributes. Its transformation matrix
 columns are normalized and orthogonal: axis3 defaults to +Z, axis1 is projected
@@ -1411,6 +1425,24 @@ direction. The edge occurrence carries the wireframe use. A committed body
 graph has complete ownership and valid referenced indices. Recoverable
 non-manifold incidence remains attached and is reported.
 
+ISO 10303-42 derives the `cfs_faces` of an `ORIENTED_OPEN_SHELL` or an
+`ORIENTED_CLOSED_SHELL` as `conditional_reverse(orientation,
+shell_element.cfs_faces)`. With `orientation = FALSE`, each face of the base
+shell is used through `face_reversed`, the `ORIENTED_FACE` of that face with
+the opposite orientation. An `ORIENTED_FACE` derives its
+`bounds` as `conditional_reverse(orientation, face_element.bounds)`, so a
+reversed face also reverses every face bound, and a reversed face bound
+reverses the loop traversal. A reversed face use therefore reverses the
+oriented normal and the traversal of every bound together. Oriented-shell and
+oriented-face orientations compose by exclusive or over the chain from the
+shell occurrence to the base face.
+
+CADIR decision: the decoder applies the composed face reversal to the face
+`sense` and to the traversal of every loop of the face. The loop winding and
+the face `sense` then state the same oriented normal. A void of a
+`BREP_WITH_VOIDS` is an `ORIENTED_CLOSED_SHELL` with `orientation = FALSE`, so
+the CADIR void faces are the reverse of the base closed-shell faces.
+
 Connected face sets join through common edges or common vertices. Edge-based
 and shell-based wireframe models preserve their connected edge and vertex
 ownership. Each independent connected edge set or wire shell receives
@@ -1529,6 +1561,16 @@ the outer-boundary semantics and states that no more than one boundary of a
 face may have this type. Section §5.5.19 defines `FACE.bounds` as
 `SET[1:?] OF FACE_BOUND`; its WR2 permits at most one `FACE_OUTER_BOUND`, and
 the outer role is optional. Other face bounds are not outer bounds.
+
+Section §5.5.19 defines the face domain as an oriented, connected, finite
+2-manifold, and the topological normal `n` such that each bound runs
+counterclockwise around the face when `n` points up: the face interior lies
+to the left of every oriented bound. Section §5.5.20 states in
+`FACE_SURFACE.same_sense` whether the surface normal agrees with `n`. A
+face with no `FACE_OUTER_BOUND` follows the same rule, and a single
+`FACE_BOUND` is not an outer bound. On an unbounded surface such as a
+`PLANE`, the region to the left of one bound that runs clockwise about `n` is
+not finite, so that bound set is not a face.
 
 Section §5.5.17 defines the inherited `FACE_BOUND` attributes `bound` and
 `orientation`. Section §5.5.18 declares `FACE_OUTER_BOUND` as a subtype with
@@ -1707,7 +1749,18 @@ the deterministic projection for reproducible output, while layer membership,
 view identity, visibility, and all other consumers treat the sequence as a
 set of assigned items.
 Product shape binds through `PRODUCT_DEFINITION_SHAPE` and
-`SHAPE_DEFINITION_REPRESENTATION`. Every body-producing representation,
+`SHAPE_DEFINITION_REPRESENTATION`.
+CADIR decision: a body absent from every product definition's body list belongs
+to the model in model coordinates. Its shape items occur once in a body
+representation linked to the root product's shape representation by
+`SHAPE_REPRESENTATION_RELATIONSHIP`, without an occurrence transformation.
+Solid items without body placements use
+`ADVANCED_BREP_SHAPE_REPRESENTATION`; other items use `SHAPE_REPRESENTATION`
+and retain their body placements. Claimed bodies retain their product ownership
+and occurrence structure. One local root product owns the unclaimed bodies;
+a sole product definition is the root when the occurrence list is empty.
+Without a unique local root, a separate model product owns these bodies.
+Every body-producing representation,
 including `ADVANCED_BREP_REPRESENTATION` and
 `GEOMETRICALLY_BOUNDED_SURFACE_SHAPE_REPRESENTATION`, uses the same
 source-root-to-body map. An `ADVANCED_BREP_REPRESENTATION` is typed when its
@@ -1880,6 +1933,15 @@ representation to the parent representation. If the relationship lists those
 direct endpoints in reverse order, the item direction is inverted. If neither
 order, or both orders, identifies the child and parent representations, the
 occurrence placement is unresolved.
+
+An `ADVANCED_BREP_SHAPE_REPRESENTATION` contains at least one
+`MANIFOLD_SOLID_BREP` or `MAPPED_ITEM`. Manifold solid B-reps, mapped items,
+and `AXIS2_PLACEMENT_3D` records form its item set. Its solid shells contain
+`ADVANCED_FACE` records. A mapped item in this representation maps another
+`ADVANCED_BREP_SHAPE_REPRESENTATION`. A placement-only representation does
+not satisfy the required solid-or-mapped-item member. Solid and non-solid geometry can
+belong to separate representations joined by a
+`SHAPE_REPRESENTATION_RELATIONSHIP`.
 
 Exact and tessellated representations of one product remain linked when their
 source item has one exact body owner. A tessellated solid, shell, or shape

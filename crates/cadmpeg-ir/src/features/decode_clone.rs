@@ -139,6 +139,7 @@ rewrite_enum!(ExtrudeStart, []; {
     ProfilePlane {  },
     OffsetProfilePlane { offset },
     FromFace { face, offset },
+    FromPlane { plane, native },
 });
 
 rewrite_enum!(ExtrusionDirectionSource, []; {
@@ -233,6 +234,9 @@ rewrite_enum!(FeatureOperation, []; {
     Binder { sources, construction },
     Rib { construction, op },
     SheetMetalBaseFlange { profile, thickness, side },
+    SheetMetalAttachedPlate { profile, thickness, side, attachment },
+    SheetMetalBend { plate, attachment, inside_radius, relief, transition },
+    SheetMetalCorner { bend, effect },
     SheetMetalEdgeFlange { edges, height, angle, height_datum, bend_position, width, bend_radius },
     SheetMetalHem { edges, bend_position, form, direction, bend_radius },
     Fillet { groups },
@@ -316,6 +320,7 @@ rewrite_enum!(LinearTermination, []; {
     ToLast {  },
     ToFace { face, offset },
     ToVertex { vertex },
+    ToPlane { plane, native },
     OffsetFromFace { face, offset },
     ToShape { target },
 });

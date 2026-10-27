@@ -30,7 +30,7 @@ fn decode_types_class_911_as_unresolved_hole() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("DEPDB_DATA", b"Hole id 4\0".to_vec()),
+            ("MdlStatus", b"Hole id 4\0".to_vec()),
         ],
     );
 
@@ -149,7 +149,7 @@ fn decode_types_class_914_as_unresolved_chamfer() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("DEPDB_DATA", b"Chamfer id 4\0".to_vec()),
+            ("MdlStatus", b"Chamfer id 4\0".to_vec()),
         ],
     );
 
@@ -219,7 +219,7 @@ fn decode_uses_stored_family_when_row_schema_is_not_registered() {
         "c",
         &[
             ("AllFeatur", allfeatur),
-            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
+            ("MdlStatus", b"Round id 4\0".to_vec()),
         ],
     );
 
@@ -257,7 +257,7 @@ fn decode_uses_reference_name_family_when_operation_name_is_generic() {
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
             ("MdlRefInfo", reference_name),
-            ("DEPDB_DATA", b"Surface id 4\0".to_vec()),
+            ("MdlStatus", b"Surface id 4\0".to_vec()),
         ],
     );
 
@@ -518,7 +518,7 @@ fn decode_types_row_only_class_927_as_unresolved_draft() {
 fn decode_types_named_draft_with_unresolved_operands() {
     for name in ["Draft", "Schräge"] {
         let stored_name = format!("{name} id 40\0");
-        let data = build_prt("c", &[("DEPDB_DATA", stored_name.into_bytes())]);
+        let data = build_prt("c", &[("MdlStatus", stored_name.into_bytes())]);
         let result = CreoCodec
             .decode(&mut Cursor::new(data), &DecodeOptions::default())
             .expect("decode");
@@ -549,7 +549,7 @@ fn decode_types_named_draft_with_unresolved_operands() {
 
 #[test]
 fn decode_types_named_mirror_with_unresolved_operands() {
-    let data = build_prt("c", &[("DEPDB_DATA", b"oMirror id 4\0".to_vec())]);
+    let data = build_prt("c", &[("MdlStatus", b"oMirror id 4\0".to_vec())]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -609,7 +609,7 @@ fn decode_types_named_mirror_with_unresolved_operands() {
 
 #[test]
 fn decode_types_z_prefixed_round_with_unresolved_operands() {
-    let data = build_prt("c", &[("DEPDB_DATA", b"zRound id 4\0".to_vec())]);
+    let data = build_prt("c", &[("MdlStatus", b"zRound id 4\0".to_vec())]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -666,19 +666,7 @@ fn decode_recovers_schema_feature_that_owns_materialized_surfaces() {
     assert!(matches!(
         feature.evaluation.definition(),
         cadmpeg_ir::features::FeatureDefinition::Operation(
-            cadmpeg_ir::features::FeatureOperation::Extrude {
-                profile: cadmpeg_ir::features::ProfileRef::Planar(
-                    cadmpeg_ir::features::PlanarProfileRef::Unresolved(_)
-                ),
-                direction: cadmpeg_ir::features::ExtrudeDirection::ProfileNormal {},
-                extent: cadmpeg_ir::features::ExtrudeExtent::OneSided {
-                    side: cadmpeg_ir::features::ExtrudeSide {
-                        termination: cadmpeg_ir::features::LinearTermination::Unresolved {},
-                        ..
-                    }
-                },
-                ..
-            }
+            cadmpeg_ir::features::FeatureOperation::Native { .. }
         )
     ));
     assert_eq!(
@@ -697,7 +685,7 @@ fn decode_recovers_schema_feature_that_owns_materialized_surfaces() {
 }
 
 #[test]
-fn decode_types_row_only_class_916_as_subtractive_extrusion() {
+fn decode_keeps_row_only_class_916_native_without_a_recipe() {
     let mut geometry = visibgeom_payload(1, 0);
     geometry.extend_from_slice(&[7, 0x22, 4, 0x01, 0, 0]);
     let allfeatur = vec![
@@ -720,20 +708,7 @@ fn decode_types_row_only_class_916_as_subtractive_extrusion() {
     assert!(matches!(
         feature.evaluation.definition(),
         cadmpeg_ir::features::FeatureDefinition::Operation(
-            cadmpeg_ir::features::FeatureOperation::Extrude {
-                profile: cadmpeg_ir::features::ProfileRef::Planar(
-                    cadmpeg_ir::features::PlanarProfileRef::Unresolved(_)
-                ),
-                direction: cadmpeg_ir::features::ExtrudeDirection::ProfileNormal {},
-                extent: cadmpeg_ir::features::ExtrudeExtent::OneSided {
-                    side: cadmpeg_ir::features::ExtrudeSide {
-                        termination: cadmpeg_ir::features::LinearTermination::Unresolved {},
-                        ..
-                    }
-                },
-                op: cadmpeg_ir::features::BooleanOp::Cut,
-                ..
-            }
+            cadmpeg_ir::features::FeatureOperation::Native { .. }
         )
     ));
     assert_eq!(
@@ -741,68 +716,13 @@ fn decode_types_row_only_class_916_as_subtractive_extrusion() {
             result.report(),
             crate::coverage::TRANSFERRED_EXTRUDE_FEATURE_COUNT.as_str()
         ),
-        1
-    );
-    assert_eq!(
-        wire::coverage_count(
-            result.report(),
-            crate::coverage::TRANSFERRED_UNRESOLVED_EXTRUDE_PROFILE_FEATURE_COUNT.as_str()
-        ),
-        1
-    );
-    assert_eq!(
-        wire::coverage_count(
-            result.report(),
-            crate::coverage::TRANSFERRED_NATIVE_EXTRUDE_PROFILE_FEATURE_COUNT.as_str()
-        ),
         0
     );
-    assert_eq!(
-        wire::coverage_count(
-            result.report(),
-            crate::coverage::TRANSFERRED_INCOMPLETE_EXTRUDE_START_FEATURE_COUNT.as_str()
-        ),
-        0
-    );
-    assert_eq!(
-        wire::coverage_count(
-            result.report(),
-            crate::coverage::TRANSFERRED_INCOMPLETE_EXTRUDE_TERMINATION_FEATURE_COUNT.as_str()
-        ),
-        1
-    );
-    assert_eq!(
-        wire::coverage_count(
-            result.report(),
-            (crate::coverage::TRANSFERRED_UNRESOLVED_EXTRUDE_BOOLEAN_OPERATION_FEATURE_COUNT)
-                .as_str()
-        ),
-        0
-    );
-    assert_eq!(
-        wire::coverage_count(
-            result.report(),
-            crate::coverage::TRANSFERRED_INCOMPLETE_EXTRUDE_FEATURE_COUNT.as_str()
-        ),
-        1
-    );
-    assert_eq!(
-        wire::coverage_count(
-            result.report(),
-            crate::coverage::TRANSFERRED_INCOMPLETE_SWEEP_FEATURE_COUNT.as_str()
-        ),
-        1
-    );
-    assert!(result
-        .report()
-        .losses
-        .iter()
-        .any(|loss| loss.message.contains("profile sweep history feature")));
 }
 
 #[test]
 fn decode_types_named_base_protrusion_as_new_body() {
-    let data = build_prt("c", &[("DEPDB_DATA", b"Protrusion id 4\0".to_vec())]);
+    let data = build_prt("c", &[("MdlStatus", b"Protrusion id 4\0".to_vec())]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -817,20 +737,7 @@ fn decode_types_named_base_protrusion_as_new_body() {
     assert!(matches!(
         feature.evaluation.definition(),
         cadmpeg_ir::features::FeatureDefinition::Operation(
-            cadmpeg_ir::features::FeatureOperation::Extrude {
-                profile: cadmpeg_ir::features::ProfileRef::Planar(
-                    cadmpeg_ir::features::PlanarProfileRef::Unresolved(_)
-                ),
-                direction: cadmpeg_ir::features::ExtrudeDirection::ProfileNormal {},
-                extent: cadmpeg_ir::features::ExtrudeExtent::OneSided {
-                    side: cadmpeg_ir::features::ExtrudeSide {
-                        termination: cadmpeg_ir::features::LinearTermination::Unresolved {},
-                        ..
-                    }
-                },
-                op: cadmpeg_ir::features::BooleanOp::NewBody,
-                ..
-            }
+            cadmpeg_ir::features::FeatureOperation::Native { .. }
         )
     ));
 }
@@ -840,7 +747,7 @@ fn decode_types_named_sweeps_without_recipe_or_operands() {
     let data = build_prt(
         "c",
         &[(
-            "DEPDB_DATA",
+            "MdlStatus",
             b"Extrude id 4\0Revolve id 5\0Cut id 6\0".to_vec(),
         )],
     );
@@ -888,20 +795,7 @@ fn decode_types_named_sweeps_without_recipe_or_operands() {
     assert!(matches!(
         feature("creo:model:feature#6").evaluation.definition(),
         cadmpeg_ir::features::FeatureDefinition::Operation(
-            cadmpeg_ir::features::FeatureOperation::Extrude {
-                profile: cadmpeg_ir::features::ProfileRef::Planar(
-                    cadmpeg_ir::features::PlanarProfileRef::Unresolved(_)
-                ),
-                direction: cadmpeg_ir::features::ExtrudeDirection::ProfileNormal {},
-                extent: cadmpeg_ir::features::ExtrudeExtent::OneSided {
-                    side: cadmpeg_ir::features::ExtrudeSide {
-                        termination: cadmpeg_ir::features::LinearTermination::Unresolved {},
-                        ..
-                    }
-                },
-                op: cadmpeg_ir::features::BooleanOp::Cut,
-                ..
-            }
+            cadmpeg_ir::features::FeatureOperation::Native { .. }
         )
     ));
     assert_eq!(
@@ -997,7 +891,7 @@ fn decode_types_class_913_without_an_edge_array() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
+            ("MdlStatus", b"Round id 4\0".to_vec()),
         ],
     );
     let result = CreoCodec
@@ -1079,7 +973,7 @@ fn decode_types_class_913_without_an_edge_array() {
 
 #[test]
 fn decode_types_named_german_round_without_a_schema_row() {
-    let data = build_prt("c", &[("DEPDB_DATA", b"Rundung id 4\0".to_vec())]);
+    let data = build_prt("c", &[("MdlStatus", b"Rundung id 4\0".to_vec())]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -1108,10 +1002,7 @@ fn decode_types_named_german_round_without_a_schema_row() {
 
 #[test]
 fn decode_types_named_annotation_feature_as_a_tree_node() {
-    let data = build_prt(
-        "c",
-        &[("DEPDB_DATA", b"Annotation Feature id 4\0".to_vec())],
-    );
+    let data = build_prt("c", &[("MdlStatus", b"Annotation Feature id 4\0".to_vec())]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");
@@ -1132,7 +1023,7 @@ fn decode_types_localized_cross_section_nodes() {
     let data = build_prt(
         "c",
         &[(
-            "DEPDB_DATA",
+            "MdlStatus",
             b"Cross Section id 4\0Querschnitt id 5\0".to_vec(),
         )],
     );
@@ -1157,7 +1048,7 @@ fn decode_types_body_and_surface_tree_nodes() {
     let data = build_prt(
         "c",
         &[(
-            "DEPDB_DATA",
+            "MdlStatus",
             b"Body id 4\0K\xc3\xb6rper ID 5\0Surface id 6\0".to_vec(),
         )],
     );
@@ -1207,7 +1098,7 @@ fn decode_types_round_with_labeled_edge_selection() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
+            ("MdlStatus", b"Round id 4\0".to_vec()),
         ],
     );
     let result = CreoCodec
@@ -1299,7 +1190,7 @@ fn mode_only_revolution_decode_retains_source_without_extent() {
             .arenas();
         assert!(arenas
             .get("feature_revolution_extents")
-            .is_none_or(|records| records.is_empty()));
+            .is_none_or(Vec::is_empty));
         let rows = &arenas["feature_rows"];
         assert_eq!(rows.len(), 1);
         assert_eq!(
@@ -1322,7 +1213,7 @@ fn decode_types_schema_less_datum_plane_names() {
             "c",
             &[
                 ("VisibGeom", payload),
-                ("DEPDB_DATA", stored_name.as_bytes().to_vec()),
+                ("MdlStatus", stored_name.as_bytes().to_vec()),
             ],
         );
 

@@ -38,11 +38,11 @@ fn model(id: &str, ordinal: u64, definition: FeatureDefinition) -> cadmpeg_ir::f
         ordinal,
         name: None,
         suppressed: None,
-        dependencies: Default::default(),
+        dependencies: cadmpeg_ir::features::DistinctMembers::default(),
         source_properties: BTreeMap::new(),
         source_tag: None,
         source_text: None,
-        source_content: Default::default(),
+        source_content: cadmpeg_ir::features::FeatureContent::default(),
         native_ref: Some(id.into()),
         evaluation: FeatureEvaluation::from_definition(definition),
     }

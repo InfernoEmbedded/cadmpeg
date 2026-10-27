@@ -161,7 +161,7 @@ fn historical_blends_share_a_body_without_inheriting_its_carriers() {
     let arenas = native.arenas();
     assert!(arenas
         .get("feature_body_write_group_partition_uses")
-        .is_none_or(|uses| uses.is_empty()));
+        .is_none_or(Vec::is_empty));
     let integers = serde_json::to_value(&arenas["parasolid_entity_52_integer_records"]).unwrap();
     for key in [709, 624, 464, 565] {
         assert!(integers

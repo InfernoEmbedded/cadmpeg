@@ -811,12 +811,12 @@ mod tests {
     #[test]
     fn explicit_through_all_second_preserves_the_first_side_and_draft() {
         let absent = project_extrude(&feature(None), &HashMap::new(), &HashMap::new()).unwrap();
-        let first = match absent {
-            FeatureDefinition::Operation(FeatureOperation::Extrude {
-                extent: ExtrudeExtent::OneSided { side },
-                ..
-            }) => side,
-            _ => panic!("ordinary one-sided extent"),
+        let FeatureDefinition::Operation(FeatureOperation::Extrude {
+            extent: ExtrudeExtent::OneSided { side: first },
+            ..
+        }) = absent
+        else {
+            panic!("ordinary one-sided extent")
         };
         assert!(first.draft.is_some());
         let projected = project_extrude(

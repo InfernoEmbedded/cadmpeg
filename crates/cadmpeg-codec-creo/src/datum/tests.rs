@@ -615,7 +615,7 @@ fn decode_merges_datum_geometry_and_operation_history_by_feature_id() {
         "c",
         &[
             ("ActDatums", datum),
-            ("DEPDB_DATA", b"Round id 3\0Datum Plane id 4\0".to_vec()),
+            ("MdlStatus", b"Round id 3\0Datum Plane id 4\0".to_vec()),
         ],
     );
 
@@ -692,7 +692,7 @@ fn decode_withholds_competing_standalone_datum_planes() {
 
 #[test]
 fn decode_retains_named_datum_plane_with_unresolved_placement() {
-    let data = build_prt("c", &[("DEPDB_DATA", b"Datum Plane id 4\0".to_vec())]);
+    let data = build_prt("c", &[("MdlStatus", b"Datum Plane id 4\0".to_vec())]);
     let result = CreoCodec
         .decode(&mut Cursor::new(data), &DecodeOptions::default())
         .expect("decode");

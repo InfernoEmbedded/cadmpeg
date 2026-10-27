@@ -3010,8 +3010,7 @@ pub(super) fn feature_operation_state_records<'a>(
             id,
             feature_id: state.feature_id,
             state_ordinal,
-            current: !state.display_state_conflict
-                && current_offsets.get(&state.feature_id) == Some(&state.offset),
+            current: current_offsets.get(&state.feature_id) == Some(&state.offset),
             family: state.kind.as_str(),
             name,
             recipe: state
@@ -3025,6 +3024,9 @@ pub(super) fn feature_operation_state_records<'a>(
             offset: state.offset,
             state_offset: state.state_offset,
         });
+    }
+    for record in &mut records {
+        record.current &= ordinals.get(&record.feature_id) == Some(&1);
     }
     Ok(records)
 }
@@ -4098,6 +4100,16 @@ mod tests {
         assert_eq!(records[0]["identifier_keyword"], "id");
         assert_eq!(records[0]["family"], "Native Feature");
         assert_eq!(records[0]["current"], true);
+    }
+
+    #[test]
+    fn repeated_native_states_are_not_current() {
+        let mut scan = operation_state_scan();
+        scan.features
+            .operation_states
+            .push(scan.features.operation_states[0].clone());
+        let records = feature_operation_state_records(&scan).expect("state records");
+        assert!(records.iter().all(|record| !record.current));
     }
 
     #[test]

@@ -25,7 +25,10 @@ fn native_four_reference_payload_is_separate_from_five_reference_geometry() {
 #[test]
 fn native_four_reference_alternate_flag_roundtrips_with_source_identity() {
     let bytes = [0xff, 0xff, 0xff, 0xb2, 0x83, 0x5e, 5, 5, 9, 15, 7, 11, 0x21];
-    let native = crate::native::CatiaNative::decode_with_record_ranges(&bytes, &[3..bytes.len()]);
+    let native = crate::native::CatiaNative::decode_with_record_ranges(
+        &bytes,
+        std::slice::from_ref(&(3..bytes.len())),
+    );
     let mut namespace = cadmpeg_ir::NativeNamespace::default();
     native.store(&mut namespace).expect("native store");
     let value = serde_json::to_value(&namespace).expect("namespace wire");

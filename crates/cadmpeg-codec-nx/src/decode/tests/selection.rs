@@ -532,7 +532,7 @@ fn decode_transfers_bspline_surface_and_curve() {
 }
 
 #[test]
-fn decode_replaces_partition_bspline_surface_wrapper_from_deltas() {
+fn decode_preserves_primary_bspline_surface_with_unselected_deltas() {
     let partition = bspline_surface_replacement_partition_stream();
     let deltas = deltas_bspline_surface_wrapper_stream();
     let file = prt_with_streams(&[&partition, &deltas]);
@@ -541,9 +541,7 @@ fn decode_replaces_partition_bspline_surface_wrapper_from_deltas() {
 
     let baseline = NxCodec
         .decode(
-            &mut Cursor::new(crate::test_support::test_prt::prt_with_partition(
-                &partition,
-            )),
+            &mut Cursor::new(prt_with_partition(&partition)),
             &DecodeOptions::default(),
         )
         .unwrap();
@@ -559,7 +557,7 @@ fn decode_replaces_partition_bspline_surface_wrapper_from_deltas() {
 }
 
 #[test]
-fn decode_replaces_partition_bspline_curve_wrapper_from_deltas() {
+fn decode_preserves_primary_bspline_curve_with_unselected_deltas() {
     let partition = bspline_curve_replacement_partition_stream();
     let deltas = deltas_bspline_curve_wrapper_stream();
     let file = prt_with_streams(&[&partition, &deltas]);
@@ -568,9 +566,7 @@ fn decode_replaces_partition_bspline_curve_wrapper_from_deltas() {
 
     let baseline = NxCodec
         .decode(
-            &mut Cursor::new(crate::test_support::test_prt::prt_with_partition(
-                &partition,
-            )),
+            &mut Cursor::new(prt_with_partition(&partition)),
             &DecodeOptions::default(),
         )
         .unwrap();

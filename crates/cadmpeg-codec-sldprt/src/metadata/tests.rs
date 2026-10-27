@@ -527,8 +527,13 @@ fn unsupported_part_roots_report_loss_and_embedded_tokens_do_not_create_metadata
         let (ctx, _) =
             DecodeContext::from_root_bytes(&source, &arena, &DecodePolicy::service()).unwrap();
         let mut losses = Vec::new();
-        let attributes =
-            super::attributes(&ctx, &scan, &mut Default::default(), &mut losses).unwrap();
+        let attributes = super::attributes(
+            &ctx,
+            &scan,
+            &mut cadmpeg_ir::annotations::Annotations::default(),
+            &mut losses,
+        )
+        .unwrap();
         assert!(!attributes
             .iter()
             .any(|attribute| attribute.name == "part_record"));

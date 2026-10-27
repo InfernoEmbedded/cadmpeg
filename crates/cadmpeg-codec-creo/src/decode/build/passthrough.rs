@@ -33,7 +33,7 @@ pub(super) fn preserve_passthrough_sections(
     for section in scan.framing.sections.iter().filter(|section| {
         section.role() == SectionRole::PsbGeometry
             || section.role() == SectionRole::Thumbnail
-            || matches!(section.name(), "MdlStatus" | "NeuPrtSld")
+            || section.name() == "NeuPrtSld"
             || (section.name() == "DEPDB_DATA"
                 && scan
                     .framing
@@ -84,13 +84,6 @@ pub(super) fn preserve_passthrough_sections(
                 section_bytes,
                 section.offset(),
                 "unowned_physical_geometry_section",
-                Exactness::ByteExact,
-            )
-        } else if section.name() == "MdlStatus" {
-            (
-                section_bytes,
-                section.offset(),
-                "modification_audit_section",
                 Exactness::ByteExact,
             )
         } else if section.name() == "NeuPrtSld" {

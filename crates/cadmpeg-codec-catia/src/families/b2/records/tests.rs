@@ -565,7 +565,7 @@ fn owner_chart_rejects_owned_child_in_place_of_preceding_carrier() {
     let carrier_reference = records
         .iter()
         .find(|record| record.class() == 0x37)
-        .and_then(|record| record.payload())
+        .and_then(crate::wire::records::ConsolidatedRecord::payload)
         .expect("complete extended bridge")
         .start
         + 1;

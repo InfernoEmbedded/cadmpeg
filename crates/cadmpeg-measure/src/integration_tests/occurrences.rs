@@ -16,7 +16,9 @@ use crate::reason::{Category, UnavailableReason};
 use crate::report::{MeasureReport, RowPlacement};
 use crate::select::Selection;
 use crate::session::{MeasureError, MeasureInput, MeasureOptions, Measurer};
-use crate::test_support::{assert_measured, cuboid, service_context, TEST_ABSOLUTE_FLOOR};
+use crate::test_support::builders::{
+    assert_measured, cuboid, service_context, TEST_ABSOLUTE_FLOOR,
+};
 use crate::value::Quantity;
 
 fn occurrence_id(key: &str) -> OccurrenceId {
@@ -33,6 +35,7 @@ fn assembly_id() -> ProductDefinitionId {
 
 fn definition(id: ProductDefinitionId, bodies: Vec<cadmpeg_ir::ids::BodyId>) -> ProductDefinition {
     ProductDefinition {
+        sketches: Vec::default(),
         id,
         kind: ProductDefinitionKind::Part,
         source_name: None,

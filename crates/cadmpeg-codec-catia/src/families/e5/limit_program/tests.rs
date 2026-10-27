@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+#![allow(clippy::unwrap_used)]
 use super::{CurveLimits, SuffixControl, SurfaceLimits};
 use cadmpeg_core::decode::View;
 

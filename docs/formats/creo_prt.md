@@ -227,11 +227,21 @@ rows. An ordinary row begins with `<name> <offset-hex> <stored-length-hex>`.
 Offsets are relative to the byte after `#-END_OF_UGC_HEADER\n`; stored lengths
 include the `#<name>\n` section header. A `ModelView` row inserts its decimal
 view identifier before the offset and has raw section name
-`ModelView#<identifier>`. `NEXT_TOC_ENTRY` identifies another TOC block and is
+`ModelView#<identifier>`. The identifier can instead be part of the row's
+first field as `ModelView#<identifier>`, with no separate identifier field.
+`NEXT_TOC_ENTRY` identifies another TOC block and is
 not a body section. Every TOC-derived entry is valid only when its computed
 offset contains the matching section header and its stored extent is inside the
 file. Valid TOC entries are the authoritative section directory; delimiter
 scanning is the fallback when no TOC entry validates.
+
+The count and row width bound a TOC without an `#END_OF_TOC_HEADER` marker.
+The next ordinary TOC field after the stored length is the hexadecimal
+expanded payload length. It excludes the section header. The following
+decimal producer declaration does not select a persistence layout. Additional
+row fields and `#` padding do not change the section extent. A continuation
+TOC uses the same header-relative offset base as the first TOC; its own
+position does not become a new base.
 
 A section payload beginning `1f 9d <flags>` uses Unix `compress` LZW framing.
 The low five flag bits give the maximum code width from 9 through 16; bit 7
@@ -271,6 +281,49 @@ not change the outer layout. An `ND:` decoration on an outer section identifies
 an ND layout. The complete header-adjacent `P_OBJECT` framing identifies the
 legacy ASCII layout. A file with none of these discriminators is an unknown
 layout. Section cardinality is descriptive and does not select a layout.
+
+#### ND release declarations
+
+The binary-generation product banner is an ASCII line between
+`#-END_OF_UGC_HEADER\n` and the first TOC. Its form is
+`#Creo  TM  <release>  <copyright-text> <build>\n`. The release token can be
+a dotted value or an integer. The final dotted numeric token is the build
+declaration. Banner length is variable; the first TOC does not have a fixed
+file offset.
+
+These ND header forms use the same section-directory grammar. The two fields
+in the third column are the first two decimal tokens after `PART` on the
+`#UGC:2` line. They are producer declarations, separate from the banner's
+release and build tokens. The four intervening decimal tokens before the
+declarations in the last column are `800 1 1 15`.
+
+| Release token | Build token | First two `PART` tokens | Following two decimal declarations |
+| --- | --- | --- | --- |
+| `7.0` | `7.0.12.0` | `1986 1560` | `3800 2023154` |
+| `8.0` | `8.0.12.0` | `2014 1660` | `3900 2024325` |
+| `9.0` | `9.0.12.0` | `2083 1760` | `4000 2025304` |
+| `10.0` | `10.0.11.0` | `2239 1860` | `4100 2026024` |
+| `11.0` | `11.0.9.0` | `2420 1960` | `4200 2026123` |
+| `12` | `12.4.5.0` | `2602 2120` | `4300 2026183` |
+| `13` | `13.4.2.0` | `2794 2280` | `4400 2026283` |
+
+The banner and producer declarations do not replace the layout discriminators.
+An ND directory can decorate the outer model, unit-system, and
+trail sections and leave `VisibGeom`, `AllFeatur`, and `FeatDefs`
+undecorated. A `ModelView` identifier uses either TOC spelling and the
+`#<identifier>` section-name suffix. Its magnitude does not change the extent
+grammar.
+
+`IdsGenAllRepsDb` and `IdsGenSimpRepDb` are additional section names in the
+Creo 8 through 13 ND forms. `SldRegenRevInfo` is an additional section name in
+the Creo 10 through 13 ND forms. These entries use the same stored-length,
+expanded-length, and header-relative offset rules. Their presence does not
+change the material-geometry namespace or select DEPDB.
+
+`MdlStatus` can contain the named byte-string field
+`e0 03 Proe_version\0` followed by a NUL-terminated `Version <token>` value.
+Such a value belongs to its stored record. It can differ from the outer Creo
+banner and is not a current product-release discriminator.
 
 ### 1.2 Section map
 
@@ -769,10 +822,21 @@ component. The resulting support directions are `(a, 0, b)` and
 The compact axis form begins `18 0f 18 e5 0f e4 18 e4`; that prefix defines
 support directions `(1, 0, 0)` and `(0, 0, -1)` with a zero middle rank. Its
 three following scalars are the origin coordinates.
-The prefixes `0f 18 e6 0f 18 10 18` and
-`18 e4 10 e4 18 e5 0f 18` each define support directions `(0, 1, 0)` and
-`(0, 0, 1)` with a zero middle rank. Their three following scalars are the
-origin coordinates. The resulting plane normal is `(1, 0, 0)`.
+The positional prefix `A 18 e6 B 18 C 18` uses signed unit tokens `0f` for
+positive one and `10` for negative one. It defines parameter direction
+`(A, 0, 0)`, zero middle triple, and normal `(0, B, 0)`, with `B = -A*C`.
+The second in-plane direction is `(0, 0, C)`. Three origin scalars follow.
+This is a direct-normal frame, not two in-plane support triples.
+
+These positional X-axis images define two in-plane support directions and a
+zero middle triple. Three origin scalars follow each image.
+
+| Image | First support | Second support | Normal |
+| --- | --- | --- | --- |
+| `18 e4 0f e4 18 e5 0f 18` | `(0, 1, 0)` | `(0, 0, 1)` | `(1, 0, 0)` |
+| `18 e4 10 e4 18 e5 0f 18` | `(0, -1, 0)` | `(0, 0, 1)` | `(-1, 0, 0)` |
+| `18 e4 10 0f 18 e5 10 18` | `(0, 1, 0)` | `(0, 0, -1)` | `(-1, 0, 0)` |
+| `18 e4 0f 10 18 e5 10 18` | `(0, -1, 0)` | `(0, 0, -1)` | `(1, 0, 0)` |
 A trailing-rank orthogonal form stores `a, 0, b, e4, 0, m`, a zero-rank
 triple, and three origin coordinates. It has the same `a² + b² = 1`,
 `|m| = |a|`, copied-`b`, and negated-`a` semantics as the prefixed form.
@@ -2007,12 +2071,17 @@ one zero slot. The `18 e5` direction macro and the other compact support
 macros are support-triple forms, not matrix rows.
 
 The seven-byte compact image `A 18 e5 B 18 e5 C`, where each of `A`, `B`,
-and `C` is `0f` or `10`, names a model-Z plane-normal frame. In a plane row,
-it expands to a direct-normal frame with the model-X parameter direction, a
+and `C` is `0f` or `10`, names a model-Z plane-normal frame. In a positional
+plane row, it expands to a direct-normal frame with the model-X parameter direction, a
 zero middle triple, and the model-Z normal. `A = 0f` selects positive model X
-and `A = 10` selects negative model X. The `B` and `C` tokens retain the
-orthogonal compact-image signs; they do not select a different normal
-coordinate.
+and `A = 10` selects negative model X. `C = 0f` selects positive model Z
+and `C = 10` selects negative model Z. `B` does not change either direction.
+
+The positional plane image `18 e4 A 18 0f 18 C 18 e4` has opposite signed unit
+tokens `A` and `C`. `A` selects the model-X normal and `C` selects the model-Z
+parameter direction: `0f` is positive and `10` is negative. Its support-triple
+form contains that parameter direction, a zero middle triple, and positive
+model Y. Its three following scalars are the origin coordinates.
 
 The rank-two body `18 e4 0f e4 18 e5 0f 18 e6` expands to support triples
 `[0, 1, 0]`, `[0, 0, 0]`, and `[1, 0, 0]`, followed by origin `[0, 0, 0]`.
@@ -2245,6 +2314,11 @@ vertices therefore define the curve's oriented endpoint pair when either
 side's closed loop supplies an end vertex. If both sides supply end vertices,
 each must equal the opposite side's start vertex. A missing successor on one
 face does not erase the endpoint relation proved by the other closed face.
+
+The native successor order traverses an outer face boundary clockwise about
+the orientation-adjusted surface normal. Surface-row `orient = 01` preserves
+the stored normal and `orient = f6` negates it. Successor direction and
+surface-row orientation are independent fields.
 
 Every edge represented in a topological vertex orbit contributes both of its
 non-null face carriers to that vertex. The orbit stores outgoing half-edges;
@@ -2669,7 +2743,8 @@ their point keys. Function `3` has exactly three argument slots. Its first two
 rows have the same type, either `1` or `2`; its third row has type `0`. The
 third row key is a zero-based ordinal into a complete `dimtab_ptr` row table.
 For dimension types `1` through `5`, the type-0 scalar and the selected
-dimension magnitude are equal non-negative millimetre values, and the equation
+dimension magnitude are equal non-negative millimetre values. For type four,
+that magnitude is the full diameter, twice the stored radius scalar. The equation
 asserts that the absolute difference of the first two coordinates equals that
 magnitude. An inline type-0 scalar, or a value resolved for that row through a
 scalar-equality component, must equal the selected dimension magnitude. The
@@ -2778,6 +2853,9 @@ is present, complete, or contains the same external identifiers. Cross-table
 agreement is required only when deriving solved section topology.
 The `dimtab_ptr` header retains its declared count and table-class reference
 when no dimension row body validates.
+A type-four dimension has diameter display semantics and stores a radius
+scalar in its value body. Its dimension measurement is twice that scalar.
+Other dimension types use their stored scalar as their dimension measurement.
 Every decoded dimension row transfers as a neutral parameter with identity
 scoped by its feature definition, external identifier, and repeated-row
 occurrence. Dimension rows form an ordinal relation target only when the
@@ -2795,7 +2873,8 @@ A type-10 `segtab` row is a full circle. It has no endpoint identifiers;
 the second point slot is the structural value one, `cntrid` selects the center
 point, and `radius` selects the ordinal radius or diameter dimension. A
 type-three selected dimension stores the radius. A type-four selected dimension
-stores the diameter, so half its positive value is the solved geometric radius.
+also stores the radius; its diameter value is twice that stored scalar. The
+positive stored scalar is the solved geometric radius in both forms.
 The dimension join requires a complete dimension table and a unique type-10
 external identifier; it does not require every declared `segtab` row to decode.
 When the type-10 external identifier is not unique, the circular-size relation
@@ -3222,8 +3301,8 @@ A type-five relation with
 unique arc whose endpoint pair, center, and `radius` dimension index match
 those stored operands. Endpoint order does not affect the radius. The selected
 dimension is the neutral radius constraint parameter, except that a type-four
-dimension produces a diameter constraint because its stored value is the full
-diameter.
+dimension produces a diameter constraint whose parameter is twice its stored
+radius.
 
 A type-six relation with sign `1`, complete vectors
 `a=[first_point,second_point,0,1]`, `b=[center_point,0,0,0]`, and a complete
@@ -3232,8 +3311,8 @@ whose endpoint pair, center, and `radius` dimension index match those stored
 operands. Endpoint order does not affect the radius. The `c` selector must be
 complete but does not select a different arc in this form. The selected
 dimension is the neutral radius constraint parameter, except that a type-four
-dimension produces a diameter constraint because its stored value is the full
-diameter. An incomplete selector, incomplete dimension or relation table, or
+dimension produces a diameter constraint whose parameter is twice its stored
+radius. An incomplete selector, incomplete dimension or relation table, or
 ambiguous arc identity remains a native relation.
 
 A type-14 relation with `a=[radius_id,0,0,0]`, `b=[0,0,0,0]`,
@@ -3242,8 +3321,8 @@ type-three `var_arr` radius with that key. An arc's `radius` field selects the
 same radius key. The solved center point and positive radius define its
 unbounded circular carrier before both arc endpoints are available.
 Only a linear selected dimension contributes a solved radius.
-For a type-four diameter dimension, the propagated radius is half the selected
-dimension value.
+For a type-four diameter dimension, the propagated radius is the stored
+dimension scalar; the diameter value is twice that radius.
 The selected dimension is the neutral circular-size constraint parameter when
 exactly one arc's `radius` field names that key and the selected dimension type
 is linear. Type four produces a diameter constraint; other linear types produce
@@ -3502,11 +3581,10 @@ surface-of-revolution reductions require `ratio = 1`.
 
 `MdlStatus` creation-event rows retain feature identities. In `typed_data(MTTyped_CreateData).created_features`, `feat_id` owns `icon_name` and `ft_type`; `prev_feat_id` is a preceding feature identity. These fields do not identify an input body. Display text that names an operation does not change its feature identifier into a body identifier. Generated surface ownership binds result geometry to a feature and does not select the material body changed by that feature.
 
-`MdlStatus` item names can contain historical feature-kind text as
-`<Kind> id <N>`. These audit labels do not select current operations. A kind
-name describes a current operation only when an independently owned
-current-model record establishes the feature and its operation definition.
-Kind names include
+`MdlStatus` item names can contain feature-kind text as `<Kind> id <N>`. A
+name alone does not select a current native candidate; same-ID names project a
+common operation only under the agreement rule below. A generic material name
+describes a sweep family only through an admitted recipe. Kind names include
 `Annotation Feature`, `Cross Section`, `Datum Plane`, `Round`, `Chamfer`,
 `Protrusion`, `Extrude`, `Revolve`, `Hole`, `Cut`, `Draft`, `Mirror`, and
 `Surface`. Reference-backed `Thicken <decimal-ordinal>` and
@@ -3598,16 +3676,26 @@ and typed action data.
 
 The timestamp prototype declares `tm_sec`, `tm_min`, `tm_hour`, `tm_mday`,
 `tm_mon`, and `tm_year`, followed by `item_name`. `tm_mon` is zero-based;
-the calendar year is `1900 + tm_year`. In the compact six-scalar timestamp
-form, the sixth scalar belongs to the timestamp and the next byte starts
-the item name. Printable year bytes are not item-name state prefixes.
+the calendar year is `1900 + tm_year`. The prototype does not by itself decide
+whether a printable byte after the compact six-scalar timestamp form is a
+timestamp byte or a stored-name prefix; see the modification-audit open item.
 
-An audit item name can contain ` id <N>` or ` ID <N>` with localized family
-text. Repeated names and identifiers belong to repeated audit events. Audit
-order, timestamps, a sole name, and agreement among names do not select a
-current feature operation. Current operation semantics require independently
-owned current-model records and exact identity joins. Missing evidence leaves
-the operation unresolved.
+Operation names end in ` id <N>` or ` ID <N>`; the stored case follows the
+name's localization. An ASCII `o`, `x`, `y`, or `z` byte immediately preceding
+an uppercase operation-family name is a stored-name prefix, not part of the
+family name. Multiple operation names with the same feature identifier are
+ordered stored-state candidates. No candidate is the current state without a
+state selector. State ordinals are local to one feature identifier and increase
+in byte order from zero. Each candidate retains the prefix-inclusive name
+bytes, the `id`/`ID` spelling, and the offset of the optional prefix. Same-ID
+candidates define a common operation only when their operation family, recipe,
+root schema class, and parent identifier agree. Agreement does not identify a
+current native candidate. A recipe-only state has no stored operation name.
+
+Audit order, timestamps, and a sole name do not select a current native
+candidate. Current operation semantics require independently owned
+current-model records and exact identity joins. Missing evidence leaves the
+operation unresolved.
 
 `MdlRefInfo` feature-reference entries encode
 `f7 0x71 <own-ref-id> <reference-type> <feature-id> <name> 00 <own-ref-id> <own-ref-id>`.
@@ -4244,6 +4332,12 @@ source-bearing profile entry is non-surface. Each cap plane has one
 unambiguous placed equation from its outline or positional frame; conflicting
 equations do not establish the cap. The materialized cylinder entry is the
 single neutral carrier for both generated cylinder uses.
+The source identifier of the non-surface profile entry selects the section
+entity with that external identifier. The section owner and entity identity
+must each be unique. A complete saved circle joined through its unique
+`order_table` row is a closed one-entity profile when the two cap planes and
+cylinder are unique rows owned by the same feature. Competing materialized
+generated tables or duplicate generated identifiers do not select a profile.
 The owning feature definition selects the emitted section sketch when that
 sketch has a resolved profile chain and otherwise retains the native circular
 profile reference. When the feature definition is absent or does not match the
@@ -5024,6 +5118,18 @@ The positional `order_table` opener is `f8 <count> f7 <table_class> fb e2 f7
 <table_class> e2`; the following `count - 1` tuples are stored entries.
 Stored tuples are separated by `e2`. The final tuple may end directly at the
 following named field without an `e2` separator.
+
+An extended order-table prototype stores the additional field
+`e0 01 rg_ref_id\0 f6` immediately after `bitmask`. Its positional prototype
+stores the same `f6` immediately after the three ordinary fields and before
+`f1 f7 <table_class> e2`. In this form every stored row has exactly one
+additional `f6` slot after `bitmask`. The slot is a null reference and supplies
+no reference operand. It does not change the count, identifier join, or flag
+semantics. The prototype selects the three-field or extended form for the
+whole table. A missing, non-null, repeated, or undeclared reference slot does
+not form a complete row. An incomplete table has only its complete row prefix
+and establishes no semantic join. Creo 11 through 13 ND
+order tables admit this extended null-reference form.
 
 A section arc bound this way supplies a cylinder radius from its `cntrid` and endpoint in `var_arr`; its axis direction is the resolved `gsec3d` extrude axis, and its axis point is the section arc center transformed into model space.
 

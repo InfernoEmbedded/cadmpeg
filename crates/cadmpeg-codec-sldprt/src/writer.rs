@@ -7,6 +7,7 @@ use std::num::NonZeroU16;
 
 mod accounting;
 mod default_properties;
+mod edge_direction;
 mod envelope;
 mod ownership;
 pub(crate) mod target;
@@ -1725,6 +1726,7 @@ fn resolved_feature_payload(
         }
     }
     let mut payload = lane.native_payload.clone();
+    let mut scanned = None;
     for (entity, expected_entity) in lane
         .sketch_entities
         .iter()
@@ -1764,7 +1766,34 @@ fn resolved_feature_payload(
         let field = payload.get_mut(field_start..field_end).ok_or_else(|| {
             CodecError::Malformed("feature-input type field exceeds retained payload".into())
         })?;
-        field.copy_from_slice(&entity.kind().native_code().to_le_bytes());
+        let code = entity.kind().native_code().to_le_bytes();
+        // The scanned kind of a marker is not always the kind whose code is
+        // stored (the scan's code-to-kind reading is not `native_code`'s
+        // inverse), and decode reclassifies some markers from their
+        // neighbourhood (`bindings.rs`), only ever into `Point` or
+        // `LineOrCircle`. Where the marker's kind is the scanned one or such a
+        // reclassification, the payload keeps its own code. A marker's kind is
+        // not edited by any writer path, so this reads no edit as unchanged.
+        if field != code {
+            let scanned = match &mut scanned {
+                Some(scanned) => scanned,
+                slot @ None => slot.insert(
+                    crate::resolved_features::markers::admit_sketch_input_entities(
+                        &lane.native_payload,
+                        &lane.id,
+                    )?,
+                ),
+            };
+            let code_retained = scanned.iter().any(|read| {
+                use crate::records::SketchInputKind::{LineOrCircle, Point};
+                read.offset() == entity.offset()
+                    && (read.kind() == entity.kind()
+                        || matches!(entity.kind(), Point | LineOrCircle))
+            });
+            if !code_retained {
+                field.copy_from_slice(&code);
+            }
+        }
         if let Some(value) = entity.state_value {
             let state_start = offset
                 .checked_add(48)
@@ -1778,12 +1807,29 @@ fn resolved_feature_payload(
             state.copy_from_slice(&value.get().to_le_bytes());
         }
         if let Some(coordinates) = entity.coordinates_m {
-            if crate::resolved_features::markers::marker_coordinates(&lane.native_payload, offset)
-                .is_none()
-            {
+            let Some(stored) =
+                crate::resolved_features::markers::marker_coordinates(&lane.native_payload, offset)
+            else {
                 return Err(CodecError::NotImplemented(
                     "feature-input marker does not carry editable coordinate fields".into(),
                 ));
+            };
+            // Unchanged coordinates stay as stored, wherever the layout keeps
+            // them. A change is written at +66 and +74, and only to a layout
+            // that keeps its pair there.
+            if stored == coordinates {
+                continue;
+            }
+            let at_66 = (
+                cadmpeg_core::decode::View::f64_le_at(&lane.native_payload, offset + 66),
+                cadmpeg_core::decode::View::f64_le_at(&lane.native_payload, offset + 74),
+            );
+            if at_66 != (Some(stored[0]), Some(stored[1])) {
+                return Err(CodecError::NotImplemented(format!(
+                    "feature-input lane {} edits the coordinates of sketch marker {}, whose layout keeps them elsewhere",
+                    lane.id,
+                    entity.id()
+                )));
             }
             for (relative, value) in [(66usize, coordinates[0]), (74, coordinates[1])] {
                 let start = offset.checked_add(relative).ok_or_else(|| {
@@ -2973,6 +3019,7 @@ pub(crate) fn brep_body(
         .map(|body| Ok((body.id.clone(), take_attr(&mut next)?)))
         .collect::<Result<HashMap<_, _>, CodecError>>()?;
     let vertex_owners = ownership::vertex_body_owners(ir, &body_attrs)?;
+    let reversed_edges = edge_direction::reversed_compact_edges(ir)?;
     let mut out = Vec::new();
     for surface in &ir.model.surfaces {
         if let SurfaceGeometry::Solved(SolvedSurfaceGeometry::Nurbs(nurbs)) = &surface.geometry {
@@ -2990,7 +3037,13 @@ pub(crate) fn brep_body(
             cadmpeg_core::CodecError::NotImplemented("carrier has no solved geometry".into())
         })?);
         let (kind, values) = surface_values(&surface.geometry, reference, length_scale)?;
-        compact(&mut out, kind, surfaces[&surface.id], &values);
+        compact(
+            &mut out,
+            kind,
+            surfaces[&surface.id],
+            SURFACE_MARKER,
+            &values,
+        );
     }
     for curve in &ir.model.curves {
         if derived_sphere_seam_curves.contains(&curve.id) {
@@ -3008,7 +3061,17 @@ pub(crate) fn brep_body(
             continue;
         }
         let (kind, values) = curve_values(&curve.geometry, length_scale)?;
-        compact(&mut out, kind, curves[&curve.id], &values);
+        compact(
+            &mut out,
+            kind,
+            curves[&curve.id],
+            if reversed_edges.curves.contains(&curve.id) {
+                CURVE_AGAINST_EDGES_MARKER
+            } else {
+                CURVE_ALONG_EDGES_MARKER
+            },
+            &values,
+        );
     }
     let face_owners = ir
         .model
@@ -3126,11 +3189,13 @@ pub(crate) fn brep_body(
         ] {
             be16(&mut out, value);
         }
-        out.push(if coedge.sense == Sense::Forward {
-            0x2b
-        } else {
-            0x2d
-        });
+        out.push(
+            if reversed_edges.stored_sense(&coedge.edge, coedge.sense) == Sense::Forward {
+                0x2b
+            } else {
+                0x2d
+            },
+        );
     }
     for lp in &ir.model.loops {
         let face = ir
@@ -4347,12 +4412,23 @@ pub(super) fn surface_reference(geometry: &SolvedSurfaceGeometry) -> cadmpeg_ir:
     }
 }
 
-fn compact(out: &mut Vec<u8>, kind: u8, attr: u16, values: &[f64]) {
+/// Orientation marker of a written compact surface.
+const SURFACE_MARKER: u8 = 0x2b;
+
+/// Orientation marker of a written compact curve whose stored edges run along
+/// its parameter.
+const CURVE_ALONG_EDGES_MARKER: u8 = 0x2d;
+
+/// Orientation marker of a written compact curve whose stored edges run against
+/// its parameter.
+const CURVE_AGAINST_EDGES_MARKER: u8 = 0x2b;
+
+fn compact(out: &mut Vec<u8>, kind: u8, attr: u16, marker: u8, values: &[f64]) {
     tag(out, kind);
     be16(out, attr);
     be32(out, 0);
     out.extend_from_slice(&[0; 10]);
-    out.push(0x2b);
+    out.push(marker);
     for value in values {
         bef64(out, *value);
     }

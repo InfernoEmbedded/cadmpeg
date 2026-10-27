@@ -15,13 +15,13 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::num::NonZeroU32;
 
-/// Counted selection group owned by an Extrude parameter scope.
+/// Counted selection group owned by an Extrude or Emboss parameter scope.
 #[derive(Debug, PartialEq, Deserialize)]
 #[serde(try_from = "DesignExtrudeSelectionGroupWire")]
 pub(crate) struct DesignExtrudeSelectionGroup {
     /// Globally unique deterministic identifier for this native group.
     pub(crate) id: String,
-    /// Owning Extrude parameter-scope record.
+    /// Owning feature parameter-scope record.
     pub(crate) scope_record_index: u32,
     /// Zero-based position in the scope's ordered reference table.
     pub(crate) scope_reference_ordinal: u32,
@@ -121,12 +121,12 @@ impl Serialize for DesignExtrudeSelectionGroup {
     }
 }
 
-/// Counted selection group owned by an Extrude parameter scope.
+/// Counted selection group owned by an Extrude or Emboss parameter scope.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct DesignExtrudeSelectionGroupWire {
     /// Globally unique deterministic identifier for this native group.
     pub(crate) id: String,
-    /// Owning Extrude parameter-scope record.
+    /// Owning feature parameter-scope record.
     pub(crate) scope_record_index: u32,
     /// Zero-based position in the scope's ordered reference table.
     pub(crate) scope_reference_ordinal: u32,
@@ -453,6 +453,7 @@ pub(crate) enum DesignExtrudeFaceEncoding {
 #[serde(try_from = "DesignExtrudeSelectionMemberDraft")]
 pub(crate) struct DesignExtrudeSelectionMember {
     frame: crate::records::frame_chain::RecordFrameChain,
+    frame_length: u64,
     /// Globally unique deterministic identifier for this native member.
     pub(crate) id: String,
     /// Owning selection-group record.
@@ -501,6 +502,7 @@ impl Clone for DesignExtrudeSelectionMember {
         EXTRUDE_SELECTION_MEMBER_CLONE_COUNT.with(|count| count.set(count.get() + 1));
         Self {
             frame: self.frame,
+            frame_length: self.frame_length,
             id: self.id.clone(),
             group_record_index: self.group_record_index,
             group_member_ordinal: self.group_member_ordinal,
@@ -576,14 +578,22 @@ impl DesignExtrudeSelectionMember {
         if draft.context_id_offset <= draft.asset_id_offset {
             return Err("context_id_offset must follow asset_id_offset".into());
         }
+        let frame_length = draft
+            .next_byte_offset
+            .checked_sub(draft.byte_offset)
+            .ok_or("next_byte_offset precedes member")?;
+        if frame_length != 190 && !(frame_length == 204 && draft.tail_slot_present) {
+            return Err("selection member has an invalid frame length".into());
+        }
         let frame = crate::records::frame_chain::RecordFrameChain::try_new(
             draft.record_index,
             draft.byte_offset,
             0,
-            190,
+            frame_length,
         )?;
         let value = Self {
             frame,
+            frame_length,
             id: draft.id,
             group_record_index: draft.group_record_index,
             group_member_ordinal: draft.group_member_ordinal,
@@ -652,7 +662,7 @@ impl DesignExtrudeSelectionMember {
         self.frame.offset(33)
     }
     pub(crate) fn next_byte_offset(&self) -> u64 {
-        self.frame.offset(190)
+        self.frame.offset(self.frame_length)
     }
 }
 

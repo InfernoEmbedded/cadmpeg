@@ -93,7 +93,7 @@ mod tests {
             assert_eq!(record.object_references, [13, 10, 16, 14, 15]);
         }
         let wire = serde_json::to_value(&records).expect("stored edge records");
-        for (row, (raw, value, encoding)) in wire.as_array().unwrap().iter().zip([
+        for (row, (raw, value, encoding)) in wire.as_array().expect("record array").iter().zip([
             (1, 0, "backward_distance"),
             (2, 0, "selector2"),
             (33, 8, "backward_distance"),

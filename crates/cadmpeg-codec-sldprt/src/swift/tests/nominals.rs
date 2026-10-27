@@ -1349,7 +1349,7 @@ fn directional_bestfit_distance_refuses_invalid_or_duplicate_solved_planes() {
             .iter()
             .position(|r| r.id == "BF2")
             .unwrap();
-        let feature = &mut root.features.entities[index];
+        let feature = root.features.entities.get_mut(index).expect("feature");
         let plane_index = feature
             .related
             .iter()
@@ -1357,22 +1357,23 @@ fn directional_bestfit_distance_refuses_invalid_or_duplicate_solved_planes() {
             .unwrap();
         match mode {
             0 => {
-                feature.related[plane_index]
+                feature
+                    .related
+                    .get_mut(plane_index)
+                    .expect("plane")
                     .entity
                     .doubles
                     .insert("K".into(), 2.0);
             }
             1 => {
-                feature.related[plane_index]
-                    .entity
-                    .doubles
-                    .insert("K".into(), 0.0);
-                feature.related[plane_index]
-                    .entity
-                    .doubles
-                    .insert("I".into(), 1.0);
+                let plane = feature.related.get_mut(plane_index).expect("plane");
+                plane.entity.doubles.insert("K".into(), 0.0);
+                plane.entity.doubles.insert("I".into(), 1.0);
             }
-            _ => feature.related.push(feature.related[plane_index].clone()),
+            _ => {
+                let plane = feature.related.get(plane_index).expect("plane").clone();
+                feature.related.push(plane);
+            }
         }
         let mut annotations = project(&root);
         enrich_implicit_nominals(&root, &[], &mut annotations, None);
@@ -1390,7 +1391,10 @@ fn directional_distance_refuses_every_nonidentity_transform() {
             .iter()
             .position(|r| r.id == "AD")
             .unwrap();
-        root.annotations.entities[index]
+        root.annotations
+            .entities
+            .get_mut(index)
+            .expect("annotation")
             .related
             .iter_mut()
             .find(|r| r.name == "NominalTransform")

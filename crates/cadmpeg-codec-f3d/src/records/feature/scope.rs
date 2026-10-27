@@ -22,6 +22,7 @@ use super::direct_face::{
     DesignDirectFaceOperation, DesignDraftOperation, DesignMoveOperation,
     DesignOffsetFacesOperation, DesignShellOperation, DesignThickenOperation,
 };
+use super::emboss::DesignEmbossConstruction;
 use super::extrude::{DesignExtrudeOperation, DesignExtrudePrologue};
 use super::fixed_parameters::{
     DesignFixedChamferParameters, DesignFixedExtrudeParameters, DesignFixedFilletParameters,
@@ -55,6 +56,12 @@ use crate::records::references::DesignClassTag;
 use crate::records::sketch_placement::SketchPlacementMatrix;
 use crate::records::topology::sketch_profile::DesignSketchProfileOperand;
 use serde::{Deserialize, Serialize};
+
+cadmpeg_core::named_optional_field!(
+    deserialize_occurrence_transfer,
+    super::occurrence_transfer::DesignOccurrenceTransfer,
+    "occurrence_transfer"
+);
 
 cadmpeg_core::named_optional_field!(
     deserialize_assembly_alignment,
@@ -243,6 +250,11 @@ cadmpeg_core::named_optional_field!(
     deserialize_sweep_profile,
     DesignSketchProfileOperand,
     "sweep_profile"
+);
+cadmpeg_core::named_optional_field!(
+    deserialize_emboss_construction,
+    DesignEmbossConstruction,
+    "emboss_construction"
 );
 cadmpeg_core::named_optional_field!(
     deserialize_thread_construction,
@@ -456,6 +468,9 @@ macro_rules! design_feature_kinds {
         impl DesignScopePayload {
             /// The source envelope is decoded, but its optional family-specific data is not.
             pub(crate) fn is_uninterpreted(&self) -> bool {
+                if matches!(self, Self::Emboss(_)) {
+                    return true;
+                }
                 match self {
                     $(Self::$variant(value) => ScopePayloadCompleteness::is_uninterpreted(value),)+
                     $(Self::$fixed(value) => ScopePayloadCompleteness::is_uninterpreted(value),)+
@@ -558,6 +573,7 @@ design_feature_kinds! {
         Scale => "Scale": Option<DesignScaleOperation>,
         Massstab => "Maßstab": Option<DesignScaleOperation>,
         Thread => "Thread": Option<DesignThreadConstruction>,
+        Emboss => "Emboss": Option<DesignEmbossConstruction>,
         EdgeFlange => "EdgeFlange": Option<DesignEdgeFlangeOperation>,
         Hem => "Hem": Option<DesignHemOperation>,
         BaseFlange => "BaseFlange": Option<DesignBaseFlangeScope>,
@@ -671,6 +687,8 @@ pub(crate) struct DesignParameterScope {
     reference_count_offset: u64,
     /// Ordered indexed-record references carried by the scope.
     reference_members: ReferenceRun<u32>,
+    /// Component ownership and placement recorded by paste operations.
+    pub(crate) occurrence_transfer: Option<super::occurrence_transfer::DesignOccurrenceTransfer>,
     /// Family-specific construction records.
     payload: DesignScopePayload,
     /// Reference members whose records open a construction-operand group the
@@ -727,6 +745,12 @@ pub(crate) struct DesignParameterScopeDraft {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[cfg_attr(test, derive(Serialize))]
 struct DesignParameterScopeSerde {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_occurrence_transfer"
+    )]
+    occurrence_transfer: Option<super::occurrence_transfer::DesignOccurrenceTransfer>,
     /// Globally unique deterministic identifier for this native record.
     id: String,
     /// Byte offset of the primary indexed record header.
@@ -904,6 +928,13 @@ struct DesignParameterScopeSerde {
         deserialize_with = "deserialize_thread_construction"
     )]
     thread_construction: Option<DesignThreadConstruction>,
+    /// Emboss scalar owners, selection groups, and retained control words.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_emboss_construction"
+    )]
+    emboss_construction: Option<DesignEmbossConstruction>,
     /// Exact signed-angle construction carried by a `Draft` scope.
     #[serde(
         default,
@@ -1408,12 +1439,12 @@ impl From<DesignSketchEntityBinding> for DesignSketchEntityBindingWire {
     }
 }
 
-/// Explicit 16-f64 frame carried by a `WorkPlane` scope.
+/// Solved frame carried by a `WorkPlane` scope.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) struct DesignWorkPlaneTransform {
     /// Exact row-major local-to-model frame.
     pub(crate) work_plane_transform: SketchPlacementMatrix,
-    /// Byte offset of the explicit 16-f64 matrix.
+    /// Byte offset of the matrix or its implicit-identity marker.
     pub(crate) work_plane_transform_offset: u64,
     /// Construction record referenced by the frame, when present.
     #[serde(flatten)]
@@ -1534,6 +1565,9 @@ impl TryFrom<DesignParameterScopeSerde> for DesignParameterScope {
         }
         if wire.combine_operation.is_some() {
             present.push("combine_operation");
+        }
+        if wire.emboss_construction.is_some() {
+            present.push("emboss_construction");
         }
         if wire.thread_construction.is_some() {
             present.push("thread_construction");
@@ -1787,6 +1821,9 @@ impl TryFrom<DesignParameterScopeSerde> for DesignParameterScope {
             DesignFeatureKind::Massstab => {
                 DesignScopePayload::Massstab(wire.scale_operation.take())
             }
+            DesignFeatureKind::Emboss => {
+                DesignScopePayload::Emboss(wire.emboss_construction.take())
+            }
             DesignFeatureKind::Thread => {
                 DesignScopePayload::Thread(wire.thread_construction.take())
             }
@@ -1907,6 +1944,7 @@ impl TryFrom<DesignParameterScopeSerde> for DesignParameterScope {
             || wire.fixed_fillet_parameters.is_some()
             || wire.fixed_chamfer_parameters.is_some()
             || wire.combine_operation.is_some()
+            || wire.emboss_construction.is_some()
             || wire.thread_construction.is_some()
             || wire.draft_operation.is_some()
             || wire.circular_pattern_construction.is_some()
@@ -1934,7 +1972,8 @@ impl TryFrom<DesignParameterScopeSerde> for DesignParameterScope {
                 "history_state_id_offset disagrees with kind_offset".into(),
             ));
         }
-        Self::try_new(DesignParameterScopeDraft {
+        let occurrence_transfer = wire.occurrence_transfer.take();
+        let mut admitted = Self::try_new(DesignParameterScopeDraft {
             id: wire.id,
             byte_offset: wire.byte_offset,
             class_tag: wire
@@ -1965,7 +2004,17 @@ impl TryFrom<DesignParameterScopeSerde> for DesignParameterScope {
                 .try_into()
                 .map_err(DesignParameterScopePayloadError)?,
             paired_byte_offset: wire.paired_byte_offset,
-        })
+        })?;
+        if occurrence_transfer
+            .as_ref()
+            .is_some_and(|value| !value.valid_for_scope(&admitted))
+        {
+            return Err(DesignParameterScopePayloadError(
+                "occurrence_transfer disagrees with scope".into(),
+            ));
+        }
+        admitted.occurrence_transfer = occurrence_transfer;
+        Ok(admitted)
     }
 }
 
@@ -1976,6 +2025,7 @@ impl From<DesignParameterScope> for DesignParameterScopeSerde {
         let history_state_id_offset = scope.history_state_id_offset();
         let (reference_members, reference_member_offsets) = scope.reference_members.into_wire();
         let mut wire = DesignParameterScopeSerde {
+            occurrence_transfer: scope.occurrence_transfer,
             id: scope.id,
             byte_offset: scope.byte_offset,
             class_tag: scope.class_tag.into(),
@@ -2012,6 +2062,7 @@ impl From<DesignParameterScope> for DesignParameterScopeSerde {
             path_feature: None,
             combine_operation: None,
             thread_construction: None,
+            emboss_construction: None,
             draft_operation: None,
             circular_pattern_construction: None,
             rectangular_pattern_construction: None,
@@ -2116,6 +2167,7 @@ impl From<DesignParameterScope> for DesignParameterScopeSerde {
             }
             DesignScopePayload::Combine(value) => wire.combine_operation = value,
             DesignScopePayload::Thread(value) => wire.thread_construction = value,
+            DesignScopePayload::Emboss(value) => wire.emboss_construction = value,
             DesignScopePayload::Draft(value) => wire.draft_operation = value,
             DesignScopePayload::CPattern(value)
             | DesignScopePayload::CircularPattern(value)
@@ -2236,7 +2288,10 @@ impl DesignParameterScope {
         // plain references or 51-byte typed references.
         // A table that fits neither width falls through to the plain checks.
         let stride = reference_table_stride(&draft).unwrap_or(11);
-        let typed = stride == crate::bytes::TYPED_LOCAL_REFERENCE_LEN;
+        let typed = stride == crate::bytes::TYPED_LOCAL_REFERENCE_LEN
+            || (draft.reference_members.is_empty()
+                && kind == "As-built"
+                && tail == crate::layout::typed_reference_parameter_scope_tail::LEN);
         let typed_canvas =
             typed && kind == "Canvas" && tail == crate::layout::canvas_scope_typed_tail::LEN;
         let tail_valid = if typed_canvas {
@@ -2260,7 +2315,7 @@ impl DesignParameterScope {
                     Some(crate::layout::typed_reference_parameter_scope_tail::PREVIOUS_HISTORY_STATE_ID)
                 } else {
                     crate::design::decode::scopes::parameter_scope::parameter_scope_previous_history_offset(
-                        kind, tail,
+                        kind, tail, draft.reference_members.is_empty(),
                     )
                 }
                 .ok_or_else(|| fail("previous_history_state_id_offset"))?;
@@ -2282,20 +2337,23 @@ impl DesignParameterScope {
                 ))
             }
         }
-        // Only the rigid `As-built` scope stores an empty reference table,
-        // with its count at offset 153 + 11(N - 2) for N members.
-        let rigid_as_built =
-            crate::design::assembly::rigid_as_built_scope(draft.frame_length, kind == "As-built");
-        let empty_table_at = crate::design::assembly::rigid_group_member_count(draft.frame_length)
-            .and_then(|members| members.checked_sub(2)?.checked_mul(11))
-            .and_then(|shift| {
-                shift.checked_add(crate::layout::assembly_rigid_as_built_scope::REFERENCE_COUNT)
+        let empty_table_at = (kind == "As-built")
+            .then(|| {
+                crate::design::assembly::RigidGroupLayout::new(
+                    draft.frame_length,
+                    u64_from_index(tail),
+                )
             })
-            .and_then(|offset| draft.byte_offset.checked_add(u64::try_from(offset).ok()?));
+            .flatten()
+            .and_then(|layout| {
+                draft
+                    .byte_offset
+                    .checked_add(u64_from_index(layout.empty_table))
+            });
         if !(draft.byte_offset < draft.reference_count_offset
             && draft.reference_count_offset < draft.kind_offset)
             || (draft.reference_members.is_empty()
-                && !(rigid_as_built && empty_table_at == Some(draft.reference_count_offset)))
+                && empty_table_at != Some(draft.reference_count_offset))
         {
             return Err(fail("reference_count_offset/reference_members"));
         }
@@ -2325,7 +2383,12 @@ impl DesignParameterScope {
         {
             return Err(fail("reference_member_offsets/kind_offset"));
         }
-        Ok(Self {
+        if let DesignScopePayload::Pipe(Some(pipe)) = &draft.payload {
+            if !pipe.scope_offsets_are_valid(draft.byte_offset, draft.reference_count_offset) {
+                return Err(fail("Pipe prefix offsets"));
+            }
+        }
+        let scope = Self {
             #[cfg(test)]
             clone_probe: ScopeCloneProbe,
             id: draft.id,
@@ -2342,11 +2405,19 @@ impl DesignParameterScope {
             previous_history_state_id_offset: draft.previous_history_state_id_offset,
             reference_count_offset: draft.reference_count_offset,
             reference_members: draft.reference_members,
+            occurrence_transfer: None,
             payload: draft.payload,
             unclosed_construction_operand_groups: draft.unclosed_construction_operand_groups,
             paired_class_tag: draft.paired_class_tag,
             paired_byte_offset: draft.paired_byte_offset,
-        })
+        };
+        if scope
+            .emboss_construction()
+            .is_some_and(|construction| !construction.links_match(&scope))
+        {
+            return Err(fail("emboss_construction"));
+        }
+        Ok(scope)
     }
 
     #[cfg(test)]
@@ -2413,6 +2484,18 @@ impl DesignParameterScope {
     }
     pub(crate) fn reference_members(&self) -> &ReferenceRun<u32> {
         &self.reference_members
+    }
+    /// Whether the ordered reference table names `owner`, so that the
+    /// parameter owner belongs to this scope.
+    pub(crate) fn names_owner(
+        &self,
+        owner: &crate::records::parameters::DesignParameterOwner,
+    ) -> bool {
+        self.record_index == owner.scope_record_index()
+            && self
+                .reference_members
+                .values()
+                .any(|record_index| *record_index == owner.record_index())
     }
     pub(crate) fn payload(&self) -> &DesignScopePayload {
         &self.payload
@@ -2599,6 +2682,13 @@ impl DesignParameterScope {
     pub(crate) fn combine_operation_mut(&mut self) -> Option<&mut DesignCombineOperation> {
         match &mut self.payload {
             DesignScopePayload::Combine(value) => value.as_mut(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn emboss_construction(&self) -> Option<&DesignEmbossConstruction> {
+        match &self.payload {
+            DesignScopePayload::Emboss(value) => value.as_ref(),
             _ => None,
         }
     }

@@ -4,6 +4,7 @@
 use std::collections::{HashMap, HashSet};
 
 mod locations;
+mod ring_order;
 use crate::brep::location_identity::LocationIdentityError;
 use locations::{Located, Locations};
 
@@ -16,13 +17,13 @@ use cadmpeg_ir::geometry::pcurve::{PcurveMetadata, PcurveNurbsPoles, WeightedPol
 use cadmpeg_ir::geometry::{
     pcurve::{Pcurve, PcurveGeometry, PcurveNurbs},
     sampled::{PolygonalSurface, PolylineCurve, PolylineSamples, PolylineVertex},
-    Curve, CurveGeometry, ProceduralSurface, ProceduralSurfaceDefinition, SolvedCurveGeometry,
-    SolvedSurfaceGeometry, Surface, SurfaceGeometry,
+    Curve, CurveGeometry, ProceduralCurve, ProceduralSurface, ProceduralSurfaceDefinition,
+    SolvedCurveGeometry, SolvedSurfaceGeometry, Surface, SurfaceGeometry,
 };
 use cadmpeg_ir::hash::sha256_hex;
 use cadmpeg_ir::ids::{
-    BodyId, CoedgeId, CurveId, EdgeId, FaceId, LoopId, PcurveId, PointId, ProceduralSurfaceId,
-    RegionId, ShellId, SurfaceId, VertexId,
+    BodyId, CoedgeId, CurveId, EdgeId, FaceId, LoopId, PcurveId, PointId, ProceduralCurveId,
+    ProceduralSurfaceId, RegionId, ShellId, SurfaceId, VertexId,
 };
 use cadmpeg_ir::math::Vector3;
 use cadmpeg_ir::scalar::PositiveReal;
@@ -48,6 +49,7 @@ use cadmpeg_ir::report::loss::LossNote;
 const EPS_TOPOLOGY_TRANSFER_GEOMETRY: f64 = 1.0e-9;
 const EPS_TOPOLOGY_TRANSFER_DEGENERATE: f64 = 1.0e-10;
 const EPS_TOPOLOGY_TRANSFER_EXACT_GEOMETRY: f64 = 1.0e-12;
+const EPS_TOPOLOGY_TRANSFER_KNOT_ENDPOINT: f64 = 1.0e-12;
 
 struct IndexedPolygon {
     samples: PolylineSamples<FiniteReal, FinitePoint3>,
@@ -112,20 +114,25 @@ pub(crate) fn transfer(
     losses: &mut Vec<LossNote>,
 ) -> Result<Vec<TopologyOccurrence>, CodecError> {
     let mut occurrences = Vec::new();
+    let mut property_owners = HashMap::new();
+    for property in properties {
+        property_owners
+            .entry(property.id.as_str())
+            .or_insert(property.owner.as_str());
+    }
+    let mut positions = ArenaPositions::default();
     for payload in payloads {
         let Some(tables) = Tables::from_payload(payload) else {
             continue;
         };
-        let source_object = properties
-            .iter()
-            .find(|property| property.id == payload.property)
-            .map_or(payload.property.as_str(), |property| {
-                property.owner.as_str()
-            });
+        let source_object = property_owners
+            .get(payload.property.as_str())
+            .copied()
+            .unwrap_or(payload.property.as_str());
         let source_object = source_object.to_owned();
         let source_object = cadmpeg_core::text::NonBlankString::new(source_object)
             .ok_or_else(|| CodecError::malformed("source object_id must not be empty"))?;
-        let mut builder = match Builder::new(ctx, payload, tables, source_object) {
+        let mut builder = match Builder::new(ctx, payload, tables, source_object, &mut positions) {
             Ok(builder) => builder,
             Err(LocationIdentityError::Decode(error)) => return Err(error),
             Err(LocationIdentityError::Bounded) => {
@@ -204,13 +211,93 @@ impl SourceOccurrenceKey {
     }
 }
 
-struct Builder<'a, 'c, 'r> {
+/// An edge occurrence and its start and end vertex occurrences.
+#[derive(Clone)]
+struct PlacedEdge {
+    id: EdgeId,
+    start: VertexId,
+    end: VertexId,
+}
+
+impl PlacedEdge {
+    /// The vertices a use of this edge runs from and to.
+    fn oriented_ends(&self, sense: Sense) -> (&VertexId, &VertexId) {
+        match sense {
+            Sense::Forward => (&self.start, &self.end),
+            Sense::Reversed => (&self.end, &self.start),
+        }
+    }
+}
+
+/// Positions of curve, surface, and procedural curve arena entries by identity.
+#[derive(Default)]
+struct ArenaPositions {
+    curves: Positions<CurveId>,
+    surfaces: Positions<SurfaceId>,
+    procedural_curves: Positions<ProceduralCurveId>,
+}
+
+impl ArenaPositions {
+    fn curve<'i>(&mut self, ir: &'i CadIr, id: &CurveId) -> Option<&'i Curve> {
+        let index = self.curves.find(&ir.model.curves, id, |curve| &curve.id)?;
+        ir.model.curves.get(index)
+    }
+
+    fn surface<'i>(&mut self, ir: &'i CadIr, id: &SurfaceId) -> Option<&'i Surface> {
+        ir.model.surfaces.get(self.surface_index(ir, id)?)
+    }
+
+    fn surface_index(&mut self, ir: &CadIr, id: &SurfaceId) -> Option<usize> {
+        self.surfaces
+            .find(&ir.model.surfaces, id, |surface| &surface.id)
+    }
+
+    fn procedural_curve<'i>(
+        &mut self,
+        ir: &'i CadIr,
+        id: &ProceduralCurveId,
+    ) -> Option<&'i ProceduralCurve> {
+        let index = self
+            .procedural_curves
+            .find(&ir.model.procedural_curves, id, |curve| &curve.id)?;
+        ir.model.procedural_curves.get(index)
+    }
+}
+
+/// The first position of each identity in an append-only arena.
+struct Positions<I> {
+    indexed: usize,
+    first: HashMap<I, usize>,
+}
+
+impl<I> Default for Positions<I> {
+    fn default() -> Self {
+        Self {
+            indexed: 0,
+            first: HashMap::new(),
+        }
+    }
+}
+
+impl<I: Clone + Eq + std::hash::Hash> Positions<I> {
+    fn find<T>(&mut self, arena: &[T], id: &I, identity: impl Fn(&T) -> &I) -> Option<usize> {
+        debug_assert!(arena.len() >= self.indexed, "indexed arena shrank");
+        for (index, item) in arena.iter().enumerate().skip(self.indexed) {
+            self.first.entry(identity(item).clone()).or_insert(index);
+        }
+        self.indexed = arena.len();
+        self.first.get(id).copied()
+    }
+}
+
+struct Builder<'a, 'c, 'r, 'p> {
+    positions: &'p mut ArenaPositions,
     procedural_admission: Option<cadmpeg_ir::document::procedural::ProceduralAdmission>,
     ctx: &'c DecodeContext<'r>,
     payload: &'a ShapePayloadRecord,
     tables: Tables<'a>,
     vertices: HashMap<OccurrenceKey, VertexId>,
-    edges: HashMap<OccurrenceKey, EdgeId>,
+    edges: HashMap<OccurrenceKey, PlacedEdge>,
     emitted_curves: HashSet<CurveId>,
     emitted_surfaces: HashSet<SurfaceId>,
     emitted_triangulations: HashSet<usize>,
@@ -224,17 +311,19 @@ struct Builder<'a, 'c, 'r> {
     losses: Vec<LossNote>,
 }
 
-impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
+impl<'a, 'c, 'r, 'p> Builder<'a, 'c, 'r, 'p> {
     fn new(
         ctx: &'c DecodeContext<'r>,
         payload: &'a ShapePayloadRecord,
         tables: Tables<'a>,
         source_object: cadmpeg_core::text::NonBlankString,
+        positions: &'p mut ArenaPositions,
     ) -> Result<Self, LocationIdentityError> {
         let mut locations = Locations::new(ctx, tables)?;
         admit_topology_locations(ctx, tables, &mut locations)?;
         let source_indices = source_topology_indices(ctx, tables, &mut locations)?;
         Ok(Self {
+            positions,
             ctx,
             procedural_admission: None,
             payload,
@@ -702,7 +791,7 @@ impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
                 for child in &shape.children {
                     if self.shape(child.shape)?.kind() == TextShapeKind::Edge {
                         let edge = self.ensure_edge(ir, child, transform)?;
-                        wire_edges.push(edge);
+                        wire_edges.push(edge.id);
                     }
                 }
             }
@@ -717,7 +806,7 @@ impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
                     location: 0.into(),
                 };
                 let edge = self.ensure_edge(ir, &edge_use, transform)?;
-                wire_edges.push(edge);
+                wire_edges.push(edge.id);
             }
             TextShapeKind::Vertex => {
                 let vertex_use = TextShapeUse {
@@ -989,6 +1078,7 @@ impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
                         .map_err(CodecError::malformed)?,
                 );
             }
+            let mut placed_uses = Vec::new();
             for (index, edge_use) in edge_uses.iter().enumerate() {
                 let edge_transform =
                     self.compose(wire_transform, self.location(edge_use.location)?)?;
@@ -996,12 +1086,13 @@ impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
                 let pcurve =
                     self.face_pcurve(edge_use, edge_transform, surface, surface_transform)?;
                 let id: CoedgeId = coedge_ids[index].clone();
+                let use_sense = sense(is_reversed(edge_use.orientation) ^ wire_reversed);
                 ir.model.coedges.push(Coedge {
                     id: id.clone(),
                     owner_loop: loop_id.clone(),
-                    edge,
+                    edge: edge.id.clone(),
                     radial_next: id,
-                    sense: sense(is_reversed(edge_use.orientation) ^ wire_reversed),
+                    sense: use_sense,
                     use_curve: None,
                     pcurves: pcurve
                         .into_iter()
@@ -1017,20 +1108,27 @@ impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
                         })
                         .collect::<Result<Vec<_>, CodecError>>()?,
                 });
+                placed_uses.push((edge, use_sense));
             }
+            let ends = placed_uses
+                .iter()
+                .map(|(edge, use_sense)| edge.oriented_ends(*use_sense))
+                .collect::<Vec<_>>();
+            let ring = ring_order::traversal_order(&ends)
+                .into_iter()
+                .map(|position| coedge_ids[position].clone())
+                .collect();
             ir.model.loops.push(Loop {
                 id: loop_id.clone(),
                 face: face_id.clone(),
                 boundary: cadmpeg_ir::topology::LoopBoundary::Ring(
-                    cadmpeg_ir::topology::LoopRing::new(coedge_ids, Vec::new()).map_err(
-                        |error| {
-                            CodecError::malformed(format_args!(
-                                "FCStd face {} loop {} has invalid ring: {error}",
-                                face_id,
-                                loop_index + 1,
-                            ))
-                        },
-                    )?,
+                    cadmpeg_ir::topology::LoopRing::new(ring, Vec::new()).map_err(|error| {
+                        CodecError::malformed(format_args!(
+                            "FCStd face {} loop {} has invalid ring: {error}",
+                            face_id,
+                            loop_index + 1,
+                        ))
+                    })?,
                 ),
             });
             self.bind_topology(
@@ -1065,13 +1163,18 @@ impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
         ir: &mut CadIr,
         edge_use: &TextShapeUse,
         parent: Located,
-    ) -> Result<EdgeId, CodecError> {
+    ) -> Result<PlacedEdge, CodecError> {
         let transform = self.compose(parent, self.location(edge_use.location)?)?;
         let key = OccurrenceKey::new(edge_use.shape, self.compose(self.body_scope, transform)?);
-        if let Some(id) = self.edges.get(&key) {
-            let id: EdgeId = id.clone();
-            self.bind_topology(TextShapeKind::Edge, edge_use.shape, transform, id.as_str())?;
-            return Ok(id);
+        if let Some(placed) = self.edges.get(&key) {
+            let placed = placed.clone();
+            self.bind_topology(
+                TextShapeKind::Edge,
+                edge_use.shape,
+                transform,
+                placed.id.as_str(),
+            )?;
+            return Ok(placed);
         }
         let shape = self.shape(edge_use.shape)?.clone();
         let TextTShapeGeometry::Edge {
@@ -1135,16 +1238,21 @@ impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
                     format!("{source}"),
                 ))
                 .ok()?;
-                occt_subset_local_range(ir, &base, param_range?)
+                occt_subset_local_range(ir, self.positions, &base, param_range?)
             });
         let param_range = match subset_range {
             Some(range) => Some(range),
             None => curve
                 .as_ref()
-                .and_then(|curve| ir.model.curves.iter().find(|item| item.id == *curve))
+                .and_then(|curve| self.positions.curve(ir, curve))
                 .map_or(param_range, |curve| {
                     normalize_occt_curve_range(curve.geometry.solved()?, param_range)
                 }),
+        };
+        let placed = PlacedEdge {
+            id: id.clone(),
+            start: start.clone(),
+            end: end.clone(),
         };
         ir.model.edges.push(Edge {
             id: id.clone(),
@@ -1155,9 +1263,8 @@ impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
             tolerance: PositiveReal::from_finite(tolerance),
         });
         self.bind_topology(TextShapeKind::Edge, edge_use.shape, transform, id.as_str())?;
-        let cached_id = EdgeId::mint(id.as_str().to_owned()).map_err(CodecError::malformed)?;
-        self.edges.insert(key, cached_id);
-        Ok(id)
+        self.edges.insert(key, placed.clone());
+        Ok(placed)
     }
 
     fn polygon_curve(
@@ -1375,14 +1482,9 @@ impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
             .map_err(CodecError::malformed)?;
         let cached_id = CurveId::mint(id.as_str().to_owned()).map_err(CodecError::malformed)?;
         if self.emitted_curves.insert(cached_id) {
-            let base = ir
-                .model
-                .curves
-                .iter()
-                .find(|curve| curve.id == base_id)
-                .ok_or_else(|| {
-                    CodecError::malformed(format_args!("missing curve table entry {source}"))
-                })?;
+            let base = self.positions.curve(ir, &base_id).ok_or_else(|| {
+                CodecError::malformed(format_args!("missing curve table entry {source}"))
+            })?;
             let geometry = transform_curve(&base.geometry, transform)?;
             let source_object = base.source_object.clone();
             ir.model.curves.push(Curve {
@@ -1410,11 +1512,10 @@ impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
         ))
         .map_err(CodecError::malformed)?;
         for _ in 0..trimmed_layers {
-            let wrapper = ir
-                .model
-                .surfaces
-                .iter_mut()
-                .find(|surface| surface.id == base_id)
+            let wrapper = self
+                .positions
+                .surface_index(ir, &base_id)
+                .map(|index| &mut ir.model.surfaces[index])
                 .ok_or_else(|| {
                     CodecError::malformed(format_args!("missing trimmed surface {base_id}"))
                 })?;
@@ -1438,14 +1539,9 @@ impl<'a, 'c, 'r> Builder<'a, 'c, 'r> {
             .map_err(CodecError::malformed)?;
         let cached_id = SurfaceId::mint(id.as_str().to_owned()).map_err(CodecError::malformed)?;
         if self.emitted_surfaces.insert(cached_id) {
-            let base = ir
-                .model
-                .surfaces
-                .iter()
-                .find(|surface| surface.id == base_id)
-                .ok_or_else(|| {
-                    CodecError::malformed(format_args!("missing surface table entry {source}"))
-                })?;
+            let base = self.positions.surface(ir, &base_id).ok_or_else(|| {
+                CodecError::malformed(format_args!("missing surface table entry {source}"))
+            })?;
             let geometry = transform_surface(&base.geometry, transform)?;
             let source_object = base.source_object.clone();
             let has_procedural_construction = base.geometry.procedural_construction().is_some();
@@ -1687,6 +1783,7 @@ fn normalize_pcurve_parameter_range(
 ) -> Option<[FiniteReal; 2]> {
     let mut range = range?;
     let domain = match geometry {
+        PcurveGeometry::Nurbs { nurbs } if nurbs.periodic() => return Some(range),
         PcurveGeometry::Nurbs { nurbs } => {
             let degree = usize::try_from(nurbs.degree()).ok()?;
             [
@@ -2465,32 +2562,23 @@ fn unique_fallback_polygon_representation(
 /// endpoint moves by whole periods into the subset.
 fn occt_subset_local_range(
     ir: &CadIr,
+    positions: &mut ArenaPositions,
     curve: &CurveId,
     range: [FiniteReal; 2],
 ) -> Option<[FiniteReal; 2]> {
-    let construction = ir
-        .model
-        .curves
-        .iter()
-        .find(|item| item.id == *curve)?
+    let construction = positions
+        .curve(ir, curve)?
         .geometry
         .procedural_construction()?;
-    let procedural = ir
-        .model
-        .procedural_curves
-        .iter()
-        .find(|procedural| procedural.id == *construction)?;
+    let procedural = positions.procedural_curve(ir, construction)?;
     let cadmpeg_ir::geometry::ProceduralCurveDefinition::Subset(subset) = procedural.definition()
     else {
         return None;
     };
     let [first, last] = subset.parameter_range().endpoints();
     let span = last - first;
-    let period = ir
-        .model
-        .curves
-        .iter()
-        .find(|item| item.id == *subset.source())
+    let period = positions
+        .curve(ir, subset.source())
         .and_then(|source| source.geometry.solved())
         .and_then(occt_curve_period);
     let local = |parameter: f64| {
@@ -2582,6 +2670,31 @@ pub(crate) fn normalize_occt_curve_range(
         }
         SolvedCurveGeometry::Transformed(placed) => {
             normalize_occt_curve_range(placed.basis(), range)
+        }
+        SolvedCurveGeometry::Nurbs(nurbs) if !nurbs.periodic() => {
+            let Some(domain) = cadmpeg_ir::eval::nurbs_curve_parameter_domain(nurbs) else {
+                return range;
+            };
+            let domain = domain.endpoints();
+            let mut range = range?;
+            let neighborhood = (0.25 * domain[1] - 0.25 * domain[0]).abs();
+            for parameter in &mut range {
+                let value = parameter.get();
+                if (domain[0]..=domain[1]).contains(&value) {
+                    continue;
+                }
+                let boundary = if value < domain[0] {
+                    domain[0]
+                } else {
+                    domain[1]
+                };
+                let tolerance = (EPS_TOPOLOGY_TRANSFER_KNOT_ENDPOINT * boundary.abs().max(1.0))
+                    .min(neighborhood);
+                if (value - boundary).abs() <= tolerance {
+                    *parameter = FiniteReal::new(boundary)?;
+                }
+            }
+            Some(range)
         }
         _ => range,
     }

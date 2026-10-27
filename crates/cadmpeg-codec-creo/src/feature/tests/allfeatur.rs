@@ -44,7 +44,7 @@ fn scan_binds_allfeatur_mixed_entity_table_to_known_feature() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("DEPDB_DATA", b"Protrusion id 4\0".to_vec()),
+            ("MdlStatus", b"Protrusion id 4\0".to_vec()),
         ],
     );
     let scan = container::scan_bytes_ok(data.clone());
@@ -79,22 +79,19 @@ fn scan_binds_allfeatur_mixed_entity_table_to_known_feature() {
         .iter()
         .find(|feature| feature.id.as_str() == "creo:model:feature#4")
         .expect("feature 4");
-    assert!(matches!(
-        feature.evaluation.definition(),
-        cadmpeg_ir::features::FeatureDefinition::Operation(
-            cadmpeg_ir::features::FeatureOperation::Extrude { .. }
-        )
-    ));
+    let cadmpeg_ir::features::FeatureDefinition::Operation(
+        cadmpeg_ir::features::FeatureOperation::Native { parameters, .. },
+    ) = feature.evaluation.definition()
+    else {
+        panic!("native feature");
+    };
     assert_eq!(
-        feature.source_properties["native_parameter.generated_entity.7.source_section_entity_id"],
+        parameters["generated_entity.7.source_section_entity_id"],
         "1"
     );
+    assert_eq!(parameters["generated_entity.7.entry_class"], "200");
     assert_eq!(
-        feature.source_properties["native_parameter.generated_entity.7.entry_class"],
-        "200"
-    );
-    assert_eq!(
-        feature.source_properties["native_parameter.generated_entity.9.source_section_entity_id"],
+        parameters["generated_entity.9.source_section_entity_id"],
         "2"
     );
     let tables = &result.ir().native.namespace("creo").unwrap().arenas()["feature_entity_tables"];
@@ -238,7 +235,7 @@ fn scan_decodes_allfeatur_root_featdefs_schema_class() {
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
             (
-                "DEPDB_DATA",
+                "MdlStatus",
                 b"protrevolve\0Revolve id 4\0Round id 9\0".to_vec(),
             ),
         ],
@@ -379,7 +376,7 @@ fn scan_decodes_allfeatur_choice_field_wrappers() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
+            ("MdlStatus", b"Round id 4\0".to_vec()),
         ],
     );
     let scan = container::scan_bytes_ok(data.clone());
@@ -665,7 +662,7 @@ fn scan_partitions_allfeatur_positional_round_operands() {
         &[
             ("VisibGeom", geometry),
             ("AllFeatur", allfeatur),
-            ("DEPDB_DATA", b"Round id 4\0".to_vec()),
+            ("MdlStatus", b"Round id 4\0".to_vec()),
         ],
     );
     let scan = container::scan_bytes_ok(data.clone());

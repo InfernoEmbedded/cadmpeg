@@ -16,6 +16,12 @@ Each item has an identifier. Use the identifier in commit messages and in code c
 
 This document uses ASD-STE100 Simplified Technical English. Record names, field names, and token values are technical names. They keep their source spelling.
 
+**Note.** The ND release comparison establishes header token values and
+directory forms, not the numeric meanings of every producer declaration or
+trailing TOC field. Need independent field semantics before using those
+values as format selectors or interpreting them as dates, capabilities, or
+checksums.
+
 ## 1. Scalar and array encoding
 
 ### SE-01. Custom relation units
@@ -321,6 +327,13 @@ witnesses; it does not by itself define the remaining carrier equation.
 **Need.** Obtain complete source-owned rowless carrier/sense discriminators and plain-entry field consumption or a positively owned enclosing boundary. Preserve the observed overlap with a candidate following table header as an unresolved extent issue. A raw `f2 f7` search, a fixed byte subtraction, or table adjacency is not a boundary or carrier proof. Historical topology/census counts and inactive-item selection remain separate from this verified result-identity rule.
 
 ## 3. Section solving and feature placement
+
+**Note.** The extended `order_table.rg_ref_id` form is defined only for its
+null `f6` slot. Need the referenced namespace, owner, and non-null value
+grammar before transferring a non-null operand. Need a complete ownership
+and replay comparison to explain changes in generated-entity and
+affected-geometry replay counts across the release saves. Equal neutral
+feature definitions do not establish completeness of those native tables.
 
 ### SP-01. Nonlinear simultaneous equations
 
@@ -661,6 +674,24 @@ bounds retained row bodies. The trim scanner likewise considers separator-like
 bytes without a complete enclosing state machine. Local header validation and
 identifier joins do not establish those boundaries or positive ownership.
 
+### SP-44. Cap tables with mixed profile entries
+
+**Question.** Which complete owner-qualified grammar selects the current profile
+and linear extent when a class-29 generated table contains source-bearing
+class-200 entries and a source-less class-200 cylinder entry outside the defined
+four-entry circular forms?
+
+**Known.** `creo_prt.md` §6 defines the general cap-pair rule with unique
+source-less class-204 and class-203 entries and populated source identifiers on
+every remaining class-200 entry. The separate circular forms define exactly four
+entries. Placed cap planes and a materialized cylinder do not select the current
+source profile in a table outside those forms.
+
+**Need.** Define current profile selection and the source-profile and cap-use
+roles of all entries before deriving an operation span from the cap pair.
+Reconcile the selected profile, section placement, and generated carriers without
+discarding other owned entries or selecting a regeneration state by table order.
+
 ## 4. Topology and appearance
 
 ### TP-01. Current feature-to-body binding
@@ -724,7 +755,15 @@ B-rep orbit. The defined suffix grammar does not establish a direct stored
 vertex-coordinate fallback in another record family.
 
 **Need.** We must know any additional owner-qualified coordinate selector to
-place an orbit whose existing evidence does not select one point.
+place an orbit whose existing evidence does not select one point. For compact
+plane frames, we must distinguish the stored carrier point from the native
+parameter origin when mapped pcurve endpoints do not agree with adjacent
+carriers.
+
+**Conflict.** `placed_plane_surfaces` uses the complete local-system origin
+as the plane chart origin. Agreement of its normal coordinate establishes the
+carrier plane but does not establish the tangential parameter origin. The
+compact frame productions do not define a separate parameter-origin selector.
 
 ### TP-05. General rowless face-use binding
 
@@ -951,17 +990,20 @@ color fit cannot replace the native value without an independent row identity.
 `mtrack_record_ptr` action payload and its field ownership?
 
 **Known.** `MdlStatus.mod_track_data.rec_arr` is a modification audit trail.
-The timestamp's `tm_year` precedes `item_name`; printable year bytes are not
-name-state prefixes. Repeated same-ID event names do not select a current
-feature operation. Whole physical `MdlStatus` bytes can be retained under
-their named section owner without projecting an event as current.
+The timestamp's `tm_year` precedes `item_name`. Repeated same-ID event names do
+not select a current native candidate; they project a common operation only when
+family, recipe, root schema class, and parent identifier agree.
 
 **Need.** Establish complete bounds and field types for each action-specific
-payload and its references. Current operations require separate current-model
-ownership evidence; audit names and order do not supply it.
+payload and its references. Agreement among same-ID names projects a common
+operation, not a current candidate; a current candidate requires separate
+current-model ownership evidence.
 
-**Conflict.** Interpreting an audit timestamp's final scalar as a name-state
-prefix contradicts its declared field ownership.
+**Conflict.** The timestamp prototype declares `tm_year` ahead of `item_name`, so a
+printable final timestamp scalar belongs to the timestamp. The decoder instead
+reads an ASCII `o`, `x`, `y`, or `z` byte before an uppercase operation-family
+name as a stored-name prefix. A byte-exact witness that separates the two
+readings is missing.
 
 **Note.** The named prototype and compact six-scalar timestamp form do not
 define the complete heterogeneous event union.
@@ -1051,6 +1093,13 @@ dictionary for such a body. The stored bytes remain opaque.
 the declared output length and a fully consumed record grammar with an
 independent decoder. A partial output, valid magic prefix, or printable run
 does not establish the substrate.
+
+**Note.** One part re-saved in Creo 7 through 13 retains this gap in every
+release. The Creo 7 through 11 streams fail with invalid or incomplete LZW
+framing; the Creo 12 and 13 streams reach an undefined code. Other compressed
+sections expand with the defined Unix-compress grammar. Need a complete
+dictionary and width-state proof with synthetic streams before applying that
+grammar to this variant or changing the common decoder.
 
 ### PP-07. Compressed `DispDataTable` geometry binding
 

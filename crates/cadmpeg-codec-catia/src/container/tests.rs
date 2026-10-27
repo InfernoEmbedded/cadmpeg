@@ -6,9 +6,9 @@
 use cadmpeg_core::container::ContainerRole;
 
 use super::{
-    identify_variant, outer_container_declarations, outer_container_for_extent,
-    parse_directory_region, reconstruct_logical_stream, scan_bytes, summarize, Census,
-    ContainerScan, Descriptor, Extent, InnerDir, EDGE_DELIMITER, OUTER_MAGIC,
+    identify_variant, outer_container_declarations, parse_directory_region,
+    reconstruct_logical_stream, scan_bytes, summarize, Census, ContainerScan, Descriptor, Extent,
+    InnerDir, EDGE_DELIMITER, OUTER_MAGIC,
 };
 use std::io::Cursor;
 
@@ -1478,7 +1478,7 @@ fn e5_interstitial_owner_preceded_by_other_bytes_keeps_its_payload_private() {
         );
         assert_eq!(
             super::all_e5_record_spans(&bytes).collect::<Vec<_>>(),
-            [36..56]
+            std::iter::once(36..56).collect::<Vec<_>>()
         );
     }
 }

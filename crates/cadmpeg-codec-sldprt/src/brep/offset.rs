@@ -181,7 +181,7 @@ mod tests {
         for end in 0..original.len() {
             assert!(!super::scan(&original[..end]).contains_key(&12));
         }
-        for scale in [-31_415_800_000_000.0f64, 0.0, 0.002921, -7.4] {
+        for scale in [-31_415_800_000_000.0f64, 0.0, 0.002_921, -7.4] {
             let mut bytes = original.clone();
             let at = bytes.len() - 8;
             bytes[at..].copy_from_slice(&scale.to_be_bytes());
@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn invalid_unchecked_and_zero_offsets_keep_claims_without_typed_transfer() {
-        for status in [b'V', b'I', b'U'] {
+        for status in *b"VIU" {
             for distance in [-0.0025, 0.0, -0.0] {
                 let bytes = partition(status, 0, 6, distance);
                 let records = super::scan(&bytes);
@@ -229,7 +229,7 @@ mod tests {
     #[test]
     fn unused_logical_and_face_independent_sense_do_not_flip_distance() {
         for logical in [0, 1] {
-            for sense in [b'+', b'-'] {
+            for sense in *b"+-" {
                 let mut bytes = partition(b'V', logical, 6, -0.0025);
                 bytes[18] = sense;
                 let records = super::scan(&bytes);

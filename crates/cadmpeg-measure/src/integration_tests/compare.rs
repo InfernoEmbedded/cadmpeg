@@ -11,7 +11,7 @@ use cadmpeg_ir::CadIr;
 use crate::compare::{compare, CompareOptions, Comparison, Operand, Rule, Verdict};
 use crate::reason::CompareCause;
 use crate::select::Selection;
-use crate::test_support::{measure, Builder};
+use crate::test_support::builders::{measure, Builder};
 use crate::value::{BoxKind, Quantity};
 
 fn cube() -> CadIr {
@@ -236,6 +236,7 @@ fn occurrences_that_place_bodies_keep_the_verdict_inconclusive() {
         let mut cube = cube();
         let definition = ProductDefinitionId::mint("synthetic:cube:product#1").expect("id");
         cube.model.product_definitions.push(ProductDefinition {
+            sketches: Vec::default(),
             id: definition.clone(),
             kind: ProductDefinitionKind::Part,
             source_name: None,

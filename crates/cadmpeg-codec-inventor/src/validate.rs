@@ -3,7 +3,10 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use cadmpeg_asm::brep::records::FaceNativeKey;
+mod base;
+mod sheet_metal;
+
+use cadmpeg_asm::brep::records::{BodyNativeKey, FaceNativeKey};
 use cadmpeg_core::decode::DecodeContext;
 use cadmpeg_core::CodecError;
 use cadmpeg_ir::{
@@ -62,6 +65,7 @@ const ARENAS: &[&str] = &[
     "pm_app_default_styles",
     "pm_app_rendering_styles",
     "pm_dc_expressions",
+    "pm_dc_feature_dimensions",
     "pm_dc_feature_labels",
     "pm_dc_feature_properties",
     "pm_dc_feature_terminators",
@@ -114,6 +118,8 @@ const ARENAS: &[&str] = &[
     "wire_topologies",
 ];
 
+const OPTIONAL_ARENAS: &[&str] = &["pm_dc_sheet_metal_styles", "pm_dc_sheet_metal_flanges"];
+
 pub(crate) fn validate_native(
     ctx: &DecodeContext<'_>,
     ir: &CadIr,
@@ -127,13 +133,18 @@ pub(crate) fn validate_native(
         .map(String::as_str)
         .collect::<HashSet<_>>();
     let expected_arenas = ARENAS.iter().copied().collect::<HashSet<_>>();
-    if actual_arenas != expected_arenas {
+    let allowed_arenas = ARENAS
+        .iter()
+        .chain(OPTIONAL_ARENAS)
+        .copied()
+        .collect::<HashSet<_>>();
+    if !expected_arenas.is_subset(&actual_arenas) || !actual_arenas.is_subset(&allowed_arenas) {
         let mut missing = expected_arenas
             .difference(&actual_arenas)
             .copied()
             .collect::<Vec<_>>();
         let mut unexpected = actual_arenas
-            .difference(&expected_arenas)
+            .difference(&allowed_arenas)
             .copied()
             .collect::<Vec<_>>();
         missing.sort_unstable_by(Ord::cmp);
@@ -562,7 +573,27 @@ fn validate_sketches(data: &NativeData, ir: &CadIr, findings: &mut Vec<Finding>)
             ));
         }
     }
+    let entities = data
+        .pm_dc_sketch_entities
+        .iter()
+        .map(|entity| {
+            (
+                (
+                    entity.identity.segment_token.as_str(),
+                    entity.identity.record_ordinal,
+                ),
+                entity,
+            )
+        })
+        .collect::<HashMap<_, _>>();
     for entity in &data.pm_dc_sketch_entities {
+        if !entity.tail_matches_version() {
+            findings.push(finding(
+                Check::NativeLinks,
+                "Inventor point tail form does not match save_version_major".into(),
+                Some(entity.id()),
+            ));
+        }
         let mut references = vec![
             entity.header.next.index(),
             entity.header.context.index(),
@@ -576,16 +607,50 @@ fn validate_sketches(data: &NativeData, ir: &CadIr, findings: &mut Vec<Finding>)
                 endpoint_of,
                 center_of,
                 tail,
-                links,
                 ..
             } => {
                 add_list(endpoint_of);
                 add_list(center_of);
-                if let PointTail::Present { associations, .. } = tail {
-                    add_list(associations);
+                match tail {
+                    PointTail::Absent => {}
+                    PointTail::Present {
+                        associations,
+                        links,
+                        ..
+                    } => {
+                        add_list(associations);
+                        if let Some(links) = links {
+                            add_list(links);
+                        }
+                    }
+                    PointTail::Paired(paired) => {
+                        let token = entity.identity.segment_token.as_str();
+                        if !paired.operands().iter().all(|reference| {
+                            reference.index().checked_sub(1).is_some_and(|ordinal| {
+                                entities.get(&(token, ordinal)).is_some_and(|operand| {
+                                    let expected_type =
+                                        crate::pmdc::type_id_string(operand.kind.record_type_id());
+                                    record_is_exact(token, ordinal, &expected_type)
+                                        && operand.identity.type_id.as_str() == expected_type
+                                })
+                            })
+                        }) {
+                            findings.push(finding(
+                                Check::NativeLinks,
+                                "Inventor point paired operand does not resolve to a sketch entity"
+                                    .into(),
+                                Some(entity.id()),
+                            ));
+                        }
+                        references
+                            .extend(paired.operands().iter().map(|reference| reference.index()));
+                    }
                 }
-                if let Some(links) = links {
-                    add_list(links);
+            }
+            PmDcSketchEntityKind::Spline { data } => {
+                add_list(&data.points);
+                for list in &data.auxiliary {
+                    add_list(list);
                 }
             }
             PmDcSketchEntityKind::Line {
@@ -614,7 +679,14 @@ fn validate_sketches(data: &NativeData, ir: &CadIr, findings: &mut Vec<Finding>)
                 }
                 references.push(center.index());
             }
-            PmDcSketchEntityKind::Polygon { center, .. } => references.push(center.index()),
+            PmDcSketchEntityKind::Polygon { reference, .. } => references.push(reference.index()),
+            PmDcSketchEntityKind::BlockInstance {
+                definition, group, ..
+            } => references.extend([definition.index(), group.index()]),
+            PmDcSketchEntityKind::BlockMember { instances, member } => {
+                add_list(instances);
+                references.push(member.index());
+            }
         }
         if !record_is_exact(
             entity.identity.segment_token.as_str(),
@@ -751,6 +823,8 @@ fn validate_sketches(data: &NativeData, ir: &CadIr, findings: &mut Vec<Finding>)
 }
 
 fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>) {
+    sheet_metal::records(data, findings);
+    sheet_metal::definitions(ir, data, findings);
     let raw = data
         .records
         .iter()
@@ -876,19 +950,93 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
             ));
         }
     }
+    let properties_by_record = data
+        .pm_dc_feature_properties
+        .iter()
+        .map(|property| {
+            (
+                (
+                    property.identity.segment_token.as_str(),
+                    property.identity.record_ordinal,
+                ),
+                property,
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    let selection_list_type = crate::pmdc::type_id_string(crate::feature::SELECTION_LIST_TYPE);
+    let kernel_links =
+        cadmpeg_core::decode::unique_index(data.pm_dc_kernel_entity_links.iter().map(|link| {
+            (
+                (
+                    link.identity.segment_token.as_str(),
+                    link.identity.record_ordinal,
+                ),
+                link,
+            )
+        }));
+    unique(
+        findings,
+        data.pm_dc_feature_dimensions.iter().map(|record| {
+            (
+                record.identity.segment_token.as_str(),
+                record.identity.record_ordinal,
+            )
+        }),
+        "Inventor PmDc feature dimension",
+    );
+    for dimension in &data.pm_dc_feature_dimensions {
+        let token = dimension.identity.segment_token.as_str();
+        if raw.get(&(token, dimension.identity.record_ordinal))
+            != Some(&dimension.identity.type_id.as_str())
+            || dimension.identity.type_id.as_str()
+                != crate::pmdc::type_id_string(crate::feature::revolve::DIMENSION_TYPE)
+            || !resolves(token, dimension.parameter.index())
+        {
+            findings.push(finding(
+                Check::NativeLinks,
+                "Inventor feature dimension record or reference does not resolve".into(),
+                Some(dimension.id()),
+            ));
+        }
+    }
     for property in &data.pm_dc_feature_properties {
         let mut references = vec![
             property.header.next.index(),
             property.header.context.index(),
         ];
         match &property.kind {
+            PmDcFeaturePropertyKind::SheetMetal { definition } => {
+                references.extend(
+                    definition
+                        .references()
+                        .iter()
+                        .map(|reference| reference.index()),
+                );
+            }
             PmDcFeaturePropertyKind::References { items, .. } => {
                 references.extend(items.references().iter().map(|reference| reference.index()));
             }
-            PmDcFeaturePropertyKind::SurfaceBody { body } => references.push(body.index()),
+            PmDcFeaturePropertyKind::SurfaceBody { body } => {
+                if body.qualified() {
+                    references.push(body.index());
+                }
+            }
             PmDcFeaturePropertyKind::ProfileSelection { entity_link, .. } => {
                 references.push(entity_link.index());
             }
+            PmDcFeaturePropertyKind::LoftSection {
+                entity_link,
+                condition,
+                parameters,
+                option,
+                ..
+            } => references.extend([
+                entity_link.index(),
+                condition.index(),
+                parameters[0].index(),
+                parameters[1].index(),
+                option.index(),
+            ]),
             PmDcFeaturePropertyKind::Placement {
                 transform,
                 point,
@@ -915,7 +1063,13 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
             | PmDcFeaturePropertyKind::Boolean { .. }
             | PmDcFeaturePropertyKind::RdxVariable { .. }
             | PmDcFeaturePropertyKind::EdgeItem { .. }
+            | PmDcFeaturePropertyKind::FaceItem { .. }
             | PmDcFeaturePropertyKind::TerminationFlag { .. } => {}
+            PmDcFeaturePropertyKind::WorkAxis {
+                references: axis, ..
+            } => {
+                references.extend(axis.references().iter().map(|reference| reference.index()));
+            }
             PmDcFeaturePropertyKind::PlaneSurface {
                 references: surface,
                 ..
@@ -937,6 +1091,56 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
                 Some(property.id()),
             ));
         }
+        if !face_property_is_admitted(property, |ordinal| {
+            properties_by_record
+                .get(&(property.identity.segment_token.as_str(), ordinal))
+                .copied()
+        }) {
+            findings.push(finding(
+                Check::NativeLinks,
+                "Inventor PmDc face selection has an invalid record type, list, or member".into(),
+                Some(property.id()),
+            ));
+        }
+        if !crate::feature::sheet_metal::valid_references(property, |ordinal| {
+            raw.get(&(property.identity.segment_token.as_str(), ordinal))
+                .copied()
+        }) {
+            findings.push(finding(
+                Check::NativeLinks,
+                "Inventor sheet-metal property has an invalid record or operand type".into(),
+                Some(property.id()),
+            ));
+        }
+        if !crate::feature::loft_sweep::valid_references(
+            property,
+            |ordinal| {
+                raw.get(&(property.identity.segment_token.as_str(), ordinal))
+                    .copied()
+            },
+            |ordinal| {
+                kernel_links
+                    .get(&(property.identity.segment_token.as_str(), ordinal))
+                    .and_then(Option::as_ref)
+                    .copied()
+            },
+        ) {
+            findings.push(finding(
+                Check::NativeLinks,
+                "Inventor loft section control or reference type is invalid".into(),
+                Some(property.id()),
+            ));
+        }
+        if let Some(message) = fillet_continuity_type_error(&property.kind, |ordinal| {
+            raw.get(&(property.identity.segment_token.as_str(), ordinal))
+                .copied()
+        }) {
+            findings.push(finding(
+                Check::NativeLinks,
+                message.into(),
+                Some(property.id()),
+            ));
+        }
         if !fillet_option_is_admitted(&property.kind, |ordinal| {
             raw.get(&(property.identity.segment_token.as_str(), ordinal))
                 .copied()
@@ -944,6 +1148,20 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
             findings.push(finding(
                 Check::NativeLinks,
                 "Inventor PmDc fillet edge-set option is not a Boolean record".into(),
+                Some(property.id()),
+            ));
+        }
+        if matches!(
+            property.kind,
+            PmDcFeaturePropertyKind::References {
+                family: crate::feature::PmDcFeatureReferenceFamily::SelectionList,
+                ..
+            }
+        ) != (property.identity.type_id.as_str() == selection_list_type)
+        {
+            findings.push(finding(
+                Check::NativeLinks,
+                "Inventor selection list has the wrong PmDc record type".into(),
                 Some(property.id()),
             ));
         }
@@ -1072,16 +1290,33 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
         .iter()
         .map(|property| (property.id(), property))
         .collect::<HashMap<_, _>>();
-    let properties_by_record = data
-        .pm_dc_feature_properties
+    for source in &data.pm_dc_features {
+        let token = source.identity.segment_token.as_str();
+        let family = labels
+            .get(&(token, source.identity.record_ordinal))
+            .and_then(|label| {
+                crate::feature::loft_sweep::slots::Family::from_class_id(label.class_id())
+            });
+        if family.is_some_and(|family| {
+            !family.valid_slots(source, |ordinal| raw.get(&(token, ordinal)).copied())
+        }) {
+            findings.push(finding(
+                Check::NativeLinks,
+                "Inventor loft or sweep property slot has an invalid record type".into(),
+                Some(source.id()),
+            ));
+        }
+    }
+    let parameters_by_record = data
+        .pm_dc_parameters
         .iter()
-        .map(|property| {
+        .map(|parameter| {
             (
                 (
-                    property.identity.segment_token.as_str(),
-                    property.identity.record_ordinal,
+                    parameter.identity.segment_token.as_str(),
+                    parameter.identity.record_ordinal,
                 ),
-                property,
+                parameter,
             )
         })
         .collect::<HashMap<_, _>>();
@@ -1102,6 +1337,49 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
         .map(PmDcPatternFeature::id)
         .chain(data.pm_dc_sketches.iter().map(PmDcSketch::id))
         .collect::<HashSet<_>>();
+    let thicken_record_types =
+        cadmpeg_core::decode::unique_index(data.records.iter().map(|record| {
+            (
+                (record.token.as_str(), record.ordinal),
+                record.type_id.as_str(),
+            )
+        }));
+    let feature_properties =
+        cadmpeg_core::decode::unique_index(data.pm_dc_feature_properties.iter().map(|property| {
+            (
+                (
+                    property.identity.segment_token.as_str(),
+                    property.identity.record_ordinal,
+                ),
+                property,
+            )
+        }));
+    let feature_parameters =
+        cadmpeg_core::decode::unique_index(data.pm_dc_parameters.iter().map(|parameter| {
+            (
+                (
+                    parameter.identity.segment_token.as_str(),
+                    parameter.identity.record_ordinal,
+                ),
+                parameter,
+            )
+        }));
+    let parameter_values = cadmpeg_core::decode::unique_index(
+        ir.model
+            .parameters
+            .iter()
+            .filter_map(|parameter| Some((parameter.native_ref.as_deref()?, parameter))),
+    );
+    let revolve_dimensions =
+        cadmpeg_core::decode::unique_index(data.pm_dc_feature_dimensions.iter().map(|record| {
+            (
+                (
+                    record.identity.segment_token.as_str(),
+                    record.identity.record_ordinal,
+                ),
+                record,
+            )
+        }));
     for feature in &ir.model.features {
         if is_flat_pattern_feature(feature)
             && feature
@@ -1116,6 +1394,12 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
             if native.is_some_and(|native| history_records.contains(native))
                 && crate::feature::FeatureFamily::from_definition(feature.evaluation.definition())
                     .is_none()
+                && !matches!(
+                    feature.evaluation.definition(),
+                    cadmpeg_ir::features::FeatureDefinition::Operation(
+                        cadmpeg_ir::features::FeatureOperation::CosmeticThread { .. }
+                    )
+                )
             {
                 continue;
             }
@@ -1126,26 +1410,178 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
             ));
             continue;
         };
-        let Some(family) =
-            crate::feature::FeatureFamily::from_definition(feature.evaluation.definition())
-        else {
+        if let cadmpeg_ir::features::FeatureDefinition::Operation(
+            cadmpeg_ir::features::FeatureOperation::CosmeticThread {
+                face,
+                diameter,
+                extent,
+            },
+        ) = feature.evaluation.definition()
+        {
+            let token = raw_feature.identity.segment_token.as_str();
+            let collection = crate::feature::thread_face_collection(
+                raw_feature,
+                |reference| {
+                    properties_by_record
+                        .get(&(token, reference.checked_sub(1)?))
+                        .copied()
+                },
+                |reference| {
+                    reference
+                        .checked_sub(1)
+                        .is_some_and(|ordinal| parameters_by_record.contains_key(&(token, ordinal)))
+                },
+            );
+            let label_matches = labels
+                .get(&(token, raw_feature.identity.record_ordinal))
+                .is_some_and(|label| label.class_id() == crate::feature::THREAD_CLASS_ID);
+            let selection_matches = collection.is_some_and(|collection| {
+                matches!(face, cadmpeg_ir::features::FaceSelection::Native(native)
+                    if *native == collection.id())
+            });
+            if !label_matches
+                || !selection_matches
+                || diameter.is_some()
+                || extent.is_some()
+                || results.contains_key(&feature.id)
+            {
+                findings.push(finding(
+                    Check::NativeLinks,
+                    "Inventor thread annotation does not match its PmDc face selection".into(),
+                    Some(feature.id.as_str().to_owned()),
+                ));
+            }
             continue;
-        };
-        let expected_class = family.class_id();
-        let output_slot = family.output_slot();
-        if labels
+        }
+        let definition = feature.evaluation.definition();
+        if crate::feature::FeatureFamily::from_definition(definition).is_none() {
+            continue;
+        }
+        if let cadmpeg_ir::features::FeatureDefinition::Operation(
+            actual @ cadmpeg_ir::features::FeatureOperation::Thicken { .. },
+        ) = feature.evaluation.definition()
+        {
+            let token = raw_feature.identity.segment_token.as_str();
+            let expected = crate::feature::thicken_operation(
+                raw_feature,
+                |slot| {
+                    let ordinal = raw_feature
+                        .properties
+                        .references()
+                        .get(slot)?
+                        .record_ordinal()?;
+                    feature_properties.get(&(token, ordinal))?.as_ref().copied()
+                },
+                |slot| {
+                    let ordinal = raw_feature
+                        .properties
+                        .references()
+                        .get(slot)?
+                        .record_ordinal()?;
+                    let parameter = feature_parameters.get(&(token, ordinal))?.as_ref()?;
+                    let native = parameter.id();
+                    let value = parameter_values
+                        .get(native.as_str())?
+                        .as_ref()?
+                        .value
+                        .as_ref()?;
+                    Some((*parameter, value))
+                },
+                |ordinal| {
+                    thicken_record_types
+                        .get(&(token, ordinal))?
+                        .as_ref()
+                        .copied()
+                },
+            );
+            if expected.as_ref() != Some(actual) {
+                findings.push(finding(
+                    Check::NativeLinks,
+                    "Inventor neutral thicken operands do not match their PmDc slots".into(),
+                    Some(feature.id.as_str().to_owned()),
+                ));
+            }
+        }
+        if let cadmpeg_ir::features::FeatureDefinition::Operation(
+            cadmpeg_ir::features::FeatureOperation::Revolve { construction, op },
+        ) = definition
+        {
+            let token = raw_feature.identity.segment_token.as_str();
+            let expected = crate::feature::revolve::operands(
+                raw_feature,
+                |slot| {
+                    let ordinal = raw_feature
+                        .properties
+                        .references()
+                        .get(slot)?
+                        .record_ordinal()?;
+                    feature_properties.get(&(token, ordinal))?.as_ref().copied()
+                },
+                |slot| {
+                    let ordinal = raw_feature
+                        .properties
+                        .references()
+                        .get(slot)?
+                        .record_ordinal()?;
+                    let raw = feature_parameters.get(&(token, ordinal))?.as_ref()?;
+                    let native = raw.id();
+                    match parameter_values
+                        .get(native.as_str())?
+                        .as_ref()?
+                        .value
+                        .as_ref()?
+                    {
+                        cadmpeg_ir::features::ParameterValue::Angle(angle) => Some(*angle),
+                        _ => None,
+                    }
+                },
+                |ordinal| revolve_dimensions.get(&(token, ordinal))?.as_ref().copied(),
+            );
+            if !expected.is_ok_and(|expected| {
+                crate::feature::revolve::matches(&expected, construction, *op)
+            }) {
+                findings.push(finding(
+                    Check::NativeLinks,
+                    "Inventor neutral revolve operands do not match their PmDc slots".into(),
+                    Some(feature.id.as_str().to_owned()),
+                ));
+            }
+        }
+        // The label class selects the record layout; the neutral operation
+        // must be the one that layout projects.
+        let Some(family) = labels
             .get(&(
                 raw_feature.identity.segment_token.as_str(),
                 raw_feature.identity.record_ordinal,
             ))
-            .is_none_or(|label| label.class_id() != expected_class)
-        {
+            .and_then(|label| crate::feature::FeatureFamily::from_class_id(label.class_id()))
+            .filter(|family| family.admits_definition(definition))
+        else {
             findings.push(finding(
                 Check::NativeLinks,
                 "Inventor neutral feature family does not match its PmDc label".into(),
                 Some(feature.id.as_str().to_owned()),
             ));
+            continue;
+        };
+        if matches!(family, crate::feature::FeatureFamily::Base) {
+            if !base::valid(
+                ir,
+                data,
+                feature,
+                raw_feature,
+                results.get(&feature.id).copied(),
+            ) {
+                findings.push(finding(
+                    Check::NativeLinks,
+                    "Inventor Base result does not match its stored source and current model body"
+                        .into(),
+                    Some(feature.id.as_str().to_owned()),
+                ));
+            }
+            continue;
         }
+        let output_slot = family.output_slot(raw_feature);
         let expected_collection = raw_feature
             .properties
             .references()
@@ -1170,6 +1606,15 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
         }
     }
     for result in &ir.model.feature_result_topologies {
+        if ir.model.features.iter().any(|feature| {
+            feature.id == result.output_of
+                && matches!(
+                    crate::feature::FeatureFamily::from_definition(feature.evaluation.definition()),
+                    Some(crate::feature::FeatureFamily::Base)
+                )
+        }) {
+            continue;
+        }
         let Some(collection) = result
             .native_ref
             .as_deref()
@@ -1182,6 +1627,22 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
             ));
             continue;
         };
+        if matches!(collection.kind, PmDcFeaturePropertyKind::SurfaceBody { .. }) {
+            // A plate result is its one surface-body record.
+            if result
+                .bodies()
+                .iter()
+                .map(cadmpeg_core::text::NonBlankString::as_str)
+                .ne([collection.id().as_str()])
+            {
+                findings.push(finding(
+                    Check::NativeLinks,
+                    "Inventor feature result body does not match its PmDc surface body".into(),
+                    Some(result.id.as_str().to_owned()),
+                ));
+            }
+            continue;
+        }
         let PmDcFeaturePropertyKind::References {
             family: crate::feature::PmDcFeatureReferenceFamily::ObjectCollection,
             items,
@@ -1228,6 +1689,39 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
             format!("Inventor feature record: {}", issue.detail),
             Some(issue.id()),
         ));
+    }
+}
+
+fn face_property_is_admitted<'a>(
+    property: &PmDcFeatureProperty,
+    property_at: impl Fn(u32) -> Option<&'a PmDcFeatureProperty>,
+) -> bool {
+    let face_item_type = "ccb59f50d1114f6b0008a1ba32a3dc09";
+    let face_collection_type = "f1b2bc24d01121dd0008d0bc0663dc09";
+    let valid_item = |item: &PmDcFeatureProperty| {
+        item.identity.type_id.as_str() == face_item_type
+            && matches!(&item.kind, PmDcFeaturePropertyKind::FaceItem { index_references }
+                if index_references.marker() == 2)
+    };
+    match &property.kind {
+        PmDcFeaturePropertyKind::FaceItem { .. } => valid_item(property),
+        PmDcFeaturePropertyKind::References {
+            family: crate::feature::PmDcFeatureReferenceFamily::FaceCollection,
+            items,
+        } => {
+            property.identity.type_id.as_str() == face_collection_type
+                && items.marker() == 2
+                && items.references().iter().all(|reference| {
+                    reference
+                        .record_ordinal()
+                        .and_then(&property_at)
+                        .is_some_and(valid_item)
+                })
+        }
+        _ => {
+            property.identity.type_id.as_str() != face_item_type
+                && property.identity.type_id.as_str() != face_collection_type
+        }
     }
 }
 
@@ -1524,6 +2018,7 @@ struct NativeData {
     pm_graphics_style_collections: Vec<PmGraphicsStyleCollectionRecord>,
     pm_graphics_primary_color_styles: Vec<PmGraphicsPrimaryColorStyleRecord>,
     face_native_keys: Vec<FaceNativeKey>,
+    body_native_keys: Vec<BodyNativeKey>,
     presentation_record_issues: Vec<RecordIssue>,
     pm_dc_parameters: Vec<PmDcParameter>,
     pm_dc_expressions: Vec<PmDcExpression>,
@@ -1541,6 +2036,9 @@ struct NativeData {
     pm_dc_pattern_features: Vec<PmDcPatternFeature>,
     pm_dc_feature_terminators: Vec<PmDcFeatureTerminator>,
     pm_dc_feature_properties: Vec<PmDcFeatureProperty>,
+    pm_dc_sheet_metal_styles: Vec<crate::feature::sheet_metal::style::Style>,
+    pm_dc_sheet_metal_flanges: Vec<crate::feature::sheet_metal::flange::Flange>,
+    pm_dc_feature_dimensions: Vec<crate::feature::revolve::Dimension>,
     pm_dc_feature_labels: Vec<PmDcFeatureLabel>,
     pm_dc_entity_style_links: Vec<PmDcEntityStyleLink>,
     pm_dc_kernel_entity_links: Vec<PmDcKernelEntityLink>,
@@ -1591,6 +2089,7 @@ impl NativeData {
             pm_graphics_primary_color_styles: namespace
                 .arena_as_for_decode(ctx, "pm_graphics_primary_color_styles")?,
             face_native_keys: namespace.arena_as_for_decode(ctx, "face_native_keys")?,
+            body_native_keys: namespace.arena_as_for_decode(ctx, "body_native_keys")?,
             presentation_record_issues: namespace
                 .arena_as_for_decode(ctx, "presentation_record_issues")?,
             pm_dc_parameters: namespace.arena_as_for_decode(ctx, "pm_dc_parameters")?,
@@ -1612,6 +2111,12 @@ impl NativeData {
                 .arena_as_for_decode(ctx, "pm_dc_feature_terminators")?,
             pm_dc_feature_properties: namespace
                 .arena_as_for_decode(ctx, "pm_dc_feature_properties")?,
+            pm_dc_sheet_metal_styles: namespace
+                .arena_as_for_decode(ctx, "pm_dc_sheet_metal_styles")?,
+            pm_dc_sheet_metal_flanges: namespace
+                .arena_as_for_decode(ctx, "pm_dc_sheet_metal_flanges")?,
+            pm_dc_feature_dimensions: namespace
+                .arena_as_for_decode(ctx, "pm_dc_feature_dimensions")?,
             pm_dc_feature_labels: namespace.arena_as_for_decode(ctx, "pm_dc_feature_labels")?,
             pm_dc_entity_style_links: namespace
                 .arena_as_for_decode(ctx, "pm_dc_entity_style_links")?,
@@ -2324,7 +2829,9 @@ pub(crate) fn sketch_constraint_references(constraint: &PmDcSketchConstraint) ->
         header.content.next.index(),
         header.content.context.index(),
         header.group.index(),
-        header.parameter.index(),
+        header
+            .parameter
+            .map_or(0, crate::pmdc::PmDcReference::index),
     ];
     for (key, _) in header.scalar_map.entries() {
         references.push(key.index());
@@ -2378,6 +2885,9 @@ pub(crate) fn sketch_constraint_references(constraint: &PmDcSketchConstraint) ->
         | PmDcSketchConstraintKind::Collinear { first, second, .. } => {
             references.extend([first.index(), second.index()]);
         }
+        PmDcSketchConstraintKind::SplinePoint { spline, point } => {
+            references.extend([spline.index(), point.index()]);
+        }
         PmDcSketchConstraintKind::Midpoint { entity, point, .. } => {
             references.extend([entity.index(), point.index()]);
         }
@@ -2387,16 +2897,22 @@ pub(crate) fn sketch_constraint_references(constraint: &PmDcSketchConstraint) ->
             second,
             axis,
         } => references.extend([first.index(), second.index(), axis.index()]),
+        PmDcSketchConstraintKind::EqualDistance { first, second } => {
+            references.extend(first.iter().chain(&second).map(|entity| entity.index()));
+        }
+        PmDcSketchConstraintKind::BlockGroup { ref members } => {
+            references.extend(members.references().iter().map(|member| member.index()));
+        }
         PmDcSketchConstraintKind::PolygonRelation {
             first,
             second,
-            center,
+            reference,
             polygon,
             ..
         } => references.extend([
             first.index(),
             second.index(),
-            center.index(),
+            reference.index(),
             polygon[0].index(),
             polygon[1].index(),
         ]),
@@ -2424,3 +2940,21 @@ pub(crate) fn fillet_option_is_admitted<'a>(
             type_id == crate::pmdc::type_id_string(crate::feature::BOOLEAN_TYPE)
         })
 }
+
+fn fillet_continuity_type_error<'a>(
+    kind: &PmDcFeaturePropertyKind,
+    type_at: impl Fn(u32) -> Option<&'a str>,
+) -> Option<&'static str> {
+    let PmDcFeaturePropertyKind::FilletEdgeSet { continuity, .. } = kind else {
+        return None;
+    };
+    let boolean_type = crate::pmdc::type_id_string(crate::feature::BOOLEAN_TYPE);
+    continuity
+        .record_ordinal()
+        .and_then(type_at)
+        .is_some_and(|type_id| type_id != boolean_type)
+        .then_some("Inventor PmDc fillet continuity is not a Boolean record")
+}
+
+#[cfg(test)]
+mod tests;

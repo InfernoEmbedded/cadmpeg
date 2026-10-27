@@ -1082,7 +1082,8 @@ fn append_design_losses(
         | LinearTermination::ThroughAll {}
         | LinearTermination::ThroughNext {}
         | LinearTermination::ToFirst {}
-        | LinearTermination::ToLast {} => false,
+        | LinearTermination::ToLast {}
+        | LinearTermination::ToPlane { .. } => false,
     };
     let incomplete_angular_termination = |termination: &AngularTermination| match termination {
         AngularTermination::Unresolved {} => true,
@@ -1262,9 +1263,8 @@ fn append_design_losses(
                                 incomplete_face_selection(face)
                             }
                             cadmpeg_ir::features::ExtrudeStart::ProfilePlane {}
-                            | cadmpeg_ir::features::ExtrudeStart::OffsetProfilePlane { .. } => {
-                                false
-                            }
+                            | cadmpeg_ir::features::ExtrudeStart::OffsetProfilePlane { .. }
+                            | cadmpeg_ir::features::ExtrudeStart::FromPlane { .. } => false,
                         }
                         || matches!(
                             direction,
@@ -1380,6 +1380,15 @@ fn append_design_losses(
                 FeatureOperation::SheetMetalBaseFlange { profile, .. } => {
                     incomplete_planar_profile(profile)
                 }
+                FeatureOperation::SheetMetalAttachedPlate {
+                    profile,
+                    attachment,
+                    ..
+                } => incomplete_planar_profile(profile) || incomplete_edge_selection(attachment),
+                FeatureOperation::SheetMetalBend { attachment, .. } => {
+                    incomplete_edge_selection(attachment)
+                }
+                FeatureOperation::SheetMetalCorner { .. } => false,
                 FeatureOperation::SheetMetalEdgeFlange { edges, .. } => {
                     incomplete_edge_selection(edges)
                 }
@@ -1872,6 +1881,13 @@ fn unbound_feature_input_operation_objects(native: &crate::native::SldprtNative)
 }
 
 fn unprojected_sketch_relation_records(ir: &CadIr, native: &crate::native::SldprtNative) -> usize {
+    use crate::resolved_features::relation_table;
+    let constraint_ids = ir
+        .model
+        .sketch_constraints
+        .iter()
+        .map(|constraint| constraint.id.as_str())
+        .collect::<HashSet<_>>();
     let sketch_feature_refs = ir
         .model
         .features
@@ -1962,7 +1978,17 @@ fn unprojected_sketch_relation_records(ir: &CadIr, native: &crate::native::Sldpr
                 markers += 1;
             }
         }
-        total += instances + bindings + markers;
+        let lane_key = lane
+            .id
+            .rsplit_once('#')
+            .map_or(lane.id.as_str(), |(_, key)| key);
+        let table_rows = relation_table::lane_tables(&lane.native_payload)
+            .iter()
+            .flat_map(|sketch| &sketch.rows)
+            .map(|row| relation_table::row_id(lane_key, row.offset))
+            .filter(|id| !constraint_ids.contains(id.as_str()))
+            .count();
+        total += instances + bindings + markers + table_rows;
     }
     total
 }
@@ -2436,7 +2462,8 @@ fn build_geometry_ir(
     let mut annotations = std::mem::take(&mut brep.annotations);
     let mut pmi_losses = Vec::new();
     let mut histories = crate::history::histories(ctx, scan, &mut annotations, &mut pmi_losses)?;
-    let mut lanes = crate::resolved_features::assembly::lanes(ctx, scan, &mut annotations)?;
+    let mut lanes =
+        crate::resolved_features::assembly::lanes(ctx, scan, &mut annotations, &mut pmi_losses)?;
     let mut supplemental_config_lanes =
         crate::resolved_features::assembly::supplemental_config_lanes(ctx, scan, &mut annotations)?;
     crate::resolved_features::classes::bind_history_classes(&mut histories, &lanes);
@@ -3658,7 +3685,7 @@ fn build_geometry_report(
     classification.append_losses(&mut losses);
     Ok(DecodeBody {
         transfer: cadmpeg_ir::report::decode::DecodeTransfer::full(true),
-        coverage: cadmpeg_ir::report::decode::Coverage::default(),
+        coverage: crate::archive::coverage(scan, ctx)?,
         losses,
         notes,
         transfer_ledger: cadmpeg_ir::report::decode::TransferLedger::default(),
@@ -3685,7 +3712,8 @@ fn build_metadata_ir(
     let mut annotations = Annotations::default();
     let mut pmi_losses = Vec::new();
     let mut histories = crate::history::histories(ctx, scan, &mut annotations, &mut pmi_losses)?;
-    let mut lanes = crate::resolved_features::assembly::lanes(ctx, scan, &mut annotations)?;
+    let mut lanes =
+        crate::resolved_features::assembly::lanes(ctx, scan, &mut annotations, &mut pmi_losses)?;
     let mut supplemental_config_lanes =
         crate::resolved_features::assembly::supplemental_config_lanes(ctx, scan, &mut annotations)?;
     crate::resolved_features::classes::bind_history_classes(&mut histories, &lanes);
@@ -5261,7 +5289,7 @@ fn build_container_report(
 
     Ok(DecodeBody {
         transfer: cadmpeg_ir::report::decode::DecodeTransfer::full(false),
-        coverage: cadmpeg_ir::report::decode::Coverage::default(),
+        coverage: crate::archive::coverage(scan, ctx)?,
         losses,
         notes,
         transfer_ledger: cadmpeg_ir::report::decode::TransferLedger::default(),

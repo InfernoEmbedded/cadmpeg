@@ -125,10 +125,11 @@ cadmpeg check bracket.cadir.json
 cadmpeg check bracket.f3d --json
 ```
 
-`check` also measures the model and reports three defect classes as
+`check` also measures the model and reports four defect classes as
 warnings: a face ring whose coedges are not listed in traversal order
-(`ring_order`), a face whose sense disagrees with its loop winding, and a
-closed body whose volume readings conflict (`orientation`). The pass has its
+(`ring_order`), a coedge whose pcurve uses are listed from its end to its
+start (`pcurve_order`), a face whose sense disagrees with its loop winding,
+and a closed body whose volume readings conflict (`orientation`). The pass has its
 own allowance, much smaller than that of `measure`, and `--limits service`
 makes it smaller still. When the allowance runs out, one `info` finding
 (`measurement_incomplete`) states how many faces and bodies were not
@@ -288,8 +289,9 @@ depth holds no geometry; `measure` refuses it with `insufficient_depth`.
 
 The built-in codecs recognize `.f3d`, `.FCStd`, `.ipt`, `.iam`, `.sldprt`,
 `.3dm`, `.CATPart`, IGES, STEP, bare ASM/ACIS `.sat`/`.smt`/`.smb`/`.sab`
-streams, and the NX and Creo `.prt` layouts by content. Commands that load
-models also accept CADIR JSON. Use `--input-format` (alias `--from`) to bypass
+streams, the NX and Creo `.prt` layouts, and Creo View `.pvz` packages by
+content. Commands that load models also accept CADIR JSON. Use
+`--input-format` (alias `--from`) to bypass
 detection for an ambiguous or extensionless input. Every command that takes
 one input file also accepts `--input FILE` as a spelling of the positional;
 the two-file commands (`diff`, `inspect cmp`, `inspect extract`) take their

@@ -79,6 +79,7 @@ rewrite_scalar!(RuledCurveOrientation);
 rewrite_scalar!(RuledSurfaceCorner);
 rewrite_scalar!(ScaleFactors);
 rewrite_scalar!(SheetMetalBendPosition);
+rewrite_scalar!(super::SheetMetalCornerEffect);
 rewrite_scalar!(SheetMetalHeightDatum);
 rewrite_scalar!(SheetMetalHemBendPosition);
 rewrite_scalar!(SheetMetalHemDirection);
@@ -99,3 +100,8 @@ rewrite_scalar!(WrapMode);
 rewrite_scalar!(super::SweepCircularRegion);
 
 rewrite_scalar!(FilledSurfaceBoundaryCondition);
+
+rewrite_scalar!(super::SheetMetalReliefForm);
+rewrite_scalar!(super::SheetMetalTransitionForm);
+rewrite_record!(super::SheetMetalRelief, []; {form, width, depth, minimum_remnant, seam_gap});
+rewrite_record!(super::SheetMetalTransition, []; {form, radius});

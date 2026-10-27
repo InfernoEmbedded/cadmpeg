@@ -209,8 +209,8 @@ fn transformation_operator_2d(e: &mut Emitter, transform: Transform2) -> Option<
         return None;
     }
     Some(e.emit(
-        "CARTESIAN_TRANSFORMATION_OPERATOR_2D",
-        &format!("'',{x},{y},{origin},{}", e.real(scale)),
+        e.operator_2d_entity(),
+        &format!("'','','',{x},{y},{origin},{}", e.real(scale)),
     ))
 }
 
@@ -363,6 +363,13 @@ pub(crate) fn pcurve(e: &mut Emitter, geometry: &PcurveGeometry) -> Option<Ref> 
     })
 }
 
+/// Whether [`pcurve`] writes `geometry` without a `CURVE_REPLICA`: it is not
+/// placed, or its placement is baked into its basis.
+pub(crate) fn pcurve_placement_bakes(geometry: &PcurveGeometry) -> bool {
+    !matches!(geometry, PcurveGeometry::Transformed(_))
+        || bake::placed_pcurve(Transform2::identity(), geometry).is_some()
+}
+
 /// Emit a pcurve in the reversed parameter chart of a negative-angle cone.
 /// The half-turn maps each `(u, v)` to `(-u, -v)` without changing the curve's
 /// own parameter or sense.
@@ -427,7 +434,7 @@ pub(crate) fn transformation_operator(e: &mut Emitter, transform: Transform) -> 
     let z = direction(e, z);
     e.emit(
         "CARTESIAN_TRANSFORMATION_OPERATOR_3D",
-        &format!("'',{x},{y},{origin},{},{z}", e.real(scale)),
+        &format!("'','','',{x},{y},{origin},{},{z}", e.real(scale)),
     )
 }
 
@@ -818,5 +825,7 @@ fn nurbs_surface(e: &mut Emitter, n: &NurbsSurface) -> Option<Ref> {
 }
 
 mod bake;
+#[cfg(test)]
+mod replica_tests;
 #[cfg(test)]
 mod support_tests;

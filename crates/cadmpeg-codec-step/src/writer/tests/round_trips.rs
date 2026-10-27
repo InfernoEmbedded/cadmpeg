@@ -704,6 +704,7 @@ pub(crate) fn writer_round_trips_product_body_ownership() {
     ir.model
         .product_definitions
         .push(cadmpeg_ir::products::ProductDefinition {
+            sketches: Vec::default(),
             id: product.clone(),
             kind: cadmpeg_ir::products::ProductDefinitionKind::Part,
             source_name: Some("Cube part".into()),
@@ -1143,6 +1144,12 @@ fn periodic_two_rim_face_keeps_unclassified_bounds_through_export() {
             round_trip.ir().model.faces[0].loops,
             cadmpeg_ir::topology::FaceLoops::Unspecified { .. }
         ));
+        cadmpeg_measure::test_support::round_trip::measures_agree(
+            "periodic two-rim face",
+            decoded.ir(),
+            round_trip.ir(),
+        )
+        .expect("the round trip keeps its measured geometry");
     }
 }
 

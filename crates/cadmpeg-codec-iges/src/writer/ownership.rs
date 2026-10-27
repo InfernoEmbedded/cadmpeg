@@ -2,10 +2,8 @@
 //! Preserve source dependency for carriers without standalone topology.
 
 use super::EntityStatus;
-use crate::loss::IgesLossCode;
-use cadmpeg_ir::geometry::{Curve, Surface};
+use cadmpeg_ir::geometry::Surface;
 use cadmpeg_ir::ids::SurfaceId;
-use cadmpeg_ir::report::loss::LossNote;
 use cadmpeg_ir::{CadIr, CodecFormat, SourceGeometryRole, SourceObjectAssociation};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -67,34 +65,21 @@ impl<'ir> SourceOwnership<'ir> {
             .copied()
             .unwrap_or(EntityStatus::Independent);
         if source.is_some_and(|source| source.geometry_role == Some(SourceGeometryRole::Support)) {
-            match status {
-                EntityStatus::Independent | EntityStatus::Definition => {
-                    EntityStatus::PhysicallyDependent
-                }
-                EntityStatus::LogicallyDependent => EntityStatus::BothDependent,
-                status => status,
-            }
+            physically_dependent(status)
         } else {
             status
         }
     }
 
-    pub(super) fn curve_status(
-        &self,
-        curve: &Curve,
-        losses: &mut Vec<LossNote>,
-    ) -> Option<EntityStatus> {
-        let status = self.status(curve.source_object.as_ref());
-        // Parameter-space carriers are emitted through their owning pcurves.
-        // An unreferenced copy can be imported as standalone model-space geometry.
-        if matches!(status, EntityStatus::ParameterCurve) {
-            losses.push(IgesLossCode::WriterSupportGeometryNotRepresented.note(format!(
-                "1 support geometry record ({}) was withheld because its parameter-space carrier has no exported owner",
-                curve.id
-            )));
-            None
+    /// The status of a carrier that exported topology uses. A carrier with no
+    /// stated geometry role is support of that topology; only an explicit
+    /// `independent` role also makes it standalone geometry.
+    pub(super) fn topology_status(&self, source: Option<&SourceObjectAssociation>) -> EntityStatus {
+        let status = self.status(source);
+        if source.and_then(|source| source.geometry_role).is_none() {
+            physically_dependent(status)
         } else {
-            Some(status)
+            status
         }
     }
 
@@ -104,5 +89,14 @@ impl<'ir> SourceOwnership<'ir> {
         // standalone geometry by some importers. Withhold that orphan instead.
         (!status.is_physically_dependent() || self.owned_surfaces.contains(&surface.id))
             .then_some(status)
+    }
+}
+
+/// `status` with physical dependence added.
+const fn physically_dependent(status: EntityStatus) -> EntityStatus {
+    match status {
+        EntityStatus::Independent | EntityStatus::Definition => EntityStatus::PhysicallyDependent,
+        EntityStatus::LogicallyDependent => EntityStatus::BothDependent,
+        status => status,
     }
 }

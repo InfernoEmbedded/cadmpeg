@@ -102,7 +102,9 @@
 
 mod annotations;
 mod appearance;
+mod archive;
 mod brep;
+mod carchive;
 mod classification;
 mod container;
 mod decode;
@@ -398,7 +400,11 @@ impl Written {
 impl CodecBackend for SldprtCodec {
     const FORMAT: FormatId = FormatId::new(dialect::FORMAT);
 
-    fn validate_native(ctx: &DecodeContext<'_>, ir: &CadIr) -> Result<Vec<Finding>, CodecError> {
+    fn validate_native(
+        ctx: &DecodeContext<'_>,
+        ir: &CadIr,
+        _source: Option<&cadmpeg_ir::SourceFidelity>,
+    ) -> Result<Vec<Finding>, CodecError> {
         resolved_features::validate::validate_native(ctx, ir)
     }
 

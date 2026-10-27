@@ -998,7 +998,7 @@ fn decode_binds_curve_expression_dependencies_to_unique_dimensions() {
         "c",
         &[
             ("FeatDefs", featdefs),
-            ("DEPDB_DATA", b"Extrude id 40\0".to_vec()),
+            ("MdlStatus", b"Extrude id 40\0".to_vec()),
             ("DEPDB_DATA", expressions),
         ],
     );

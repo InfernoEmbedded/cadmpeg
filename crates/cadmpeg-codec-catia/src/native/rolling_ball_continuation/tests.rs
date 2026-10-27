@@ -102,7 +102,7 @@ fn continuation_retains_independent_header_width_flag_and_raw_token() {
     for (width, token, encoded) in [
         (1u8, 5u32, ConsolidatedFrameWidth::One),
         (2, 0x1234, ConsolidatedFrameWidth::Two),
-        (3, 0x123456, ConsolidatedFrameWidth::Three),
+        (3, 0x0012_3456, ConsolidatedFrameWidth::Three),
     ] {
         for (flag, expected) in [
             (3, ConsolidatedFrameFlag::Flag03),
@@ -246,7 +246,7 @@ fn continuation_source_indices_keep_logical_and_physical_frame_identity() {
     bytes.extend_from_slice(&frame);
     let records = crate::wire::records::consolidated_records_in_range_sources(
         &bytes,
-        [vec![3..second], vec![second..bytes.len()]],
+        [Some(3..second), Some(second..bytes.len())],
     );
     let rows = crate::test_support::with_service_context(|ctx| derive(ctx, &bytes, &records))
         .expect("source admission");

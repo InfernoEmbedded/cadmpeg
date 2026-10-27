@@ -668,7 +668,12 @@ pub(super) fn topology_scopes(buf: &[u8], prefixed: bool) -> TopologyScopes {
                 let start = p.checked_add(int_values::LEN)?;
                 let available = buf.len().checked_sub(start)?;
                 let count = cadmpeg_core::decode::bounded_len(u64::from(count), 4, available)?;
-                start.checked_add(count.checked_mul(4)?)
+                let end = start.checked_add(count.checked_mul(4)?)?;
+                // A node ends where the next node's tag begins. A `00 52` read
+                // inside another record's fields can state a count that fits the
+                // buffer; its extent then ends mid-record and would hide every
+                // real node it spans.
+                buf.get(end).is_none_or(|next| *next == 0).then_some(end)
             }),
             0x51 => (|| {
                 let flags = View::u32_be_at(buf, p + entity_hdr::FLAGS)?;
@@ -2940,6 +2945,26 @@ mod tests {
     }
 
     #[test]
+    fn int_values_extent_ends_where_the_next_node_begins() {
+        // `00 52` read inside another record's fields: the stated count fits
+        // the buffer, but the extent ends mid-record, so it frames nothing.
+        let mut bytes = vec![0, 0x52];
+        bytes.extend(4u32.to_be_bytes());
+        bytes.extend(95u16.to_be_bytes());
+        bytes.extend([0; 16]);
+        let end = bytes.len();
+        let mut inside = bytes.clone();
+        inside.extend([0xb3, 0xc2, 0xbc, 0x92]);
+        assert!(super::topology_payload_ranges(&inside, false).is_empty());
+        // The same node followed by the next node's tag is a payload.
+        bytes.extend([0, 0x51]);
+        assert_eq!(
+            super::topology_payload_ranges(&bytes, false),
+            std::iter::once(0..end).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
     fn int_values_count_is_a_bounded_u32_not_a_short_pointer() {
         let count = 0x8000u32;
         let mut bytes = vec![0, 0x52];
@@ -3557,7 +3582,7 @@ mod tests {
     fn face_conflict_unknown_frame_completeness_cannot_prove_duplicate_equality() {
         let frame = face_conflict_tripled(10);
         let p = super::body_start(&frame, 0, 0x0e).unwrap();
-        let prefix = frame[..p + crate::layout::face_tripled::SENSE + 1].to_vec();
+        let prefix = frame[..=p + crate::layout::face_tripled::SENSE].to_vec();
         assert!(parse_bridge(&prefix, 0).is_some());
         assert!(super::bridge_frame_bytes(&prefix, 0).is_none());
         assert!(face_conflict_scan(&prefix, true)

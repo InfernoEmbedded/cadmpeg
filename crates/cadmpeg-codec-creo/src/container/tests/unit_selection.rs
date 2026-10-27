@@ -59,7 +59,9 @@ fn binary_units_cgs_selects_centimeters() {
         panic!("CGS must select its coordinate unit");
     };
     assert_eq!(
-        system.length_scale_mm().map(|scale| scale.get()),
+        system
+            .length_scale_mm()
+            .map(cadmpeg_ir::scalar::PositiveReal::get),
         Some(10.0)
     );
 }

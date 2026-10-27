@@ -28,7 +28,7 @@ fn sweep_history_keeps_branches_and_body_links_without_inventing_policies() {
     assert_eq!(arenas["feature_operation_body_writes"].len(), 2);
     assert!(arenas
         .get("feature_body_write_group_partition_uses")
-        .is_none_or(|uses| uses.is_empty()));
+        .is_none_or(Vec::is_empty));
     let branches = serde_json::to_value(&arenas["feature_swp104_leading_branches"]).unwrap();
     assert_eq!(branches.as_array().unwrap().len(), 2);
     assert_eq!(branches[0]["parameter_class_index"], 17);
@@ -54,7 +54,7 @@ fn sweep_history_keeps_branches_and_body_links_without_inventing_policies() {
         );
         assert_eq!(
             branch["scalars"],
-            serde_json::json!([0.000038, 0.002, 0.00008, 0.00004])
+            serde_json::json!([0.000_038, 0.002, 0.00008, 0.00004])
         );
     }
 }

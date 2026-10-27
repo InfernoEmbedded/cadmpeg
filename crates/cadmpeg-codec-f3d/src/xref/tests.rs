@@ -27,7 +27,7 @@ use crate::test_support::assembly_test::{
 use crate::test_support::manifest_test::write_synthetic_manifests;
 use crate::test_support::native_test::f3d_native;
 use crate::test_support::streams_test::design_metastream_with_records;
-use crate::test_support::{cross_document_reference, local_reference};
+use crate::test_support::{cross_document_reference, local_reference, lp_utf16};
 use crate::F3dCodec;
 
 use super::OccurrencePlacement;
@@ -201,6 +201,7 @@ fn external_reference_placements_project_as_root_occurrences_in_millimetres() {
             id: "f3d:xref:reference#0-occurrence-0".into(),
             ordinal: 0,
             occurrence_ordinal: 0,
+            placement_source: None,
             from: "root.f3d".to_owned().try_into().unwrap(),
             relative_path: "part.f3d".to_owned().try_into().unwrap(),
             neutron_role: "role".to_owned().try_into().unwrap(),
@@ -212,7 +213,7 @@ fn external_reference_placements_project_as_root_occurrences_in_millimetres() {
         placement_metadata_missing: false,
     };
 
-    let occurrences = super::project_occurrences(&table).unwrap();
+    let occurrences = super::root_occurrences(&table).unwrap();
 
     assert_eq!(occurrences.len(), 1);
     assert_eq!(occurrences[0].id.as_str(), "f3d:model:occurrence#xref-0-0");
@@ -273,7 +274,7 @@ fn external_reference_admission_and_projection_check_affine_transforms() {
     rows[0][3] = f64::MAX;
     table.references[0].transform = Some(rows.try_into().unwrap());
     assert!(matches!(
-        super::project_occurrences(&table),
+        super::root_occurrences(&table),
         Err(cadmpeg_core::CodecError::NotImplemented(message))
             if message.contains("finite affine transform")
     ));
@@ -393,14 +394,30 @@ fn occurrence_record_with_serializer_magic(
 }
 
 fn document_with_modern_placement(role: &str, matrix: [[f64; 4]; 4]) -> Vec<u8> {
-    let mut placement = occurrence_record_with_serializer_magic(
+    let placement = occurrence_record_with_serializer_magic(
         role,
         10,
         &[1],
         Some(matrix),
         Some(crate::metastream::MODERN_SERIALIZER_MAGIC),
     );
-    placement[4..7].copy_from_slice(b"256");
+    document_with_placement(role, placement)
+}
+
+fn document_with_placement(role: &str, mut placement: Vec<u8>) -> Vec<u8> {
+    let records = super::indexed_records(&placement);
+    let entities: Vec<_> = records
+        .iter()
+        .map(|record| cadmpeg_core::decode::View::u64_le_at(&placement, record.offset + 7).unwrap())
+        .collect();
+    let offsets: Vec<_> = records
+        .iter()
+        .zip(&entities)
+        .map(|(record, entity)| (*entity, u64::try_from(record.offset).unwrap()))
+        .collect();
+    for record in &records {
+        placement[record.offset + 4..record.offset + 7].copy_from_slice(b"256");
+    }
     let properties =
         br#"{"docstruct":{"version":"1.0.0","type":"assembly-design","subtype":"synthetic","attributes":{}}}"#;
     let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
@@ -423,9 +440,9 @@ fn document_with_modern_placement(role: &str, matrix: [[f64; 4]; 4]) -> Vec<u8> 
             "",
             2,
             "Component",
-            &[10],
+            &entities,
         )],
-        &[(10, 0)],
+        &offsets,
     ))
     .unwrap();
     zip.start_file("FusionAssetName[Active]/Design1/BulkStream.dat", stored)
@@ -456,8 +473,6 @@ fn repeated_target_occurrence_record_with_path_role(
     envelope_discriminator: u32,
     transform: Option<[[f64; 4]; 4]>,
 ) -> Vec<u8> {
-    let component_guid = "11111111-2222-3333-4444-555555555555";
-    let type_guid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
     let metadata_guid_a = "66666666-7777-8888-9999-aaaaaaaaaaaa";
     let metadata_guid_b = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff";
     let mut bytes = occurrence_record(path_role, entity_id, &[1], None);
@@ -472,18 +487,8 @@ fn repeated_target_occurrence_record_with_path_role(
         crate::bytes::lp_utf16_bytes(metadata_guid_b)
             .expect("fixture UTF-16 code-unit count fits u32"),
     );
-    bytes.extend_from_slice(&[0, 1, 3, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]);
-    bytes.extend(
-        crate::bytes::lp_utf16_bytes(component_guid)
-            .expect("fixture UTF-16 code-unit count fits u32"),
-    );
     bytes.push(0);
-    bytes.extend_from_slice(&36_u32.to_le_bytes());
-    bytes.extend_from_slice(type_guid.as_bytes());
-    bytes.extend(
-        crate::bytes::lp_utf16_bytes(role).expect("fixture UTF-16 code-unit count fits u32"),
-    );
-    bytes.push(0);
+    bytes.extend(cross_document_reference(100, path_role));
     match transform {
         Some(transform) => {
             bytes.push(0);
@@ -539,37 +544,243 @@ fn repeated_target_placements_decode_identity_and_matrix_forms() {
     let placements = super::occurrence_placements(&bytes, &super::indexed_records(&bytes), None);
 
     assert_eq!(placements.len(), 6);
+    assert!(placements.iter().all(|placement| {
+        placement
+            .occurrence_guid
+            .as_ref()
+            .map(crate::records::mesh::DesignRelaxedGuidText::as_str)
+            == Some("bbbbbbbb-cccc-dddd-eeee-ffffffffffff")
+    }));
     assert_eq!(
         super::occurrence_transforms(&placements, role),
         vec![None, None, None, Some(matrix), Some(matrix), Some(matrix)]
     );
 
+    let uri_role = "urn:example:component";
+    let uri_carrier = repeated_target_occurrence_record(uri_role, 18, 27, Some(matrix));
+    let details = super::repeated_target_occurrence_placement_details(&uri_carrier)
+        .unwrap()
+        .unwrap();
+    assert_eq!(details.role, uri_role);
+    assert_eq!(details.transform.unwrap().1, matrix);
+
     let retained_role = format!("{role}_urn:example:component");
-    let path_role = "11112222-3333-4444-5555-666677778888_urn:example:path-component";
-    let local_carrier =
-        repeated_target_occurrence_record_with_path_role(path_role, &retained_role, 16, 1, None);
+    let local_carrier = repeated_target_occurrence_record(&retained_role, 16, 1, None);
     let (decoded_role, role_offset, transform_offset) = super::repeated_target_component_insert(
         &local_carrier,
         0,
         local_carrier.len(),
         16,
-        [
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ],
+        cadmpeg_ir::transform::Transform::identity().rows(),
     )
     .unwrap()
-    .expect("identity carrier with an independent retained role");
+    .expect("identity carrier");
     assert_eq!(decoded_role, retained_role);
     assert_eq!(transform_offset, None);
-    let encoded_role = crate::bytes::lp_utf16_bytes(&retained_role)
-        .expect("fixture UTF-16 code-unit count fits u32");
+    let encoded_role = crate::bytes::lp_utf16_bytes(&retained_role).unwrap();
     assert_eq!(
         &local_carrier[role_offset - 4..role_offset - 4 + encoded_role.len()],
         encoded_role
     );
+    let independent_role =
+        repeated_target_occurrence_record_with_path_role(role, &retained_role, 16, 1, None);
+    assert!(
+        super::repeated_target_occurrence_placement_details(&independent_role)
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
+fn repeated_target_frames_accept_both_reference_and_separator_forms() {
+    let role = "aaaabbbb-cccc-dddd-eeee-ffff00001111";
+    for inline in [false, true] {
+        for separator in [false, true] {
+            let mut reference = vec![1];
+            reference.extend_from_slice(&71_u64.to_le_bytes());
+            if inline {
+                reference.extend_from_slice(&36_u32.to_le_bytes());
+                reference.extend_from_slice(b"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+            }
+            reference.push(1);
+            reference.extend_from_slice(&5_u32.to_le_bytes());
+            lp_utf16(&mut reference, "11111111-2222-3333-4444-555555555555");
+            reference.push(0);
+            if !inline {
+                reference.extend_from_slice(&36_u32.to_le_bytes());
+                reference.extend_from_slice(b"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+            }
+            lp_utf16(&mut reference, role);
+            reference.push(1);
+            lp_utf16(&mut reference, "22222222-3333-4444-5555-666666666666");
+            lp_utf16(&mut reference, "urn:example:version=9");
+            let mut body = repeated_target_occurrence_record(role, 10, 27, None);
+            let (_, path_end) = super::occurrence_path(&body).unwrap();
+            let repeated_start = path_end + 4 + 2 * 76 + 1;
+            let mut repeated_end = repeated_start;
+            super::take_reference(&body, &mut repeated_end).unwrap();
+            body.splice(
+                repeated_start - usize::from(!separator)..repeated_end,
+                reference.clone(),
+            );
+            let path_start = 24;
+            let mut path_reference_end = path_start;
+            super::take_reference(&body, &mut path_reference_end).unwrap();
+            body.splice(path_start..path_reference_end, reference);
+            let owner_start = body.len() - 11;
+            let mut owner = vec![1];
+            owner.extend_from_slice(&19_u64.to_le_bytes());
+            owner.extend_from_slice(&36_u32.to_le_bytes());
+            owner.extend_from_slice(b"bbbbbbbb-cccc-dddd-eeee-ffffffffffff");
+            owner.extend_from_slice(&[0, 0]);
+            body.splice(owner_start.., owner);
+            let placement = super::repeated_target_occurrence_placement(&body)
+                .unwrap()
+                .unwrap();
+            assert_eq!(placement.carrier_record_index, 10);
+            assert_eq!(
+                placement.owner,
+                Some(crate::records::xref::XrefLocalOwner {
+                    target: 19,
+                    type_guid: Some("bbbbbbbb-cccc-dddd-eeee-ffffffffffff".into()),
+                })
+            );
+            assert_eq!(placement.link_names, vec![role]);
+            assert_eq!(placement.transform, None);
+            let details = super::repeated_target_occurrence_placement_details(&body)
+                .unwrap()
+                .unwrap();
+            assert_eq!(
+                &body[details.role_offset..details.role_offset + 2],
+                &[b'a', 0]
+            );
+        }
+    }
+}
+
+#[test]
+fn local_occurrence_paths_belong_to_the_local_component_decoder() {
+    let (bulk, _) = crate::test_support::streams_test::nested_local_component_design();
+    let records = super::indexed_records(&bulk);
+    let local_records: Vec<_> = records
+        .into_iter()
+        .filter(|record| {
+            super::occurrence_path_elements(&bulk[record.offset..record.end])
+                .is_some_and(|(names, _, _)| names.is_empty())
+        })
+        .collect();
+    assert!(!local_records.is_empty());
+    let (placements, failures) =
+        super::occurrence_placements_with_failures(&bulk, &local_records, None, None).unwrap();
+    assert!(placements.is_empty());
+    assert!(failures.is_empty());
+    let mut root = Vec::new();
+    crate::test_support::indexed_header(&mut root, *b"256", 31);
+    root.extend_from_slice(&0_u32.to_le_bytes());
+    crate::test_support::lp_ascii(&mut root, "rootInstance");
+    root.push(1);
+    root.extend_from_slice(&0_u32.to_le_bytes());
+    root.push(0);
+    let records = [super::IndexedRecord {
+        offset: 0,
+        end: root.len(),
+    }];
+    let (placements, failures) =
+        super::occurrence_placements_with_failures(&root, &records, None, None).unwrap();
+    assert!(placements.is_empty());
+    assert!(failures.is_empty());
+}
+
+#[test]
+fn malformed_repeated_frames_keep_losses_beside_valid_placements() {
+    let role = "aaaabbbb-cccc-dddd-eeee-ffff00001111";
+    let valid = repeated_target_occurrence_record(role, 10, 27, None);
+    let (_, path_end) = super::occurrence_path(&valid).unwrap();
+    let repeated_start = path_end + 4 + 2 * 76 + 1;
+    let mut repeated_end = repeated_start;
+    super::take_reference(&valid, &mut repeated_end).unwrap();
+    let mut malformed = Vec::new();
+    for offset in [
+        path_end,
+        repeated_start + 1,
+        repeated_start + 10,
+        repeated_start + 19,
+        repeated_start + 95,
+        super::reference_role_offset(&valid, repeated_start).unwrap(),
+        repeated_end,
+        repeated_end + 1,
+        repeated_end + 9,
+        valid.len() - 11,
+    ] {
+        let mut body = valid.clone();
+        body[offset] = if offset == path_end { 0 } else { 2 };
+        malformed.push(body);
+    }
+    let mut version_mismatch = valid.clone();
+    version_mismatch[repeated_end - 1] = 1;
+    let mut version = Vec::new();
+    lp_utf16(&mut version, "22222222-3333-4444-5555-666666666666");
+    lp_utf16(&mut version, "urn:example:version=9");
+    version_mismatch.splice(repeated_end..repeated_end, version);
+    malformed.push(version_mismatch);
+    let mut doubled_separator = valid.clone();
+    doubled_separator.insert(repeated_start, 0);
+    malformed.push(doubled_separator);
+    let mut cross_segment_owner = valid.clone();
+    *cross_segment_owner.last_mut().unwrap() = 1;
+    cross_segment_owner.extend_from_slice(&5_u32.to_le_bytes());
+    malformed.push(cross_segment_owner);
+    let mut reflected = cadmpeg_ir::transform::Transform::identity().rows();
+    reflected[0][0] = -1.0;
+    malformed.push(repeated_target_occurrence_record(
+        role,
+        10,
+        27,
+        Some(reflected),
+    ));
+    let mut extra = valid.clone();
+    extra.push(0);
+    malformed.push(extra);
+    for end in [24, repeated_start, repeated_end, valid.len() - 1] {
+        malformed.push(valid[..end].to_vec());
+    }
+    let mut expected_frame = valid.clone();
+    expected_frame[4..7].copy_from_slice(b"256");
+    for mut body in malformed {
+        body[7..15].copy_from_slice(&11_u64.to_le_bytes());
+        let mut records = valid.clone();
+        records.extend(body);
+        let document = document_with_placement(role, records);
+        let decoded = F3dCodec
+            .decode(&mut Cursor::new(document), &DecodeOptions::default())
+            .unwrap();
+        let native = f3d_native(decoded.ir());
+        assert_eq!(native.xref_references.len(), 1);
+        assert_eq!(
+            native.xref_references[0]
+                .placement_source
+                .as_ref()
+                .unwrap()
+                .frame_bytes,
+            expected_frame
+        );
+        assert_eq!(
+            native.xref_references[0]
+                .placement_source
+                .as_ref()
+                .unwrap()
+                .carrier_record_index,
+            10
+        );
+        let losses: Vec<_> = decoded
+            .report()
+            .losses
+            .iter()
+            .filter(|loss| loss.code == F3dLossCode::XrefPlacementUndecoded.kind())
+            .collect();
+        assert_eq!(losses.len(), 1);
+        assert!(losses[0].message.contains("11"));
+    }
 }
 
 fn grouped_identity_carrier(role: &str, record_index: u32) -> Vec<u8> {
@@ -585,7 +796,7 @@ fn grouped_identity_carrier(role: &str, record_index: u32) -> Vec<u8> {
     bytes.push(1);
     bytes.extend_from_slice(&1_u32.to_le_bytes());
     bytes.push(1);
-    bytes.extend_from_slice(&17_u64.to_le_bytes());
+    bytes.extend_from_slice(&3_u64.to_le_bytes());
     bytes.push(1);
     bytes.extend_from_slice(&[0; 4]);
     bytes.extend(
@@ -636,6 +847,18 @@ fn grouped_identity_carriers_decode_as_identity_placements() {
     assert_eq!(
         placements,
         vec![OccurrencePlacement {
+            frame_bytes: bytes.clone(),
+            occurrence_guid: Some(
+                "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"
+                    .to_owned()
+                    .try_into()
+                    .unwrap()
+            ),
+            carrier_record_index: 10,
+            owner: Some(crate::records::xref::XrefLocalOwner {
+                target: 4,
+                type_guid: None
+            }),
             link_names: vec![role.into()],
             transform: None,
         }]
@@ -1075,6 +1298,24 @@ fn exact_component_insert_carriers_precede_structured_placements() {
         [0.0, 0.0, 0.0, 1.0],
     ];
     let structured = OccurrencePlacement {
+        frame_bytes: {
+            let mut frame = repeated_target_occurrence_record("role", 23, 27, None);
+            let owner = local_reference(8);
+            let start = frame.len() - owner.len();
+            frame[start..].copy_from_slice(&owner);
+            frame
+        },
+        occurrence_guid: Some(
+            "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"
+                .to_owned()
+                .try_into()
+                .unwrap(),
+        ),
+        carrier_record_index: 23,
+        owner: Some(crate::records::xref::XrefLocalOwner {
+            target: 8,
+            type_guid: None,
+        }),
         link_names: vec!["role".into()],
         transform: Some([
             [1.0, 0.0, 0.0, -5.0],
@@ -1084,17 +1325,31 @@ fn exact_component_insert_carriers_precede_structured_placements() {
         ]),
     };
 
+    let other = OccurrencePlacement {
+        frame_bytes: Vec::new(),
+        carrier_record_index: 24,
+        transform: None,
+        ..structured.clone()
+    };
+    let selected = super::occurrence_transforms_with_precedence(
+        vec![(23, direct), (23, direct)],
+        &[structured.clone(), other.clone()],
+        "role",
+    );
+    assert_eq!(selected.len(), 2);
+    assert_eq!(selected[0].transform, Some(direct));
+    assert_eq!(selected[0].carrier_record_index, 23);
+    assert_eq!(selected[0].owner, structured.owner);
+    assert_eq!(selected[0].occurrence_guid, structured.occurrence_guid);
+    assert_eq!(selected[0].frame_bytes, structured.frame_bytes);
+    assert_eq!(selected[1], other);
     assert_eq!(
-        super::occurrence_transforms_with_precedence(vec![direct], &[structured.clone()], "role"),
-        vec![Some(direct)]
+        super::superseded_placement_count(&[(23, direct)], &[structured, other], "role"),
+        1
     );
     assert_eq!(
-        super::superseded_placement_count(
-            std::slice::from_ref(&direct),
-            std::slice::from_ref(&structured),
-            "role"
-        ),
-        1
+        super::occurrence_transforms_with_precedence(vec![(25, direct)], &selected, "role").len(),
+        3
     );
 }
 
@@ -1154,7 +1409,40 @@ fn component_insert_selection_uses_stream_and_role_not_class_tag() {
             "stream",
             "role"
         ),
-        vec![selected]
+        vec![(2, selected)]
+    );
+    let mut reference = super::parse(
+        &cadmpeg_test_support::service_decode_context(),
+        redirections_json("root.f3d", &[("part.f3d", "role")]).as_bytes(),
+    )
+    .unwrap()
+    .references
+    .remove(0);
+    reference.placement_source = Some(crate::records::xref::XrefPlacementSource {
+        frame_bytes: Vec::new().into(),
+        occurrence_guid: None,
+        stream: "stream".into(),
+        carrier_record_index: 2,
+        owner: None,
+    });
+    reference.transform = Some(selected.try_into().unwrap());
+    let mut other = reference.clone();
+    other.ordinal = 1;
+    other
+        .placement_source
+        .as_mut()
+        .unwrap()
+        .carrier_record_index = 3;
+    let references = [other, reference];
+    assert_eq!(
+        super::component_insert_reference(&references, "stream", &selected_construction)
+            .unwrap()
+            .ordinal,
+        0
+    );
+    assert!(
+        super::component_insert_reference(&references, "other-stream", &selected_construction)
+            .is_none()
     );
 }
 
@@ -1172,3 +1460,36 @@ fn redirections_leaf_form_parses_empty_object_references() {
 mod schema;
 
 mod document_admission;
+
+#[test]
+fn identity_insert_carrier_requires_duplicate_targets_and_exact_closure() {
+    let role = "aaaabbbb-cccc-dddd-eeee-ffff00001111";
+    let mut body = crate::test_support::component_insert_test::identity_insert_carrier(role, 10);
+    let metadata_tail = 251;
+    for flag in [0, 1] {
+        for token in [1_u64, 2] {
+            body[93] = flag;
+            body[metadata_tail + 1..metadata_tail + 9].copy_from_slice(&token.to_le_bytes());
+            assert!(super::identity_component_insert_carrier(&body, 0, body.len(), 10).is_some());
+        }
+    }
+    body[metadata_tail + 1..metadata_tail + 9].copy_from_slice(&0_u64.to_le_bytes());
+    assert!(super::identity_component_insert_carrier(&body, 0, body.len(), 10).is_none());
+    body[metadata_tail + 1..metadata_tail + 9].copy_from_slice(&1_u64.to_le_bytes());
+    let closure = body.len() - 10;
+    assert_eq!(body.len(), 420);
+    let decoded = super::identity_component_insert_carrier(&body, 0, body.len(), 10).unwrap();
+    assert_eq!(decoded, (role.to_owned(), 336));
+    assert!(super::identity_component_insert_carrier(&body, 0, body.len(), 11).is_none());
+    for offset in [93, metadata_tail, metadata_tail + 17, 327, 328, closure] {
+        let saved = body[offset];
+        body[offset] ^= 2;
+        assert!(super::identity_component_insert_carrier(&body, 0, body.len(), 10).is_none());
+        body[offset] = saved;
+    }
+    for end in 0..body.len() {
+        assert!(super::identity_component_insert_carrier(&body, 0, end, 10).is_none());
+    }
+    body.push(0);
+    assert!(super::identity_component_insert_carrier(&body, 0, body.len(), 10).is_none());
+}

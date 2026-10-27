@@ -152,7 +152,7 @@ fn property_xml_respects_retained_byte_limits() {
     ));
 }
 fn padded(mut bytes: Vec<u8>) -> Vec<u8> {
-    while bytes.len() % 4 != 0 {
+    while !bytes.len().is_multiple_of(4) {
         bytes.push(0);
     }
     bytes
@@ -306,7 +306,7 @@ fn compound_default_owner_requires_the_complete_root_stream_path() {
         decoded_payload: None,
         ps_streams: Vec::new(),
         ps_probe_capped: false,
-            ps_auxiliary_refusal: None,
+        ps_auxiliary_refusal: None,
     };
     assert!(is_owner(Section::Compound(&stream)));
     for path in [

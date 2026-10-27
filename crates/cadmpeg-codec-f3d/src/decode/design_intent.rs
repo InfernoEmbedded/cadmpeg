@@ -452,6 +452,22 @@ pub(super) fn decode(inputs: &DesignInputs<'_>) -> Result<DesignOutputs, CodecEr
         &mut design.sketch_surfaces,
         &mut design.sketch_relations,
     )?;
+    let placements = crate::design::decode::placement_construction::decode(ctx, scan)?;
+    design.design_placement_constructions = placements.records;
+    if placements.unparsed != 0 {
+        push_loss_vec(
+            &mut losses,
+            F3dLossCode::PlacementConstructionUntyped,
+            format_args!("{} placement construction record(s) remain source-only because their registration or bounded member layout is unsupported or ambiguous.", placements.unparsed),
+        );
+    }
+
+    losses.extend(
+        crate::design::decode::placement_construction::work_planes::bind(
+            &mut design.design_parameter_scopes,
+            &design.design_placement_constructions,
+        ),
+    );
     crate::design::decode::operands::bind_work_point_input_carriers(
         scan,
         &mut design.design_parameter_scopes,
@@ -534,10 +550,14 @@ pub(super) fn decode(inputs: &DesignInputs<'_>) -> Result<DesignOutputs, CodecEr
         crate::design::configurations::project_configurations(&design.design_configurations)?;
     design.design_sheet_metal_settings =
         crate::design::decode::sheet_metal_settings::decode_settings(scan)?;
+    let projection_parameters = crate::design::decode::parameters::parameters_for_projection(
+        &prereqs.design_parameters,
+        &prereqs.design_parameter_owner_unparsed,
+    );
     let projected = crate::design::feature_project::project_parameter_design_with_edge_identities(
         ctx,
         &crate::design::feature_project::ProjectInputs {
-            native: &prereqs.design_parameters,
+            native: &projection_parameters,
             owners: &prereqs.design_parameter_owners,
             scopes: &design.design_parameter_scopes,
             timelines,
@@ -567,7 +587,7 @@ pub(super) fn decode(inputs: &DesignInputs<'_>) -> Result<DesignOutputs, CodecEr
             &mut losses,
             F3dLossCode::ParameterOrderBudgetExceeded,
             format_args!(
-                "{} Design parameter owner scope(s) keep their source ordinals and drop their same-scope dependency edges because ordering exceeded the local work cap PARAMETER_ORDER_WORK ({}).",
+                "{} Design parameter owner scope(s) keep their unique ordinal slots and drop their same-scope dependency edges because ordering exceeded the local work cap PARAMETER_ORDER_WORK ({}).",
                 projected.unordered_parameter_scopes,
                 crate::design::feature_project::PARAMETER_ORDER_WORK,
             ),
@@ -580,16 +600,6 @@ pub(super) fn decode(inputs: &DesignInputs<'_>) -> Result<DesignOutputs, CodecEr
             &mut losses,
             F3dLossCode::BodyReferenceTailUntyped,
             format_args!("{} whole-body reference tail(s) remain source-only because no complete standard reference-run frame was admitted.", tails.unparsed),
-        );
-    }
-
-    let placements = crate::design::decode::placement_construction::decode(ctx, scan)?;
-    design.design_placement_constructions = placements.records;
-    if placements.unparsed != 0 {
-        push_loss_vec(
-            &mut losses,
-            F3dLossCode::PlacementConstructionUntyped,
-            format_args!("{} placement construction record(s) remain source-only because their registration or bounded member layout is unsupported or ambiguous.", placements.unparsed),
         );
     }
 
@@ -949,16 +959,28 @@ pub(super) fn decode(inputs: &DesignInputs<'_>) -> Result<DesignOutputs, CodecEr
         &model.features,
     );
     if let Some(table) = prereqs.xref_table() {
-        crate::xref::bind_component_insert_features(
+        losses.extend(crate::xref::bind_component_insert_features(
             &mut model.features,
             &design.design_parameter_scopes,
             table,
-        );
+            products.occurrences,
+        ));
     }
+    let occurrence_paths = crate::design::components::paths::LocalOccurrencePaths::new(
+        &prereqs.design_component_occurrences,
+        prereqs
+            .xref_table()
+            .map_or(&[], |table| table.references.as_slice()),
+        products.occurrences,
+    );
     crate::design::components::project_derived_instance_features(
         &mut model.features,
         &design.design_parameter_scopes,
     );
+    losses.extend(crate::design::components::paths::bind_feature_paths(
+        &mut model.features,
+        &occurrence_paths,
+    ));
     crate::design::components::bind_unresolved_component_insert_features(
         &mut model.features,
         &design.design_parameter_scopes,
@@ -1011,6 +1033,13 @@ pub(super) fn scope_related_indices(
             .values()
             .copied()
             .chain(thread_trailer)
+            .chain(
+                scope
+                    .occurrence_transfer
+                    .as_ref()
+                    .into_iter()
+                    .flat_map(crate::records::feature::occurrence_transfer::DesignOccurrenceTransfer::record_indices),
+            )
             .map(move |record_index| (stream, record_index))
     }))
 }
@@ -1113,6 +1142,16 @@ fn extend_related_design_records(
             &mut design.design_parameter_scopes,
             &design.design_record_headers,
         )?;
+    crate::design::decode::scopes::pipe::bind_constructions(
+        scan,
+        &crate::design::decode::scopes::pipe::PipeSources {
+            types: &prereqs.design_types,
+            headers: &design.design_record_headers,
+            owners: &prereqs.design_parameter_owners,
+            groups: &design.design_construction_operand_groups,
+        },
+        &mut design.design_parameter_scopes,
+    )?;
     design.design_loft_legacy_body_carriers =
         crate::design::decode::operands::decode_loft_legacy_body_carriers(
             scan,
@@ -1299,6 +1338,7 @@ fn extend_related_design_records(
     design.design_extrude_selection_members =
         crate::design::decode::operands::decode_extrude_selection_members(
             scan,
+            &design.design_parameter_scopes,
             &design.design_extrude_selection_groups,
             &design.design_record_headers,
         )?;

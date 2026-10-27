@@ -850,7 +850,11 @@ fn validate_logical_chain(
 impl CodecBackend for FcstdCodec {
     const FORMAT: FormatId = FormatId::new(dialect::FORMAT);
 
-    fn validate_native(ctx: &DecodeContext<'_>, ir: &CadIr) -> Result<Vec<Finding>, CodecError> {
+    fn validate_native(
+        ctx: &DecodeContext<'_>,
+        ir: &CadIr,
+        _source: Option<&cadmpeg_ir::SourceFidelity>,
+    ) -> Result<Vec<Finding>, CodecError> {
         crate::validate_native(ctx, ir)
     }
 
@@ -1033,12 +1037,6 @@ impl CodecBackend for FcstdCodec {
                 &graph.properties,
                 &mut transfer_losses,
             )?;
-            design::hide_intermediate_bodies(
-                &mut ir,
-                &graph.objects,
-                &graph.properties,
-                &shape_payloads,
-            );
             if ctx.depth() == DecodeDepth::Full {
                 let (cycle_affected, design_losses) = design::transfer(
                     ctx,
@@ -1083,8 +1081,21 @@ impl CodecBackend for FcstdCodec {
                 &shape_payloads,
                 &ir.model.bodies,
             )?;
+            product::localize_definition_bodies(
+                &product_definitions,
+                &occurrences,
+                &mut ir.model.bodies,
+            );
             ir.model.product_definitions = product_definitions;
             ir.model.occurrences = occurrences;
+            application_geometry::mesh_placement::project(
+                ctx,
+                &mut ir,
+                &graph.properties,
+                &product_nodes,
+                &mut transfer_losses,
+                &mut admitted_entities,
+            )?;
             ir.model.assembly_joints =
                 joint::transfer_neutral(&joint_records, &ir.model.occurrences)?;
             ctx.admit_entities(
@@ -1118,6 +1129,12 @@ impl CodecBackend for FcstdCodec {
             } else {
                 gui::Graph::default()
             };
+            design::hide_intermediate_bodies(
+                &mut ir,
+                &graph.objects,
+                &graph.properties,
+                &shape_payloads,
+            );
             gui_losses = std::mem::take(&mut gui_graph.losses);
             ctx.admit_entities(
                 cadmpeg_core::decode::u64_from_index(ir.model.entity_count()),

@@ -5,7 +5,7 @@
 ### Scoring rules
 
 1. **A score attaches to declared coverage.** A score states the highest level whose requirements pass for the coverage its profile declares, and the profile names that coverage — concretely, the format's `scored` list in `crates/cadmpeg-registry/docs/dialect-support.toml`. Surplus capability in a subset of versions, layouts, or files shows as extras. Refusing a band the codec recognizes is a stated, visible fact in the profile, never an exclusion that raises a score.
-2. **Mainstream pass.** A level passes when its capability works on mainstream files of the main dialects in the declared envelope, and its gaps produce machine-readable losses. A rare carrier family or a minority dialect that is missing is a named gap, not a failure. One fixture, an entity census, or an opaque record capture does not pass a level. A fixture-backed row read and a maintainer evaluation are floors for their rows, not ceilings for the format.
+2. **Mainstream pass.** A level passes when its capability works on mainstream files of the main dialects in the declared envelope, and its gaps produce machine-readable losses. A rare carrier family or a minority dialect that is missing is a named gap, not a failure. One fixture, an entity census, or an opaque record capture does not pass a level. A fixture-backed row read and a recorded evaluation are floors for their rows, not ceilings for the format.
 3. **Inapplicable levels.** A format definition may mark a level inapplicable when its document kind cannot contain that category. Inapplicable levels pass. Missing fixtures do not establish inapplicability.
 4. **Integer levels only.** Scores are whole levels such as L4. Do not use fractional levels, evidence-grade suffixes, or other score variants. A recorded level already means the proof criteria pass for the codec. The published headline for a format is the single integer level and nothing else.
 5. **Refusal is a visible mark.** Refusing a recognized band is a visible mark and can never improve any published number.
@@ -14,7 +14,7 @@
 
 The criteria below are the target for every scored level. A format profile names each criterion that does not yet hold:
 
-- Real files exercise the scored level. A maintainer evaluation recorded in `docs/evaluations.toml` satisfies this criterion.
+- Real files exercise the scored level. An evaluation recorded in `docs/evaluations.toml` satisfies this criterion. The files need not be in the repository.
 - Every source byte is typed, classified as structural, or preserved as a named opaque record.
 - Every unsupported semantic construct produces a machine-readable loss.
 - Decode, validation, write, and conversion results are deterministic.
@@ -27,6 +27,19 @@ written by hand. `scripts/render-format-support.py` renders every one of them
 from `crates/cadmpeg-registry/docs/dialects.toml` and `crates/cadmpeg-registry/docs/dialect-support.toml`, and its `--check`
 mode compares the committed file to a fresh render byte for byte. A registry
 edit without a re-render fails the gate.
+
+### Evaluations
+
+An evaluation runs the codec on real files and records the result in
+`docs/evaluations.toml`. The author or auditor who ran it records it. The
+files stay with the evaluator. They are not committed, and the record names
+no file and no path.
+
+The project accepts a recorded evaluation as stated. Do not ask for the
+files, digests, reproduction steps, or other proof that the files are real
+or that the run took place. Do not qualify a level because its files are
+not in the repository. To dispute an evaluation, run a new one and record
+its result.
 
 ### Levels
 
@@ -57,12 +70,17 @@ edit without a re-render fails the gate.
 | Siemens NX `.prt`                                 | L1    |
 | CATIA V5 `.CATPart`                               | L3    |
 | Creo Parametric `.prt`                            | L1    |
+| Creo View `.pvz`                                  | L3    |
 | STEP Part 21                                      | L8    |
 
 <!-- /generated: ladder-table -->
 
 Each headline names the format's dialect rows, which the format's own section
 lists. Every profile below describes the envelope its rows cover.
+
+A program reads the same headline with `cadmpeg_registry::headline_level`, which takes a format
+id or alias and returns the integer level declared in the format's `[format.<id>]` block of
+`crates/cadmpeg-registry/docs/dialect-support.toml`.
 
 ## Autodesk Inventor `.ipt` and `.iam`
 
@@ -391,6 +409,16 @@ Legacy CFB directory streams are catalogued at their declared logical byte
 spans, so the existing OM, structure, external-reference, and toggle extractors
 can inspect them through the same bounded entry interface as SPLMSSTR streams.
 
+Ordinary deltas REGION records retain the complete schema-selected fields.
+Their native `region_type` stores the type byte, and `references` stores five,
+six, or seven pointers in declared order. An undeclared `frame` or `owner` has
+no entry; an explicit null retains XMT value `1`. First instances retain their
+declaration and fields in the native schema-node arena.
+
+Geometry annotations name the raw Parasolid stream and record offset, including
+records selected from paired or unpaired deltas. Logical source-object identities
+retain the selected model image's namespace.
+
 ### Read profile
 
 - **Container and versions: Partial.** The codec decodes the SPLMSSTR directory, extracts and classifies embedded Parasolid partition, deltas, and related streams, resolves short and extended segment wrappers from their encoded extension lengths, retains fixed-ID NX object-model entities at their external index boundaries, retains offset-only object-model column storage as distinct bounded blocks, and exposes strictly framed JPEG preview dimensions and asset identity.
@@ -399,7 +427,7 @@ can inspect them through the same bounded entry interface as SPLMSSTR streams.
 - **Tessellation: Partial.** Embedded JT 9 shape-LOD segments decode lossless and uniformly quantized coordinates, lossless and Deering normals, lossless and RGB/HSV-quantized colors, up to eight lossless or uniformly quantized texture-coordinate channels, and binary vertex flags. Topological dual-mesh connectivity and corner attribute indices reconstruct exactly. Logical shape-node to late-loaded payload ownership resolves through the property table. Common group-derived and instance-node paths accumulate affine transform attributes; each distinct root-to-shape path emits a tessellation with ordered instance provenance. Nonnegative-group triangles transfer in document units with transformed seam-preserving normals and codec-owned RGBA, texture, and flag channels parallel to deindexed vertices. Body association remains unresolved.
 - **Design intent: Partial.** Feature-history record areas project ordered neutral features and retain exactly bounded operation records, byte-exact labels, and four object-index slots. `DATUM_PLANE` and `DATUM_CSYS` labels project as typed datum families with explicitly unresolved frames. Non-null header slots bind to uniquely addressed offset-only input blocks. Exact reuse of a resolved datum-plane or datum-coordinate-system construction block by a later operation input creates an ordered neutral feature dependency without assigning frame roles. Uniquely resolved parameter declarations appear as neutral parameter content on every consuming operation in serialized input order. Primary-body fields form ordered lineage dependencies and bind surviving segment body images as feature outputs; Boolean features also depend on the latest ordered tool-body writers. Unite, subtract, and intersect operations project as typed body-combine features with ordered native target/tool selections. `SEW` operations project as typed body-sew features; complete validated body operands supply the ordered body selection, while incomplete operands leave it unresolved. `TRIM BODY` operations project as typed body-trim features; one primary body and complete validated body operands supply the ordered target and tool selections, while incomplete operands leave both selections unresolved. The retained side remains unresolved. `TRIMMED_SH` and `EXTEND_SHEET` project as typed surface-trim and surface-extension operations with unresolved input selections and construction controls; output ownership does not identify their pre-operation operands. `EXTRUDE` operations project as typed extrusions; exactly one complete construction profile supplies its native profile identity, while absent or ambiguous profiles remain unresolved. A first-writer extrusion with one transferred solid or sheet output projects as new-body; later, wire, mixed-dimensional, multiple, and absent writer states remain Boolean-unresolved. Direction, termination, and draft remain unresolved. `OFFSET` operations project as typed surface-offset features; one output body with owned offset carriers at one exact carrier-normal distance supplies the support-surface selection. Each support resolves to a neutral face when ownership is unique and distinct; uniform face sense then supplies the face-normal-relative neutral distance with orientation-corrected sign. A single solid `THICKEN_SHEET` output body whose owned offset carriers have one exact finite nonzero signed distance projects one-sided thickness, while matched opposite equal-magnitude carrier sets over identical supports project twice that magnitude and a both-sided operation. The same support-face resolution rule applies; uniform agreement between a one-sided distance sign and resolved face senses projects the forward or reverse side. A single `BLEND` or `FACE_BLEND` output body whose owned blend carriers are circular projects with an exact common constant radius or a retained structural radius form. Complete bipartite support-surface graphs with unique face ownership project as resolved face blends. Other `BLEND` support graphs retain an unresolved edge selection as fillets; other `FACE_BLEND` support graphs retain unresolved face selections without changing family. `BLOCK` projects as a typed rectangular primitive; complete dimensions project in native order. With those dimensions, exactly one single-region, single-shell solid output body with a complete owned three-band orthogonal planar extent system supplies the derived right-handed rigid placement when exactly one dimension-to-band permutation matches. `SIMPLE HOLE` projects as a typed simple-hole operation; a `Hole_GeneralHole_Simple_Through_*` payload template projects through-all termination. A complete single construction group partitions through-hole operations by exact output-body ownership; each output is one connected solid region and shell, and equal-cardinality uniform owned bore cylinders supply one permutation-invariant diameter per body. Distinct output bodies may carry distinct diameters. The complete ungrouped operation set uses the same ownership rule. The complete `HOLE PACKAGE` operation set uses that ownership and bore-bijection rule without a simple-hole template. Every body partition with one hole operation and one bore supplies a canonical model-space axis position; common parallel axes supply direction independently of diameter correspondence. Complete output-body-owned pairs of coaxial conical boundary faces supply one common entry-and-exit chamfer diameter and included angle per body. Each neutral simple-hole feature owns its exact native template, redundantly witnessed scalar lane, and resolved construction-block references through source properties; entry-face ownership remains unresolved. `HOLE PACKAGE` retains unresolved form and entry-face fields. `RIB` and `CHAMFER` project as typed feature families with unresolved operands and dimensional fields. `Pattern Feature` and `Pattern Geometry` project as typed patterns with unresolved seed and transform fields. `SKETCH` operations project as ordered sketch history nodes with unresolved coordinate space and retain a typed sketch record joining the exact operation record to its resolved native input blocks in header-slot order. Named points bind through exact shared blocks or a unique same-store predecessor span; coordinate-pair records retain native sketch entities only when no stronger typed sketch entity graph exists, while solved sketch placement, remaining entity roles, profiles, and constraints remain unresolved. A separate named-point graph does not merge with coordinate-pair records without an explicit pair-to-entity relation. Segment tuples bind both serialized object-index aliases of each partition or plain cached-body image; either alias resolves feature selections and outputs to neutral body IDs when the image remains in the transferred model. Other named operations project as native features until their inputs are complete. Typed numeric expressions retain object identity, owning OM record, name, exact expression text, declared native unit, ordered exact-name parameter dependencies, and evaluated values for context-free and acyclic same-unit dependency arithmetic. Known millimeter, inch, and degree units normalize to canonical lengths or angles; other units remain native-only. Named arrangements retain ordered configuration names and default state. Exact agreement between the default arrangement and the part-level active-arrangement attribute assigns every selected current body to that active configuration; inactive configuration body states remain unresolved. Complete intermediate-body relations and other operation semantics remain open.
 - **Product structure: Inspect.** Every indexed EXTREFSTREAM record retains its exact boundary and digest. Handle-set records additionally retain their declared counts, four raw ID slots, normalized persistent handles, closing-duplicate form, opaque-tail lengths, and exact byte offsets. Their four ID slots resolve atomically through the same-stream string table; slot zero names the child `.prt`, slot two supplies its directory, and each complete handle-set record binds to those child records. Equal persistent handles create explicit cross-stream identity edges between EXTREFSTREAM records and bounded OM records. End-anchored child-part names and paths transfer as ordered typed native records and also appear in source dependency metadata. Assembly graph instances, placements, and constraints remain open.
-- **Presentation and metadata: Partial.** Every completely bounded Parasolid deltas transmit header, two- or four-null-reference stream trailer, full record, compact tombstone, BODY revision envelope with its bounded state tail, count-selected `term_use` numeric tail, maximal tagged-reference lane, four-reference state packet, reference-marker packet, and inline REGION schema declaration retains its stream, source bounds, identities, and decoded structural fields. Maximal inflated-stream spans outside those events retain exact bounds and digests. Length-bounded Parasolid attribute-class declarations retain stream-local class and field-record identities, exact printable class name, declared field count, typed primary storage, ordered catalog references, variant header words, and inflated-stream offset. Framed type-81 lists, type-82 integer lanes, type-83 finite binary64 lanes, and type-84 printable values retain exact identities, ordered reference slots, revision records, and byte spans. Every uniquely matched type-81 class discriminator resolves to its exact same-stream type-79 definition XMT independently of topology ownership. Topology records retain non-null attribute-list ownership. Unique topology-to-list and list-to-value chains transfer ordered integer, finite-double, and printable-string lanes to shell, face, loop, edge, coedge, and vertex source attributes with class-qualified family-and-ordinal names. Class-specific field assignment, BODY state-tail field roles, tagged-reference field roles, reference-state and reference-marker field roles, REGION schema field roles, colors, materials, and other presentation semantics remain unresolved.
+- **Presentation and metadata: Partial.** Every completely bounded Parasolid deltas transmit header, two- or four-null-reference stream trailer, full record, compact tombstone, BODY revision envelope with its bounded state tail, count-selected `term_use` numeric tail, maximal tagged-reference lane, and inline REGION schema declaration retains its stream, source bounds, identities, and decoded structural fields. Maximal inflated-stream spans outside those events retain exact bounds and digests. Length-bounded Parasolid attribute-class declarations retain stream-local class and field-record identities, exact printable class name, declared field count, typed primary storage, ordered catalog references, variant header words, and inflated-stream offset. Framed type-81 lists, type-82 integer lanes, type-83 finite binary64 lanes, and type-84 printable values retain exact identities, ordered reference slots, revision records, and byte spans. Every uniquely matched type-81 class discriminator resolves to its exact same-stream type-79 definition XMT independently of topology ownership. Topology records retain non-null attribute-list ownership. Unique topology-to-list and list-to-value chains transfer ordered integer, finite-double, and printable-string lanes to shell, face, loop, edge, coedge, and vertex source attributes with class-qualified family-and-ordinal names. Class-specific field assignment, BODY state-tail field roles, tagged-reference field roles, colors, materials, and other presentation semantics remain unresolved.
 
 ### Write and round trip
 
@@ -491,6 +519,52 @@ Remaining geometry work includes per-instance analytic parameter bindings, featu
 
 See [`formats/creo_prt.md`](formats/creo_prt.md) and [`formats/creo_prt-open-items.md`](formats/creo_prt-open-items.md).
 
+## Creo View `.pvz`
+
+**Container:** ZIP package with one `.pvs` structure member and `.ol` geometry members
+
+<!-- generated: dialects pvz -->
+
+**Ladder: L3.**
+
+| Dialect        | Read                   | Write |
+| -------------- | ---------------------- | ----- |
+| `pvz:pvs-0301` | detected               | none  |
+| `pvz:pvs-0302` | detected               | none  |
+| `pvz:pvs-0303` | detected               | none  |
+| `pvz:pvs-0304` | detected               | none  |
+| `pvz:pvs-0305` | detected               | none  |
+| `pvz:unknown`  | unclassified-recovered | none  |
+
+<!-- /generated: dialects pvz -->
+
+The codec opens the ZIP framing, the `.pvs` stream directory, and the `.ol` stream directory, expands each GZIP stream under the decode caps and checks its CRC-32, classifies the package from the generation the `.pvs` member declares, and decodes product structure, exact B-rep, and tessellation. Every undecoded record family is named by a loss. Each exact stream becomes connected B-rep from bodies through vertices, with face regions, coedge senses, face sides, shells, and placed analytic and B-spline carriers in millimetres. Neutral structural validation passes on the decoded B-rep, and the solids convert to STEP. A package without exact streams carries placed tessellation and product structure. A geometry member with neither a tessellation stream nor an exact stream gives no body. Connected B-rep sets L3. No feature operation records transfer, which blocks L4. No evaluation covers `pvz:pvs-0302`; under scoring rule 2 that row is a named gap.
+
+These gaps remain:
+
+- A two-member radial ring can have two coedges with the same sense. The neutral check reports each such ring as a `coedge_pairing` warning.
+- Composite edge curves and pcurves have no parameterisation (PVZ-23). Their edges have no neutral curve (`pvz/exact.curve-untyped`), their coedges have no pcurve, and their loops stay open (`pvz/exact.loop-open`).
+- Secondary pcurves in the embedded B-spline domain are not written onto analytic faces (`pvz/exact.secondary-pcurve-omitted`).
+- Coedges on some B-spline faces miss the edge ends by more than the agreement band (PVZ-24, PVZ-42, `pvz/exact.endpoint-mismatch`).
+- Face records without a loop do not transfer (`pvz/exact.face-unbounded-omitted`).
+- Exact-stream records with tag `0x0a` or an undefined tag do not transfer (PVZ-22, `pvz/exact.record-uninterpreted`).
+- An `.ol` member that no definition names is not decoded (`pvz/geometry.member-unreferenced`).
+- Texture images, texture bindings, and decals are not decoded (PVZ-17), and texture coordinates are dropped (`pvz/tessellation.texture-coordinates-dropped`).
+- The patch-header face references are not decoded (PVZ-14), so appearances do not bind to exact faces and face colors do not transfer.
+- Edge tessellation does not transfer (`pvz/tessellation.edges-not-transferred`).
+- Loose `.pvs` and `.ol` files outside a package are not detected.
+
+### Read profile
+
+- **Container and versions: Partial.** The codec admits the ZIP package through the shared archive snapshot, requires exactly one `.pvs` structure member, and classifies the `PV-PVS0301` to `PV-PVS0305` binary structure signatures and the matching `version` attribute of the XML structure form. A structure member that declares any other generation is read on the residual path and reports `pvz/source.dialect-unverified`. Loose `.pvs` and `.ol` files outside a package are not detected.
+- **Structure: Partial.** The binary and XML structure forms decode into product definitions with their names and properties, and into the expanded occurrence tree with placements as a rigid transform and a uniform scale. Appearance palettes, illustration and group elements, occurrence flags and extensions, typed definition bytes, and geometry-element bounds report `pvz/structure.*` losses.
+- **Geometry and tessellation: Partial.** Each geometry member a definition names becomes a body owned by every such definition. When the member's exact-geometry stream decodes, the body holds its neutral B-rep: analytic and B-spline face carriers, edge curves, coedge pcurves, loops, vertices, closed shells, and regions, in millimetres. The open shells of the stream form a second, sheet body that the same definitions own. Edge records that store one model edge once per coedge use join into one shared edge. Carriers with no neutral form, omitted pcurves, open loops, gauge face sides, faces without a loop, and merged or collapsed edges report `pvz/exact.*` losses. A stream that does not decode reports `pvz/geometry.exact-undecoded`, and the member keeps its tessellation alone. The body also holds one tessellation per appearance and vertex layout, with per-patch triangle groups and the member's appearances bound to the tessellations. Edge tessellation, texture coordinates, the patch-header face references that would bind appearances to exact faces, and the other attribute and tessellation records report losses.
+
+### Write and round trip
+
+- **Native write: None.**
+- **Round trip: None.**
+
 ## STEP Part 21
 
 **Model:** ISO 10303-21 clear-text exchange with AP203, AP214, or AP242 application data
@@ -541,4 +615,4 @@ Part 28 XML, Part 26 binary/HDF5, and AP242 BO-Model sidecars are outside the de
 
 Per-format specifications in [`formats/`](formats/) define byte semantics. Adjacent `*-open-items.md` files contain unresolved fields and structures. Every **Partial** domain names its remaining work here or in the linked open-items document.
 
-The generated cells and the profile prose answer different questions. A cell is the row's disposition after fixture gating: `detected` means the codec classifies the dialect but no fixture in the repository backs a score for it, so it can state capability the prose describes and the cell still reads `detected`. A level named in profile prose names the ladder rung that capability text describes. Edit a cell only through `crates/cadmpeg-registry/docs/dialect-support.toml`; edit prose only outside a generated region.
+The generated cells and the profile prose answer different questions. A cell is the row's disposition after fixture gating: `detected` means the codec classifies the dialect but no fixture in the repository backs a score for it, so it can state capability the prose describes and the cell still reads `detected`. A `detected` cell does not limit the headline level. A recorded evaluation backs the level without a committed file. A level named in profile prose names the ladder rung that capability text describes. Edit a cell only through `crates/cadmpeg-registry/docs/dialect-support.toml`; edit prose only outside a generated region.

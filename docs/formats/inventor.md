@@ -226,7 +226,7 @@ tolerance u16
 terminal_value i16
 ```
 
-The payload ends after `terminal_value`. The first six fields are the content header of section 12; later segment major versions extend it as that section states. PmDc references store a one-based record index in bits 0 through 30. Bit 31 is retained as a qualifier and does not change the index arithmetic. Every non-null parameter, expression, or unit reference resolves within the same PmDc segment.
+The payload ends after `terminal_value`. The first six fields are the content header of section 12; later segment major versions extend it as that section states. PmDc references store a one-based record index in bits 0 through 30. Bit 31 is retained as a qualifier and does not change the index arithmetic. Every non-null parameter, expression, or unit reference resolves within the same PmDc segment. Surface-body references use the address spaces in section 13.4.
 
 A numeric expression record starts with `header_value:u32`, `header_id:u16`, and `unit_reference:u32`. Type `047aa7f8d2118f09c0005a9a2378d04f` continues with `value:f64`, `value_type:u16`, and a current-version `value_state:u32`. Type `057aa7f8d2118f09c0005a9a2378d04f` continues with one parameter reference. Types `0c7aa7f8d2118f09c0005a9a2378d04f` and `0d7aa7f8d2118f09c0005a9a2378d04f` continue with one child expression reference and encode unary minus and an explicit parenthesized group. A group's value is its child's value, and its text is the child's text in parentheses. Type `037aa7f8d2118f09c0005a9a2378d04f` encodes a function call. After the unit reference it stores a type-2 reference list of argument expressions and `function:u32`. Functions 1, 2, and 3 are the cosine, sine, and tangent of their one angle argument, written `cos(…)`, `sin(…)`, and `tan(…)`. Types `067aa7f8`, `077aa7f8`, `087aa7f8`, `097aa7f8`, `0a7aa7f8`, and `0b7aa7f8` with the same remaining 12 identifier bytes continue with two ordered child expression references and encode addition, subtraction, multiplication, division, modulo, and power respectively.
 
@@ -304,16 +304,39 @@ Records whose body starts with a state value store no stamps: planar sketches, s
 
 Type `114d8790d011f8d10008cabc0663dc09` is a planar sketch. The content header is followed by `state:i32`, `count_value:u32`, a type-8 entity-reference array, transform and direction references, and two u32 values. A trailing type-2 reference list is optional. The entity-reference array contains geometric entities, constraints, and helper records.
 
+PmDc references store a one-based record index in bits 0 through 30 and a qualifier in bit 31. The qualifier does not change the selected record. A zero index is null.
+
 A type-8 reference array starts with u16 values `8, 0x3000` and a u32 count. A nonempty array then stores two u16 metadata values and the counted PmDc references. A type-2 reference list starts with u16 values `2, 0x3000` and a u32 count. A nonempty list then stores two u32 metadata values and the counted references.
 
-Planar sketch entities add `entity_flags:u32` and `sketch_reference:u32` after the content header. The sketch reference identifies the owning planar sketch.
+Planar sketch entities add `entity_flags:u32` and `sketch_reference:u32` after the content header. The sketch reference identifies the owning planar sketch. Entity-flag bits `0x40`, `0x1000`, `0x40000`, and `0x80000` do not mark construction geometry. Bit `0x4` of a spline entity does not mark construction geometry.
 
 The planar entity types are:
 
-- `35df52ced011d0d20008ccbc0663dc09`: point. It stores a two-f64 position, endpoint-of and center-of type-2 lists, and an optional u32 state plus type-2 association list. From segment major version 25, a point with a state stores a type-2 link list after the association list.
+- `35df52ced011d0d20008ccbc0663dc09`: point. It stores a two-f64 position, endpoint-of and center-of type-2 lists, and an optional association tail.
 - `3adf52ced011d0d20008ccbc0663dc09`: line. It stores a type-2 endpoint list, versioned auxiliary type-2 lists, and two-f64 origin and direction vectors.
 - `3bdf52ced011d0d20008ccbc0663dc09`: circle. It stores a type-2 point list, versioned auxiliary type-2 lists, a center-point reference, a positive f64 radius, and a u8 state.
 - `60d40745d111bee680006fb1e13554c7`: ellipse. It stores a type-2 point list, versioned auxiliary type-2 lists, a center-point reference, a two-f64 major-axis direction, positive f64 major and minor radii, and a u8 state.
+
+A point tail is absent or starts with `state:u32`. From segment major version 25, state 2 selects the paired association form. This form is:
+
+```text
+state u32 = 2
+scalar_marker u16[2] = [2, 0x3000]
+scalar_count u32 = 2
+scalar_metadata u32[2]
+scalar_values f64[2]
+operand_marker u16[2] = [2, 0x3000]
+operand_count u32 = 2
+operand_metadata u32[2]
+first_auxiliary_marker u16[2] = [2, 0x3000]
+first_auxiliary_count u32 = 0
+first_operand u32
+second_auxiliary_marker u16[2] = [2, 0x3000]
+second_auxiliary_count u32 = 0
+second_operand u32
+```
+
+The metadata words are opaque u32 values. The scalar values are finite and have no interval restriction. The two operands are packed PmDc entity references with the index and qualifier fields of section 11. The paired association tail ends the point record. Before segment major version 25, each state value precedes a type-2 association-reference list that ends the record. From version 25, state values other than 2 precede a type-2 association-reference list and a type-2 link-reference list. The stored position defines the solved point coordinates.
 
 The auxiliary lists of a line, circle, or ellipse are one type-2 list, or a u32 gate pair followed by its lists. Gate `1, 0` precedes one or two type-2 lists. Gate `0, 0` stores no list.
 
@@ -321,7 +344,34 @@ Sketch coordinates and radii use internal centimetres. Neutral planar coordinate
 
 The point list of a circle or ellipse starts with two members. Two null references mark a closed curve. Two point references mark a bounded curve: the first is its start point and the second its end point. A circle with state 1 is a full circle and has two null leading members. A circle with state 0 is an arc and has two leading point references. An arc runs counterclockwise about the sketch normal from its start point to its end point, on the circle of the stored center and radius. Its end points lie on that circle within the kernel linear tolerance, `1e-6` internal centimetres.
 
-A full circle or a closed ellipse forms a closed profile by itself. Line and arc records form a profile loop when every endpoint in their connected component has degree two and the ordered traversal closes.
+A full circle, a closed ellipse, or a closed periodic polynomial spline forms a closed profile by itself. Line and arc records form a profile loop when every endpoint in their connected component has degree two and the ordered traversal closes.
+
+Type `d42f37f9d11115d3000847b00524dc09` stores a planar spline. After the planar-entity prefix it stores a type-2 point-reference list, nine u32 values, a type-2 u32 list, `state:u32`, a primary spline curve, `curve_state:u8`, two type-2 auxiliary reference lists, three u32 values, `secondary_prefix:u8`, `secondary_present:u32`, `secondary_state:u8`, a secondary spline curve, and nine terminal u32 values.
+
+A form-1 spline curve has this fixed prefix:
+
+```text
+form u32 = 1
+degree u32
+tolerance f64
+knot_count u32
+knot_value u32
+scalar_width u32 = 8
+```
+
+The polynomial branch follows this prefix with `knot_count` f64 knots, two zero u32 values, `scalar_width:u32 = 8`, `pole_count:u32`, `pole_value:u32`, and `scalar_width:u32 = 8`. It then stores `pole_count` two-f64 poles. Its fixed tail is:
+
+```text
+pole_tolerance f64
+values u32[2]
+interval f64[2]
+terminal_value f64
+scalar_width u32 = 8
+```
+
+The poles use internal centimetres. The degree is positive. The knot vector is the full nondecreasing vector, with `knot_count = pole_count + degree + 1`. `curve_state = 2`, curve values `1, 1`, equal primary and secondary curves, equal first and last poles, and clamped endpoint knots define a closed periodic polynomial spline. Each endpoint knot has multiplicity `degree + 1`. Its interval is the knot domain from knot `degree` through knot `pole_count`, with a lower first value than last value. The listed points are not the spline's control polygon or its two boundary endpoints. In this closed branch, the initial nine values, the three auxiliary values, both secondary one-byte values, the spline state, the two knot values, and the curve terminal value are zero. The nine terminal u32 values are `2, 0, 0, 0, 0, 0, 0, 0, 0`; `pole_value` equals `pole_count`.
+
+Type `9e146d7cd1115bd5000847b00524dc09` stores a spline-point relation. After the constraint header it stores a spline reference and a point reference, in that order.
 
 Type `184d8790d011f8d10008cabc0663dc09` stores a compressed 4-by-4 sketch transform after the content header. An optional u32 value `0x203` precedes two u16 masks. For matrix element bit `b`, a clear zero-mask bit and clear value-mask bit select one following f64. A clear zero-mask bit and set value-mask bit select positive one. A set zero-mask bit and clear value-mask bit select zero. Both bits set select negative one. Explicit values occur in row-major order. Translation values use internal centimetres.
 
@@ -350,7 +400,13 @@ Types `bf70e821d011d0d20008ccbc0663dc09`, `b07b170fd11196e680006fb1e13554c7`, `c
 - collinear stores two line references and `state:u16`; the lines lie on one infinite line;
 - symmetric stores two entity references and an axis line reference; the axis line's carrier reflects the first entity onto the second.
 
-Type `384853529f445255e1e1dab410eb06c4` is a regular-polygon record. It starts with the planar-entity prefix and then stores a center-point reference and `value:u32`. Type `1f89dbfbd84778b6b0967285c7ec8bb9` is a polygon relation. After the constraint header it stores two entity references, the center-point reference, the polygon-record reference twice, and two u32 values. The two entities are consecutive polygon edges or consecutive polygon vertices.
+Type `384853529f445255e1e1dab410eb06c4` is a regular-polygon record. It starts with the planar-entity prefix and then stores a reference-entity reference and `value:u32`. The reference entity is the polygon's center point, or a line. Type `1f89dbfbd84778b6b0967285c7ec8bb9` is a polygon relation. After the constraint header it stores two entity references, the polygon's reference entity, the polygon-record reference twice, and two u32 values. The two entities are consecutive polygon edges or consecutive polygon vertices.
+
+Type `bc144b4ed211fea4600010b38932edb0` encodes an equal-distance relation. After the constraint header, whose parameter is null, it stores two pairs of line references. The lines of each pair are parallel, and the two pairs have the same separation.
+
+Sketch blocks use three record types. Type `4c12f14c1d4f0fb4d3f80f8244528fcb` is a block instance. It starts with the planar-entity prefix and then stores a block-definition reference, a block-group reference, u16 value and zero masks, the explicit values of a 3-by-3 placement matrix, and `value:u32`. The masks select the matrix cells in row-major order with the rule of the sketch transform record; mask bits above bit 8 are clear. Type `7e71a918ee49612a268c549c6584f7fe` is a block member link. It starts with the planar-entity prefix and then stores a type-2 list of the block instance and the reference of one sketch point or line that the instance contains. Type `cf8d56f2324a27ddb666f1894a9d1617` is a block group. It stores the constraint header without its parameter reference, followed by a type-2 list of the block instance and its member links.
+
+A block instance places the curves of its block definition in the sketch that lists the instance. The sketch reference of each definition entity is the block definition. The placement matrix maps the definition point `(x, y, 1)` to the sketch point in internal centimetres, and its upper-left 2-by-2 part is orthonormal. A placed arc runs counterclockwise in the sketch, so a matrix with negative determinant exchanges the arc's start and end points. The instance gives the curves it places associative identifiers that no entity-style link stores. The first identifier is the instance's associative identifier plus 2. The full circles of the definition take one identifier each, in record order. Then each other curve of the definition, in record order, takes one identifier, followed by one identifier for each of its two end points that has no identifier yet.
 
 ## 13. Feature records
 
@@ -366,11 +422,21 @@ Feature property records use the same 22-byte content header. The following enum
 - `2788f278c54dd7be4313b3986039b52e`: fillet form;
 - `7339fdce7a4e4011bee343897908ba92`: auxiliary feature enumeration.
 
+Types `1990e1b8d311467bc000e39545df724f` and `1790e1b8d311467bc000e39545df724f` use the same enumeration grammar. Their type values are 3 and 4 respectively. Both use the versioned content header of section 12, including its stamps.
+
 Type `3200aa7dd2112b836000f3a89dccefb0` stores the chamfer form. It adds the same `type_value:i16` and `value:u16` fields, followed by a zero u32 terminal value.
 
-The part-operation, extent, hole-form, fillet-form, and chamfer-form records use type values 5, 11, 3, 2, and 2 respectively.
+The part-operation, hole-form, fillet-form, and chamfer-form records use type values 5, 3, 2, and 2 respectively. Extent records use type value 11 through segment major version 21 and type value 12 from segment major version 22.
 
 Type `284d8790d011f8d10008cabc0663dc09` adds a counted UTF-16LE name, `name_value:u32`, and a Boolean byte. The Boolean byte is 0 or 1. Types `91739422d11107cf000835bd0663dc09`, `71f23ed8d2115094a00049803603c8c9`, `ae70680ed14a1e86d76248b03c2a96e1`, and `dae9481bd211dc2c00083eab1b14dc09` add one type-2 reference list. They identify a boundary patch, feature dimensions, an object collection, and constant-radius fillet edge sets respectively.
+
+Type `f1b2bc24d01121dd0008d0bc0663dc09` stores a face collection. After the content header it stores one type-2 reference list and ends. Each non-null member selects a record in the same PmDc segment.
+
+Type `ccb59f50d1114f6b0008a1ba32a3dc09` stores a face item. After the content header it stores a type-2 `u32` index-reference list. An empty list selects no face and ends the record without a trailer. A nonempty list is followed by `terminal_value:i32 = -1`, then the record ends. The index values are native topology selectors, not one-based PmDc record references.
+
+Type `7a25f2efd11105af000847b00524dc09` stores a selection list. After the content header it stores one type-2 reference list and ends. Each non-null member selects a record in the same PmDc segment.
+
+Type `9f8f2a40d21120e66000aaabc8433cb0` stores a Boolean with an empty name. It starts with the versioned content header of section 12, including its stamps. The header is followed by `name_count:u32 = 0`, `name_value:u32 = 0`, and `value:u8`. The value is 0 or 1 and ends the record.
 
 Type `dfd51dbbd1116e72000817bd0663dc09` adds a counted UTF-16LE name and three u32 values: the name value, nominal value, and model value. Type `474d8790d011f8d10008cabc0663dc09` adds one body reference. Type `3b2477a4d1118f96000826bd0663dc09` adds an entity-link reference and one u8 value. Type `2c9256724d4d6d709427fd964d84df16` adds transform, point, and value references.
 
@@ -399,7 +465,7 @@ next_reference u32
 
 The header is followed by `index:u32`, a type-2 participant-reference list, a counted UTF-16LE label, and a 16-byte class identifier. The label's code units can include unpaired surrogates. The owner reference identifies the labeled record. Each participant is a one-based record reference in the same PmDc segment. Other records with the same type identifier use different payload forms and do not satisfy the label grammar.
 
-Type `154d8790d011f8d10008cabc0663dc09` is an entity-style link and also starts with the linked-element header. It then stores `value:u32`, `associative_id:u32`, and `entity_type:u32`. An entity-style link whose owner is a planar sketch entity gives that entity its associative identifier within the sketch. Entity type 1 marks a point and entity type 2 marks a curve. A profile-selection record selects an entity-style link or a kernel-entity link through its entity-link reference.
+Type `154d8790d011f8d10008cabc0663dc09` is an entity-style link and also starts with the linked-element header. It then stores `value:u32`, `associative_id:u32`, and `entity_type:u32`. An entity-style link whose owner is a planar sketch entity gives that entity its associative identifier within the sketch. Entity type 1 marks a point, entity type 2 marks a curve, and entity type `0x08000000` marks a sketch block instance. A profile-selection record selects an entity-style link or a kernel-entity link through its entity-link reference.
 
 Type `21750fccd1112780e38619962259017a` is a kernel-entity link. Its payload contains:
 
@@ -413,33 +479,107 @@ entity_id u32
 entity_type u32
 ```
 
-The body reference selects a PmDc kernel-body record of type `5c5945f6d5113313100060a6bba647b5`. The entity identifier selects one entity of that body. `selection_source` equals the content-header source index of the selection record that references the link.
+The body reference selects a kernel-body record in the link's segment, of type `5c5945f6d5113313100060a6bba647b5`. The entity identifier selects one entity of that body. `selection_source` equals the content-header source index of the selection record that references the link. A PmBRep kernel-entity link uses the same payload grammar. Its body reference selects the active part kernel carrier. Its entity identifier is the nonnegative ASM body key of the selected body when a surface-body wrapper references the link. The kernel entity type is retained; its numeric value does not select the body.
 
-A PmDc kernel-body record uses the record envelope and footer of the active part kernel carrier (§5). Its footer selected key is the record's own qualified reference. Its kernel bytes hold one ASM wire body for each profile selection that links to the record. The kernel-entity link of a profile selection selects the wire body whose ASM body key equals the link's entity identifier. Model-space lengths in these bodies use internal centimetres.
+A PmDc kernel-body record uses the record envelope and footer of the active part kernel carrier (§5). Its footer selected key is the record's own qualified reference. Its kernel bytes hold ASM profile bodies. A profile body contains wires or planar faces. The kernel-entity link of a profile selection selects the body whose ASM body key equals the link's entity identifier. Each wire or face boundary loop of that body is a profile boundary ring. Face loops store their edges through the ordered coedge references. Model-space lengths in these bodies use internal centimetres.
 
-A profile wire body is one closed loop. Each of its edges carries one ASM attribute of class chain `NMx_Generated_Brep_tag-NMx_Brep_Name_tag-NMx_Brep_tag-NamingMatching-attrib`. The attribute stores five fields that are not decoded here, followed by the integers `naming_type`, 0, `associative_id`, 0, and 2. The value 2 marks an edge name. `naming_type` equals the entity type of the kernel-entity link. `associative_id` equals the associative identifier of the curve-type entity-style link of the sketch curve that the edge comes from, in the sketch that the extrusion consumes. The end points of each edge lie on that curve in the sketch plane, and the edge runs along the part of the curve between them. On a full circle, the point at the middle of the edge's parameter interval selects which of the two arcs between the end points the edge runs along. An edge whose end points lie at the end points of its curve runs along the whole curve. A full circle can run through more than one edge. Each of these edges carries the name of the circle, and the circle is then the only curve of the wire. Consecutive edges of a wire share an end point, and the last edge ends where the first one starts.
+A profile body holds one or more closed loops for each selected key. Each of its edges carries one ASM naming attribute. The class chain `NMx_Generated_Brep_tag-NMx_Brep_Name_tag-NMx_Brep_tag-NamingMatching-attrib` stores five common attribute fields, followed by the integers `naming_type`, 0, `associative_id`, 0, and 2. The class chain `ATTRIB_CUSTOM-attrib` stores the same five common fields, the string `INV_NMX_GEN_TAG`, integer 1, and the same five naming integers. The value 2 marks an edge name. `naming_type` equals the entity type of the kernel-entity link. `associative_id` equals the associative identifier of the sketch curve that the edge comes from, in the sketch that the extrusion consumes: the identifier of the curve's curve-type entity-style link, or the identifier that a block instance gives a curve it places. The end points of each edge lie on that curve in the sketch plane, and the edge runs along the part of the curve between them. On a full circle, the point at the middle of the edge's parameter interval selects which of the two arcs between the end points the edge runs along. An edge whose end points lie at the end points of its curve runs along the whole curve. A full circle can run through more than one edge. Each of these edges carries the name of the circle, and the circle is then the only curve of the wire. Consecutive edges of a wire share an end point, and the last edge ends where the first one starts.
 
-Type `1641d6aad211db2c00083eab1b14dc09` stores one constant-radius fillet edge set. The content header is followed by edge-collection, radius, selection-mode, and continuity references. From segment major version 23 a fifth reference follows; it is null or a `284d8790d011f8d10008cabc0663dc09` Boolean record. Type `514d8790d011f8d10008cabc0663dc09` stores an edge collection as a type-2 reference list after the content header. The members identify type `82695c37d111516b0008a1ba32a3dc09` edge-item records. An edge item stores a type-2 `u32` index-reference list after the content header, an `i32` when the list is not empty, and a final `u32`.
+Type `1641d6aad211db2c00083eab1b14dc09` stores one constant-radius fillet edge set. The content header is followed by edge-collection, radius, selection-mode, and continuity references. The continuity reference is null or selects a Boolean record. From segment major version 23 a fifth reference follows; it is null or a `284d8790d011f8d10008cabc0663dc09` Boolean record. Type `514d8790d011f8d10008cabc0663dc09` stores an edge collection as a type-2 reference list after the content header. The members identify type `82695c37d111516b0008a1ba32a3dc09` edge-item records. An edge item stores a type-2 `u32` index-reference list after the content header, an `i32` when the list is not empty, and a final `u32`.
 
-Type `4a374949d211001d00083bab1b14dc09` stores a fillet edge-selection enumeration. It adds `type_value:u32` and `value:u32` after the content header. Type value 4 and value 0 select explicitly listed edges.
+Type `4a374949d211001d00083bab1b14dc09` stores a fillet edge-selection enumeration. It adds `type_value:u32` and `value:u32` after the content header. Type value 4 and value 0 select explicitly listed edges. Type value `0x00020004` with value 0 is a second selection descriptor. The edge set, not its edge collection alone, identifies the native selection for this descriptor.
 
-Feature-label class identifiers `3111a90cd0118b83000819b00524dc09`, `dc15f7f1d1114205000830b00524dc09`, `3f7100f9d2118b6f6000f0a89dccefb0`, and `1a7d751fd2119c54a00020803603c8c9` identify extrusion, fillet, chamfer, and hole records respectively.
+A single closed periodic polynomial spline is a whole profile ring when its named wire has one edge, the edge's spline degree and full knot vector equal those of the named sketch spline, its ordered poles map to the sketch poles in the sketch plane within the kernel linear tolerance, its parameter interval is the full knot domain, and both edge vertices equal the spline seam within that tolerance. The carrier and sketch curve have no rational weights. This join uses the edge's naming attribute and the consumed sketch's curve-type entity-style link.
 
-An extrusion uses property slots 0 through 7 for part operation, boundary patch, direction, reverse direction, forward length, taper angle, extent, and symmetric extent. Slot 23 repeats the boundary-patch reference. Slot 26 identifies the result object collection. Part-operation enumeration values 1, 2, 3, and 4 mean new body, cut, join, and intersection. Extent values 1, 2, 4, 5, 6, and 7 mean fixed dimension, symmetric fixed dimension, through next, through all, from-to, and to. A fixed dimension uses the slot-4 length. Extent 2 occurs only with a true symmetric-extent Boolean, and its length is the total travel split evenly around the profile plane. A true symmetric-extent Boolean with extent 5 extends through all material on both sides of the profile plane. Other extents with a true symmetric-extent Boolean are outside the supported branch. A boundary patch contains profile-selection references. The feature label's sole participant identifies the owning planar sketch. Each profile selection is one closed ring of whole curves or parts of curves of that sketch. The rings of one boundary patch bound the extruded region: a selected ring that lies inside an odd number of other selected rings bounds a hole in the region of the innermost selected ring that contains it.
+Feature-label class identifiers `3111a90cd0118b83000819b00524dc09`, `dc15f7f1d1114205000830b00524dc09`, `3f7100f9d2118b6f6000f0a89dccefb0`, and `1a7d751fd2119c54a00020803603c8c9` identify extrusion, fillet, chamfer, and hole records respectively. Feature-label class identifier `b54dd6f6d311c4966000f2b21d6eefb0` identifies a sheet-metal corner round. Its feature record uses the constant-radius edge-fillet slots and rounds the selected edges. Type `08dcddc3d311d0976000a7a99dccefb0` is a sheet-metal flange record. After the content header it stores `state:i32`, a type-2 reference list, and a u32 value. The list names the plate, bend, and corner feature records that form the flange, in that order. Type `904bc1c4d311ff2860004da99dccefb0` is a sheet-metal face record with the same layout; its list names one plate feature record. The face label's participants are the face's planar sketch and that plate. The flange label's participants are its planar sketch, plate, bend, and corner, in that order. The flange and face state headers have no content-header stamps.
 
-The extent-7 target is the work plane in slot 11, or the model face recorded by a termination flag in slot 13 and a surface in slot 18. The extent-6 extrusion starts at the target in slot 8, or the face in slots 10 and 17, and ends at the extent-7 target. A two-sided extrusion has an extent enumeration in slot 29. Slots 27, 28, and 29 hold the length, taper angle, and extent of the side opposite the extrusion direction.
+A feature label with class identifier `c65f5855d311730c60003aa99dccefb0` labels a sheet-metal plate. A plate uses property slots 0 through 3 for its profile selection, direction, thickness-side control, and thickness parameter, slot 7 for an edge collection, and slot 8 for its feature dimensions. Type `473f20fcd11101cf000835bd0663dc09` is the plate profile selection and has the profile-selection layout. For a plate owned by a `904bc1c4d311ff2860004da99dccefb0` face record, the direction is the normal of the face sketch. A Boolean thickness-side control selects thickness along this normal when false and against it when true. Type `69b9505efb4bbaa925c3dfa870817810` is a thickness-side enumeration. Its versioned content header, including stamps, is followed by `type_value:i16` and `value:u16`, then the record ends. Type value 2 and value 0 select thickness along the normal.
 
-Type `fd24893dd211fa99000840ab0663dc09` is a termination flag. It adds one `value:u8` after the content header. A face target requires value 1.
+A plate with a surface-body reference in slot 6 has that body as its result. The result-collection plate form has 17 properties, null slot 6, a result object collection in slot 15, and a part-operation enumeration in slot 16. Part-operation value 1 creates a new body. With no bend operands, the plate is the closed profile region of its face sketch, thickened from the sketch plane by its thickness parameter on the selected side. A plate that names a record in slot 4 or in slots 9 through 13 is joined to an existing face by a bend.
+
+An extrusion uses property slots 0 through 7 for part operation, boundary patch, direction, reverse direction, forward length, taper angle, extent, and symmetric extent. Slot 23 repeats the boundary-patch reference. Slot 26 identifies the result object collection. Part-operation enumeration values 1, 2, 3, and 4 mean new body, cut, join, and intersection. Extent values 1, 2, 4, 5, 6, and 7 mean fixed dimension, symmetric fixed dimension, through next, through all, from-to, and to. A fixed dimension uses the slot-4 length. Extent 2 occurs only with a true symmetric-extent Boolean, and its length is the total travel split evenly around the profile plane. A true symmetric-extent Boolean with extent 5 extends through all material on both sides of the profile plane. Other extents with a true symmetric-extent Boolean are outside the supported branch. A boundary patch contains profile-selection references. The feature label's sole participant identifies the owning planar sketch. Each profile selection is one or more closed rings of whole curves or parts of curves of that sketch. The rings of one boundary patch bound the extruded region: a selected ring that lies inside an odd number of other selected rings bounds a hole in the region of the innermost selected ring that contains it.
+
+The extent-7 target is the work plane in slot 11, or the model face recorded by a termination flag in slot 13 and a surface in slot 18. Exactly one of the two forms is present: a nonzero slot 11 occurs with null slots 13 and 18. Both forms store a plane and no face identity. The extrusion ends at that plane. The extent-6 extrusion starts at the work plane in slot 8, or at the face recorded by the termination flag in slot 10 and the surface in slot 17, and ends at the extent-7 target. The start target has the same two forms, and it also stores a plane and no face identity. A two-sided extrusion has an extent enumeration in slot 29. Slots 27, 28, and 29 hold the length, taper angle, and extent of the side opposite the extrusion direction.
+
+Type `fd24893dd211fa99000840ab0663dc09` is a termination flag. It adds one `value:u8` after the content header. An extrusion face target requires value 1.
 
 Type `f0801215d4119e8eef90a8ac7f9ac3ff` is a surface record. After the content header it stores three record references, `state:u8`, `form:u32`, and `value:u32`. Form 25 is a plane: nine f64 values follow and end the record. They are the origin, the u axis, and the v axis in internal centimetres. The plane normal is the cross product of the u and v axes.
 
-Type `42df52ced011d0d20008ccbc0663dc09` is a work plane. After the content header it stores `entity_flags:u32` and two u32 values. Segment major versions above 21 add one u32 value. An optional u32 `0x203` and one u32 value follow. The record ends with nine f64 values: the origin, the u axis, and the v axis in internal centimetres.
+Type `42df52ced011d0d20008ccbc0663dc09` is a work plane. After the content header it stores `entity_flags:u32` and two u32 values. Segment major versions above 21 add one u32 value. An optional u32 `0x203` and one u32 value follow. The record ends with nine f64 values: the origin, the u axis, and the v axis in internal centimetres. The plane normal is the cross product of the u and v axes.
 
-A constant-radius edge fillet uses slot 0 for the fillet edge-set collection, slot 11 for the fillet form, and slot 15 for the result object collection. Fillet form value 0 is an edge fillet. Each edge set identifies its edge collection and length parameter. Selection type 4 with value 0 lists the exact edge items. The edge set also carries its continuity Boolean.
+A constant-radius edge fillet uses slot 0 for the fillet edge-set collection, slot 11 for the fillet form, and slot 15 for the result object collection. Fillet form value 0 is an edge fillet. Each edge set identifies its edge collection and positive length parameter. Selection type 4 with value 0 lists the exact edge items. The edge set also carries its nullable continuity Boolean. For a sheet-metal corner round, a null continuity reference supplies no additional continuity condition; the edge collection, explicit selection mode, and constant radius still define the edge fillet.
+
+Type `534d8790d011f8d10008cabc0663dc09` stores an edge naming selector. An edge item's index-reference values name selector `source_index` values in the same PmDc segment. They are not record ordinals or ASM entity indexes.
+
+The fixed selector prefix after the content header contains `state:i32`, `enabled:u8`, `form:u8`, a body reference, `topology:u32`, `qualifier:u32`, and `naming_form:u32`. The direct edge form stores −1, 1, 5, a surface-body reference, 2, 0, and 2. A type-8 integer array follows. Its sole value is the generating feature's content-header `source_index`. The next type-8 integer array is empty. A zero byte, an edge-item reference, a context reference, and `key:u32` end the selector.
+
+In a schema-44 ASM carrier, an `ATTRIB_CUSTOM-attrib` record has five common attribute fields followed by a family string and family values. The common fields are an attribute reference, a signed integer, two attribute-chain references, and the owning entity reference. Family `INV_NMX_MATCHED_ATTRIB` stores the integers 1, 44, 1, `selector_source_index`, −1, `key`, and `qualifier`. Qualifier 0 identifies the selected edge; qualifier 1 can identify its vertices. The pair (`selector_source_index`, `key`) joins the direct edge selector to its matching attribute. The owner reference identifies the edge record in the ASM entity-revision namespace. The attribute and edge can be in the construction-history archive rather than the active body.
+
+In a schema-44 carrier, generated naming families `INV_NMX_GEN_TAG`, `INV_NMX_SWEEPGENERATED_TAG`, `INV_NMX_BLEND_TAG`, `INV_NMX_FLANGE_TAG`, and `INV_NMX_BEND_TAG` have the same five common attribute fields. Their family values start with 1, 44, 1, `feature_source_index`, and −1. The source index names the generating feature, including a plate, bend, or corner. The owning entity reference names the attributed face, edge, or vertex. The remaining integers are part of the generated name. A generated source index identifies a naming contribution; it does not identify a browser history position or a body revision.
+
+Family `INV_NMX_DUP` stores the integers 1 and 44, then four opaque integer key values. It has no feature-source field. Its owner also has a separate generated-name attribute, which supplies the feature source. The four key values form an ordered opaque tuple, separate from that source name.
+
+In schema-38, schema-40, and schema-42 carriers, the class chains `NMx_Generated_Brep_tag`, `NMx_Sweep_Generated_Brep_tag`, `NMx_flange_tag`, `NMx_blend_tag`, `NMx_bend_tag`, and `NMx_Hole_Brep_tag` continue with `NMx_Brep_Name_tag-NMx_Brep_tag-NamingMatching-attrib`. After the five common attribute fields they store the carrier schema, a positive source-name count, that many ordered `(feature_source_index, name_value)` integer pairs, and a family-specific integer tail. The tail lengths are 3, 10, 7, 7, 8, and 2 respectively, in the class order stated above. A source index in any pair names a feature in that generated entity name. `name_value` is a signed naming value. Its value can be −1. The source-name count bounds the pair vector; the tail is not part of that vector.
+
+A generated name on that same owning edge identifies the edge in the generating feature's result. Family `INV_NMX_GEN_TAG` stores 1, 44, 1, `feature_source_index`, −1, `associative_id`, 0, and `role`. Edge roles are 2, 10, and 18. Family `INV_NMX_SWEEPGENERATED_TAG` stores the same first seven integers followed by `role` and seven zero integers. Edge roles 10 and 18 are distinct names. `feature_source_index` equals the generator value in the selector. The associative identifier names an entity-style link in the sketch consumed by that feature. Role 18 uses a point link; roles 2 and 10 use a curve link. The family, associative identifier, qualifier, and role together form a feature-local persistent name. The name is scoped to the generating feature's result. The matching attribute selects the stored owning edge revision. Its start and end vertex references select the stored point revisions; its curve reference and parameter endpoints select its carrier interval. A straight carrier uses its stored origin and direction, with the edge sense applied to the parameters. The midpoint of the interval supplies an interior point, and the signed carrier direction supplies its unit tangent. These references identify geometry at the selected history input independently of the active body's edge records. The construction-history record framing and entity-revision namespace follow [asm.md §3.2](asm.md#32-delta_state-records).
 
 An equal-distance edge chamfer uses slot 0 for its edge collection, slot 2 for its length, slot 4 for the chamfer form, slot 5 for direction reversal, and slot 11 for the result object collection. Chamfer values 0, 1, and 2 mean equal distance, distance and angle, and two distances. The equal-distance branch does not consume an oriented support face.
 
-A hole uses slots 0 through 6 for hole form, diameter, depth, entry diameter, entry depth, entry angle, and drill-point angle. Slots 8, 9, 16, 17, 21, and 24 identify its transform, extent, a direction, a Boolean, a placement, and the result object collection. Hole-form values 0, 1, 2, and 3 mean drilled, countersink, counterbore, and spotface. The placement transform translation uses internal centimetres. The direction record supplies the drilling direction. The placement record repeats the transform reference and retains its point and value references.
+In chamfer forms 1 and 2, slot 1 selects the support-face collection. Slot 2 is a length parameter; slot 3 is a second length parameter; slot 10 is an angle parameter in radians. Form 1 uses the slot-2 distance and slot-10 angle. The distance is positive and the angle is strictly between zero and pi. Form 2 uses the two positive lengths in slots 2 and 3. Equal values in those two slots define equal setbacks on both support sides, independent of side order. The native oriented selection consists of the feature record, its slot-0 edge collection, its slot-1 support-face collection, and its slot-5 direction reversal.
+
+A revolve has 20 property slots. A one-sided closed-profile solid revolve has these slot roles and control values:
+
+| Slot | Property or value |
+| --- | --- |
+| 0 | Part operation, with values 1 through 4 as for an extrusion |
+| 1 | Boundary patch |
+| 2 | Work axis |
+| 3 | Extent enumeration |
+| 4 | Angular parameter, in radians |
+| 5 | Enumeration `c26aa0c728412312abf0728f9d598bc9`, with type value 3 |
+| 6, 8, 13, 14, 15, 18, 19 | Null references |
+| 7 | Feature-dimension list with one dimension of the slot-4 parameter |
+| 9 | Auxiliary enumeration with type value 4 and value 0 |
+| 10 | Boolean true |
+| 11 | Null or repeated slot-1 reference |
+| 12 | Boolean false |
+| 16 | Boolean control of type `284d8790d011f8d10008cabc0663dc09`, with value 0 or 1 |
+| 17 | Result object collection |
+
+The feature label's sole participant identifies the owning planar sketch. The boundary patch selects its profile as for an extrusion. Slot 1 selects the stored profile when slot 11 is null. A non-null slot 11 repeats the same boundary-patch record, including every member of a multi-member patch. It supplies no additional profile selection. Extent value 1 is a fixed angular travel given by slot 4. With slot-5 value 0, the travel is positive rotation about the work-axis span. The angle is greater than zero. Extent value 3 is a full revolution. Its stored slot-4 angle is inactive. The slot-5 enumeration uses the versioned content header, followed by `type_value:i16` and `value:u16`, and ends there. A full revolution has slot-5 value 0 or 1. Both values specify a full turn.
+
+Type `b1377779d2116794a00049803603c8c9` is a feature parameter dimension. It starts with `header_value:u32`, `header_id:u16`, and a type-2 annotation list. The annotation list prefix contains `marker:u32 = 0x30000002` and `item_count:u32`. A nonzero count adds two u32 metadata words and annotation data bytes. A zero count has no metadata or data. The annotation data fills the record up to the nine-byte terminal tail. Its tail contains five annotation bytes and a parameter reference. The terminal parameter reference identifies the parameter that the dimension annotates. The dimension header has no content-header stamps or flags extension.
+
+Type `896cf08ed1113c0460007cb801f31bb0` is a work axis. After the content header it stores `entity_flags:u32` and two u32 values; segment major versions above 21 add one u32 value. A type-2 reference list follows, then an optional u32 `0x203`, two f64 triples, and `state:u8`. The first triple is a point on the axis and the second is the span from that point to the other end of the axis segment, both in internal centimetres. The axis direction is the span direction. Origin work axes span from −1 to 1 along their direction.
+
+The revolve work-axis form has zero entity flags, zero u32 values, an empty reference list, no `0x203` marker, state 0 or 1, and a nonzero span.
+
+A hole uses slots 0 through 6 for hole form, diameter, depth, entry diameter, entry depth, entry angle, and drill-point angle. Slots 7, 8, 9, 16, 17, 21, and 24 identify its center-point selection, transform, extent, direction, Boolean, placement, and result object collection. Slots 26 and 27 optionally select Boolean properties. Hole-form values 0, 1, 2, and 3 mean drilled, countersink, counterbore, and spotface. The bore diameter is positive. A counterbore or spotface has a cylindrical entry recess with the slot-3 diameter and slot-4 depth. The recess diameter exceeds the bore diameter, and its depth is positive. For a drilled hole, counterbore, or spotface, the slot-6 drill-point angle defines the bottom: zero gives a flat bottom; a nonzero value is an included angle strictly between zero and pi. A countersink uses the slot-3 entry diameter and slot-5 included angle. The entry diameter exceeds the bore diameter, and the included angle is strictly between zero and pi.
+
+Type `b1226593d2115359a00021803603c8c9` stores a hole center-point selection. The content header is followed by a type-2 reference list and the record ends. When slot 21 is null, the center-point list is nonempty and the hole label has one participant, which identifies the owning planar sketch. Each center reference selects a distinct point in that sketch's entity list. The point's sketch reference selects that sketch. The sketch's transform and direction references equal hole slots 8 and 16. A selected point `(u, v)` gives the model-space position `M * (u, v, 0, 1)`, where `M` is the slot-8 transform. Positions and transform translations use internal centimetres. The direction record supplies the drilling direction. A non-null slot-21 placement repeats the slot-8 transform reference and has non-null point and value references. Its position is the transform translation.
+
+Hole extent values 1, 4, 5, and 7 mean fixed depth, through next, through all, and to. A fixed-depth hole uses the positive slot-2 depth. A to hole has a slot-15 termination flag. Exactly one of slots 13 and 14 is non-null. Flag value 1 selects the slot-13 work plane with the plane-frame grammar above. Flag value 0 selects the slot-14 native face-selection record of type `ccb59f50d1114f6b0008a1ba32a3dc09`. The face-item grammar above applies. One nonzero full u32 index selects one terminating face in the native face-selection graph. The work-plane target carries a plane frame; the face target carries a face selection. Neither target adds an offset.
+
+Feature-label class `0619aa28d411c77a6000c4a4cae1fbb0` identifies a Thread annotation on selected cylindrical faces. Its generic feature record has nine property slots. Slot 0 is the face collection; it contains at least one face item. Slots 1, 2, and 6 are Boolean properties. Slots 3 and 4 are numeric parameter references. Slot 5 is an edge collection, and slot 8 is the feature-dimension collection. Slot 7 is a native property reference. A Thread annotation has no result object collection.
+
+Feature-label class identifier `ecf481729c4d5f925f2192b4a83096ac` identifies Thicken. Its 18-slot property vector has these roles:
+
+| Slot | Property |
+| --- | --- |
+| 0 | Selection list `7a25f2efd11105af000847b00524dc09` |
+| 1 | Part-operation enumeration |
+| 2, 3, 4, 7, 10, 16, 17 | Boolean controls |
+| 5, 8, 11 | Null references |
+| 6 | Thickness length parameter |
+| 9 | Feature-dimension reference list |
+| 12 | Dimensionless numeric parameter |
+| 13 | Control record `4c40b0a3ac4b9504e719b28a70e0e818` |
+| 14 | Control record `c11c7b63ea4d840b68b76e8c67bcbc48` |
+| 15 | Result object collection |
+
+Slot 6 supplies the thickness length in internal centimetres. Slot 12 supplies a dimensionless value; it is not a second thickness. Both parameters use the ownership rules of section 11. Part-operation value 3 selects a solid join, and value 2 selects a cut. Slot 0 supplies the selected support geometry through a selection list. Each non-null selection reference resolves in the same PmDc segment. These references do not identify faces of the final model body.
+
+Feature-label class identifier `12963cb8d1118a2860008bb801f31bb0` identifies a Shell operation. Slot 1 identifies the removed-face collection. An empty collection removes no face. Collection members are non-null and distinct by record index. Slot 2 identifies a selection list. Slot 3 identifies the wall-thickness length parameter, with units as defined in section 11. Slot 4 stores a reference. Slot 9 identifies the result object collection, whose members identify the output bodies.
 
 A result object collection contains one or more surface-body references. This ordered surface-body list is the feature's native result-body identity.
 
@@ -462,6 +602,314 @@ The participants of a feature label that are planar-sketch records are the sketc
 The participants of a pattern-feature record are its seed features.
 
 Content-header flag bit 2 (`0x4`) marks a suppressed feature, pattern-feature, or sketch record. Flag bit 19 (`0x80000`) marks a feature, pattern-feature, or sketch record below the end-of-part marker.
+
+### 13.2 Loft and sweep operands
+
+Feature-label classes `e0ef542fd111340900084eba32a3dc09`, `808b00afd41140881000fca5bba647b5`, and `05daba90d111386100080bbd0663dc09` identify solid loft, surface loft, and sweep respectively. Operand references select records in the feature's PmDc segment.
+
+Type `509e2f31d1110344000881ba32a3dc09` stores an ordered loft-selection list. The content header is followed by one type-2 reference list and the record ends. Each member is a non-null reference to a type `e850314bd111d641000880ba32a3dc09` loft-section selection. A loft-section selection with an empty type-7 map contains:
+
+```text
+content_header
+entity_link_reference u32
+value u8
+condition_reference u32
+parameter_references u32[2]
+map_value u32 = 0
+map_marker u32 = 0x30000007
+map_count u32 = 0
+source_value u32
+option_reference u32
+```
+
+The record ends after `option_reference`. Section 12 defines the content-header extensions and stamps. `entity_link_reference` selects a kernel-entity link. The link's `selection_source` equals the section's content-header `source_index`, and its non-null body reference selects a kernel-body record. `condition_reference` selects type `6c1c6c3c9a43e3947318e2bbd0c39ff8`. Both parameter references select numeric parameter records of type `264d8790d011f8d10008cabc0663dc09`. The option reference is null or selects a Boolean record. `value` and `source_value` are unsigned scalar fields, not references. All their bit patterns are valid. `source_value` is distinct from the content-header source index.
+
+Types `6c1c6c3c9a43e3947318e2bbd0c39ff8`, `02e2e3e0d111480900084eba32a3dc09`, `b7849ca26d4811e38b95b3a06051b440`, `ed2ef031904b9b04d79918b91f1619c8`, and `e211b05c3e46583e928a0cbf3a085834` use the content-header enumeration grammar, with `type_value:i16` and `value:u16`. They identify the loft section condition, loft construction control, sweep construction control, sweep orientation control, and sweep scaling control. The record ends after `value`. Both scalar fields admit all bit patterns.
+
+A non-null property reference in a table slot selects one of the stated record types. A null reference selects no record. The two loft classes use the same slot types.
+
+Loft property slots are:
+
+| Slot | Operand | Record type |
+| ---: | --- | --- |
+| 0 | Ordered section list | `509e2f31d1110344000881ba32a3dc09` |
+| 1 | Part operation | `28be9a72d111440900084eba32a3dc09` |
+| 2 | Boolean construction control | `284d8790d011f8d10008cabc0663dc09` |
+| 6 | Surface-loft result body wrapper | `474d8790d011f8d10008cabc0663dc09` |
+| 7 | Auxiliary loft-selection list | `509e2f31d1110344000881ba32a3dc09` |
+| 9 | Boolean construction control | `284d8790d011f8d10008cabc0663dc09` |
+| 10 | Loft construction enumeration | `02e2e3e0d111480900084eba32a3dc09` |
+| 13 | Solid-loft result object collection | `ae70680ed14a1e86d76248b03c2a96e1` |
+
+Sweep property slots are:
+
+| Slot | Operand | Record type |
+| ---: | --- | --- |
+| 0 | Boundary patch | `91739422d11107cf000835bd0663dc09` |
+| 1 | Path selection | `3b2477a4d1118f96000826bd0663dc09` or `473f20fcd11101cf000835bd0663dc09` |
+| 2 | Part operation | `28be9a72d111440900084eba32a3dc09` |
+| 3 | Angular parameter | `264d8790d011f8d10008cabc0663dc09` |
+| 4 | Extent enumeration | `297d6392d1113cb9000831bd0663dc09` |
+| 7 | Feature dimensions | `71f23ed8d2115094a00049803603c8c9` |
+| 8 | Sweep construction enumeration | `b7849ca26d4811e38b95b3a06051b440` |
+| 9 | Sweep orientation enumeration | `ed2ef031904b9b04d79918b91f1619c8` |
+| 10 | Sweep scaling enumeration | `e211b05c3e46583e928a0cbf3a085834` |
+| 15 | Result object collection | `ae70680ed14a1e86d76248b03c2a96e1` |
+
+Schema-44 generated-face attributes use type `ATTRIB_CUSTOM-attrib`. Five common attribute fields precede a family string and the integers 1, 44, 1, `generator`, and −1. `generator` is the generating feature's content-header source index. The target of the attribute is the generated face.
+
+Family `INV_NMX_SWEEPGENERATED_TAG` then stores `section`, `span`, `role`, and seven zero integers. Role 20 identifies a side face; `section` and `span` identify the associative names of its section curve and path curve. Roles 4 and 12 identify the two terminal cap faces and have zero `section` and `span` values.
+
+Family `INV_NMX_GEN_TAG` with the trailing integers 0, `section`, 260 identifies a loft cap. Family `INV_NMX_ORDERED_GEN_TAG` with the trailing integers 2, `curve`, `first_section`, 258, 0, 0, 3, `last_section`, 258, 4, `member` identifies a loft side face. The cap `section` and the side `first_section` and `last_section` are source indices of the section sketches. `member` is the one-based side-face member index. The side face stores a procedural loft surface. Its ordered profile members state any support surfaces and directions; a null support surface and an absent direction impose neither support continuity nor a direction constraint. The cap and side attributes refer to the same generating feature.
+
+A sweep path selection uses the profile-selection grammar. Its kernel-entity link selects one keyed wire. The wire's ordered edges are the complete selected chain. A path wire can be open. Its edge naming attributes use the same naming-type and associative-name grammar as section boundaries.
+
+### 13.3 Split property references
+
+Feature-label class `baa87183d311347bc000e39545df724f` identifies a split feature. For each non-null property reference, the zero-based slot determines the record type:
+
+Slot | Record type
+--- | ---
+0 | `1990e1b8d311467bc000e39545df724f` enumeration
+1 | `284d8790d011f8d10008cabc0663dc09` Boolean
+3 | `1790e1b8d311467bc000e39545df724f` enumeration
+4 | `91739422d11107cf000835bd0663dc09` boundary patch
+5 | `42df52ced011d0d20008ccbc0663dc09` work plane
+6 | `9f8f2a40d21120e66000aaabc8433cb0` Boolean
+7 | `83aadad54f4375dacd1003b260a8a422` body selector
+8 | `474d8790d011f8d10008cabc0663dc09` surface-body wrapper
+9 | `ae70680ed14a1e86d76248b03c2a96e1` object collection
+
+The slot-3 enumeration selects the tool reference. Value 2 selects the work plane in slot 5. Value 3 selects the surface-body wrapper in slot 8. The unused tool reference is null. The work-plane frame follows the grammar and units in section 13.
+
+### 13.4 Stored-body base features
+
+Feature-label class `2d11a90cd0118b83000819b00524dc09` identifies a stored-body base feature. Its property vector has three slots. Slots 0 and 1 select surface-body wrappers of type `474d8790d011f8d10008cabc0663dc09`; slot 2 is null. Slot 0 is the stored source body. Its body reference is null or a qualified reference to a kernel-entity link in the same PmDc segment. The link selects a stored kernel-body record in that segment. Its entity identifier selects the unique body with that nonnegative ASM body key in the stored carrier. Slot 1 is the result-body identity. Its body reference is a non-null unqualified external reference. The two wrappers have distinct record identities. Their kernel-entity links have state 0 and `selection_source` equal to the referencing wrapper's `source_index`.
+
+An unqualified surface-body reference is a one-based index in its PmDc metadata section 10. A qualified surface-body reference is a one-based record index in its own segment. The packed word 0 is null. A qualified reference with index 0 does not select a body.
+
+Metadata section 7 has a segment-pair form with 32-byte entries: `segment_id:bytes[16]`, `revision_id:bytes[16]`. Its discriminator is its entry count. Section 8 contains 20-byte revision entries: `revision_id:bytes[16]`, `segment_pair_index:u16`, `reference_count:u16`. The segment-pair index is zero-based into section 7. The revision identifier identifies the referenced revision; it need not equal the segment pair's revision identifier. Section 10 contains 8-byte external entries: `revision_index:u32`, `key_extension:u16`, `header_id:u16`. The revision index is zero-based into section 8. Each section's payload length equals its entry count times its entry width. A revision entry's reference count equals the number of section-10 entries that select it.
+
+The zero-extension external form has `key_extension = 0` and selects the unique kernel-entity link whose `header_value` is 0 and whose `header_id` equals the external entry's header identifier, in the unique segment whose identifier equals the selected section-7 segment identifier. The current-model Base result form selects a kernel-entity link in the document model root's named PmBRep segment. The link's qualified body reference and the carrier footer's selected key select the same active carrier record. The link's entity identifier joins the unique body with that ASM body key in this carrier. A body key is scoped to its carrier. A result identity can survive later changes to that body; it does not state that the current body is the Base source shape. A result whose body is absent from the current model has no current-body join.
+
+
+### 13.5 Attached plates and bend properties
+
+The 17-property attached-plate form has these slots:
+
+| Slot | Operand |
+| ---: | --- |
+| 0 | Construction-wire profile selection |
+| 1 | Direction reference |
+| 2 | Thickness-side control |
+| 3 | Thickness length parameter |
+| 4 | Attachment control `92596ba9d311efa86000b3a99dccefb0` |
+| 5, 6 | Null |
+| 7 | Edge collection |
+| 8 | Feature dimensions |
+| 9 | Corner control `83ce7786a946cde11ebd99b4fe02afb2` |
+| 10 | Bend relief `64880596d3119a76600081a99dccefb0` |
+| 11 | Transition `e9345026d5114c081000e596c28b7ab5` |
+| 12 | Attachment selection list `ce2d9b29ad43d8802f132c9a40c9ba90` |
+| 13 | Plate scalar control `051772e5a74f641a01386e8f3cc02218` |
+| 14 | Null |
+| 15 | Result object collection |
+| 16 | Part operation; value 3 joins the existing body |
+
+One flange control form has the following values and reference relations. Direction comparisons use normalized vectors. Parallel directions have dot product at least `1 - 1e-10`; antiparallel directions have dot product at most `-1 + 1e-10`; perpendicular directions have absolute dot product at most `1e-10`.
+
+| Operand | Value or relation |
+| --- | --- |
+| Plate property count | 17 |
+| Plate slots 5, 6, 14 | Null |
+| Plate slot 0 | Type `473f20fcd11101cf000835bd0663dc09`, profile selection, value 0 |
+| Plate slot 1 | Antiparallel to the first attachment direction |
+| Plate slot 2 | Boolean false or enumeration `(2, 0)` places thickness along the consumed sketch normal |
+| Plate slot 3 | Positive thickness length |
+| Plate slot 7 | Empty edge collection |
+| Plate slot 8 | Feature-dimension reference list |
+| Plate slot 9 | Corner control with the fields below |
+| Plate slot 13 | Scalar 0 |
+| Plate slot 16 | Part-operation enumeration `(5, 3)` |
+| Attachment control, first option, second option | Boolean false |
+| Attachment first mode, second mode | Enumeration `(9, 1)` |
+| Attachment states | `[1, 1, 1]` |
+| Attachment first direction | Parallel or antiparallel to the consumed sketch U axis; its sign does not change thickness side |
+| Attachment second direction | Parallel to the consumed sketch V axis, `normal × U` |
+| Attachment thickness | Same reference as plate slot 3 |
+| Attachment extension | Absent, or state 10 with repeated thickness, radius, attachment, relief width, minimum remnant, and option references |
+| Relief control | Boolean true |
+| Relief form | Same enumeration type and value as the document-style bend-relief form |
+| Relief width, minimum remnant | Same references as the attachment operands |
+| Relief width, depth | Positive lengths |
+| Relief minimum remnant, seam gap | Nonnegative lengths |
+| Transition control | Boolean true |
+| Transition form | Same enumeration type and value as the document-style transition form |
+| Transition radius | Nonnegative length |
+| Corner control, option | Boolean |
+| Corner relief, corner, and secondary forms | Enumerations |
+| Corner raw value | 0 |
+| Corner gap, size, Jacobi radius | Nonnegative lengths |
+| Bend property count | 11 |
+| Bend slot 5 | Null |
+| Bend slot 6 | Feature-dimension reference list |
+| Bend slot 8 | Scalar 6, state 1 |
+| Bend slot 10 | Boolean true |
+| Bend slots 0, 2, 3, 4, 7, 9 | Same references as plate slots 7, 3, 4, 10, 11, 15 respectively |
+| Bend slot 1 | Same positive radius-length reference as the attachment radius |
+| Document style | Same segment and save-version major as the plate |
+
+The corner-control values configure the flange's corner child feature. The plate and bend do not consume them.
+
+The attachment selection list contains a type-2 reference list after the versioned content header and stamps. Each member selects a selection wrapper of type `799c7cfa5a4ef5b2597b6494fc798db5`. A wrapper contains the versioned content header and stamps followed by `edges:u32`, then ends. `edges` references an edge collection. Its edge-item indexes name edge-selector source indexes as defined in section 13. This path selects edges on the input sheet. It does not name the new plate's profile edges. The plate and bend edge collection can be empty while the attachment selection list is nonempty.
+
+Feature-label class `f258f74cd3114f24600047a99dccefb0` identifies a bend. Its 11-property form has these slots:
+
+| Slot | Operand |
+| ---: | --- |
+| 0 | Edge collection shared with plate slot 7 |
+| 1 | Inside-radius length parameter |
+| 2 | Thickness length parameter shared with plate slot 3 |
+| 3 | Attachment control shared with plate slot 4 |
+| 4 | Bend relief shared with plate slot 10 |
+| 5 | Null |
+| 6 | Feature dimensions |
+| 7 | Transition shared with plate slot 11 |
+| 8 | Bend scalar control `3441b690d511d8026000a28d4aa6fbb0` |
+| 9 | Result object collection shared with plate slot 15 |
+| 10 | Boolean control |
+
+Type `08dcddc3d311d0976000a7a99dccefb0` stores the flange parent. It contains the state content header without stamps, `state:i32`, a type-2 reference list, and `value:u32`, then ends. The reference list selects the plate, bend, and corner generic-feature records in that order. The parent's feature label has four ordered participants: the consumed planar sketch, that plate, that bend, and that corner. The consumed sketch defines the plate's planar profile. The attached-plate slot-0 kernel selection stores its construction wire; that wire is not the closed boundary of the consumed sketch.
+
+For a plate owned by a `08dcddc3d311d0976000a7a99dccefb0` flange record, slot 1 is antiparallel to the first attachment direction. Slot 1 is in the sketch plane. It does not define the thickness direction. Slot 2 Boolean false or enumeration `(2, 0)` places the plate between the sketch plane and its positive-normal offset by the thickness. Reversing the first attachment direction does not reverse this offset.
+
+The bend radius in slot 1 repeats the radius reference of the attachment control. The flange record owns ordered plate, bend, and corner children. Each child is a separate generic feature with its own source index, label owner, state, and history position. Sharing an attachment control identifies the plate and bend pair. The bend is not a property sub-record of the plate. The plate and bend refer to a common result-body wrapper; result identity alone does not select a history revision. Neither the attachment control nor the bend's property vector contains an angle parameter.
+
+Feature-label classes `7f588068b74378a0559515946f7a1c12`, `852f6bb0d411db6f60004daa9dccefb0`, and `aaf21093d344209a04cc799656cd7e09` identify a corner, a hem, and a flat-pattern definition respectively. The corner has six or seven properties. Its slots are:
+
+| Slot | Operand |
+| ---: | --- |
+| 0 | Corner control shared with plate slot 9 |
+| 1 | Surface-body property shared with plate slot 6 in the six-property form; null in the seven-property form |
+| 2 | Feature dimensions |
+| 3 | Attachment selection list shared with plate slot 12 |
+| 4 | Plate profile selection shared with plate slot 0 |
+| 5 | Null |
+| 6 | Result object collection; absent in the six-property form |
+
+Each attachment selection wrapper selects an edge collection. Each edge item in that collection stores its ordered edge-selector source indexes. One wrapper can select several edges. The flange owns one bend feature independently of the number of selected edges. The corner control and selections are shared operands, not references to the parent flange. The corner result collection has a distinct identity or repeats the plate result collection. Distinct collections can contain the same surface-body member. The ordered flange children and label participants identify the owning plate, bend, and corner.
+
+The single-edge unchanged corner form has one selected attachment edge and the shared plate/bend/corner operands above. Its edge selector resolves to one persistent generated edge of the preceding sheet through the naming join in section 13. The six-property form repeats plate slot 6 as its result-body property. The seven-property form repeats plate slot 15 as its result collection. Its corner form is type 8 value 3, its option is true, and its raw word is 0. Its control and relief enumerations are one of:
+
+| Control | Relief form | Secondary form |
+| --- | --- | --- |
+| true | 304:103 | 304:303 |
+| true | 501:103 | 501:303 |
+| false | 501:100 | 501:303 |
+
+The plate, bend, and corner occupy active positions in the document model history. The corner source index occurs in no generated-name attribute in the current carrier or its stored construction-history revisions. The record framing covers the carrier and archive, and each generated name uses a source-name prefix defined in this section or section 13. The corner leaves the input body geometry and topology unchanged. Its gap, size, Jacobi radius, and other control operands remain stored values. The selected edge count is one; the number of generic bend children alone does not identify this form.
+
+The ten-property hem form uses slots 0 through 9 for plate-profile selection, direction, thickness parameter, control `e5b810b3d411a37a600050aa9dccefb0`, edge collection, bend relief, body selector `83aadad54f4375dacd1003b260a8a422`, feature dimensions, transition, and bend scalar control. The hem is a separate labeled generic feature.
+
+All property layouts below start after the versioned content header and stamps. All named references use the packed PmDc record-reference grammar of section 12. Length parameters use internal centimetres. Their formula graph preserves the distinction between a literal value and a reference to a sheet-metal style parameter.
+
+Attachment control fields are:
+
+```text
+control u32
+thickness u32
+first_mode u32
+directions u32[2]
+radius u32
+second_mode u32
+relief_width u32
+minimum_remnant u32
+first_option u32
+states u8[3]
+second_option u32
+```
+
+`control`, `first_option`, and `second_option` reference Boolean properties. `thickness`, `radius`, `relief_width`, and `minimum_remnant` reference length parameters. `directions` reference two direction records. `first_mode` and `second_mode` reference enumeration type `7267cc3bd31104a96000b3a99dccefb0`. The extended attachment form adds one terminal `extension:u32` reference to type `93596ba9d311efa86000b3a99dccefb0`. The record ends after `second_option` or `extension`.
+
+Type `93596ba9d311efa86000b3a99dccefb0` is an attachment-state record. It uses the state content header without stamps, followed by these fields:
+
+```text
+state i32
+thickness u32
+radius u32
+attachment u32
+relief_width u32
+minimum_remnant u32
+options u32[2]
+```
+
+`attachment` references the attachment control or a hem control of type `e5b810b3d411a37a600050aa9dccefb0`. The remaining references repeat its length-parameter and Boolean operands. The record ends after `options`.
+
+Bend relief fields are:
+
+```text
+control u32
+width u32
+depth u32
+form u32
+minimum_remnant u32
+seam_gap u32
+```
+
+`control` references a Boolean. `width`, `depth`, `minimum_remnant`, and `seam_gap` reference length parameters. `form` references enumeration type `720c3e2bd311976060007aa99dccefb0`. The width and minimum-remnant references repeat those of the attachment control. The record ends after `seam_gap`.
+
+Transition fields are:
+
+```text
+form u32
+control u32
+radius u32
+```
+
+`form` references enumeration type `07a66130d4118895600053aa9dccefb0`, `control` references a Boolean, and `radius` references a transition-radius length parameter. The record ends after `radius`.
+
+Corner control fields are:
+
+```text
+control u32
+gap u32
+size u32
+relief_form u32
+corner_form u32
+secondary_form u32
+jacobi_radius u32
+value u32
+option u32
+```
+
+`control` and `option` reference Booleans. `gap`, `size`, and `jacobi_radius` reference length parameters. `relief_form` and `secondary_form` reference type `720c3e2bd311976060007aa99dccefb0`; `corner_form` references type `e0a8d8afd3117d5a0008928f8b1f0f69`. `value` is a raw u32 word. The record ends after `option`.
+
+Types `7267cc3bd31104a96000b3a99dccefb0`, `720c3e2bd311976060007aa99dccefb0`, `e0a8d8afd3117d5a0008928f8b1f0f69`, and `07a66130d4118895600053aa9dccefb0` contain the versioned content header and stamps, followed by `type_value:i16` and `value:u16`, then end. Their type values are 9, 304 or 501, 8, and 4 respectively. An enumeration value is a scalar, not a record reference.
+
+The sheet-metal style record has type identifier `13234560d3117a0d6000ecb21d6eefb0`. For PmDc segment major versions 29 and 31, its operand prefix contains:
+
+```text
+prefix bytes[30]
+thickness u32
+bend_radius u32
+bend_relief_form u32
+bend_relief_width u32
+bend_relief_depth u32
+corner_relief_form u32
+corner_relief_size u32
+seam_gap u32
+minimum_remnant u32
+option u32
+values u32[3]
+transition_form u32
+transition_radius u32
+```
+
+For PmDc segment major versions 20 and 23, the same operand sequence has `prefix bytes[26]` in place of `prefix bytes[30]`. The operand prefix ends after `transition_radius`; the record continues with a suffix.
+
+The length operands reference the parameters `Thickness`, `BendRadius`, `BendReliefWidth`, `BendReliefDepth`, `CornerReliefSize`, `SeamGap`, `MinimumRemnant`, and `TransitionRadius`. The relief-form references select type `720c3e2bd311976060007aa99dccefb0`. The transition-form reference selects type `07a66130d4118895600053aa9dccefb0`. The option references a Boolean. Enumeration identity includes both `type_value` and `value`; equal values in distinct types do not identify equal forms. A length formula that consists of a parameter-reference expression to the style operand uses that style parameter. A literal expression is an explicit length operand, including when its evaluated value equals the style parameter.
+
+The plate scalar control contains `value:u32` after its versioned content header and stamps. The base bend scalar control contains `value:u32` after that header and stamps. The extended bend scalar control contains `value:u32` and `state:u8`. Each record ends after its last stated field.
 
 ## 14. Document kind
 

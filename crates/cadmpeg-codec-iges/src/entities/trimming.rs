@@ -62,6 +62,27 @@ struct BoundaryItem<'a> {
     start: FinitePoint3,
     end: FinitePoint3,
     pcurves: Vec<(PcurveGeometry, [f64; 2])>,
+    pcurve_direction: PcurveDirection,
+}
+
+impl BoundaryItem<'_> {
+    /// Whether the parameter-curve collection runs against the traversal of
+    /// this item.
+    fn pcurves_run_backward(&self) -> bool {
+        self.pcurve_direction == PcurveDirection::ModelCurve
+    }
+}
+
+/// The direction in which a parameter-curve collection composes the
+/// model-space curve of its boundary item.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PcurveDirection {
+    /// The collection runs in the boundary traversal.
+    Traversal,
+    /// A `SENSE=2` collection runs in the direction of its model-space curve.
+    ModelCurve,
+    /// The collection does not compose the model-space curve.
+    Disagrees,
 }
 
 #[derive(Debug)]
@@ -1062,13 +1083,20 @@ fn linear_boundary_geometry(
             if item.pcurves.is_empty() {
                 return Ok(None);
             }
+            let mut item_points = Vec::new();
             for (geometry, range) in &item.pcurves {
                 let Some(points) = linear_pcurve_points(geometry, *range, ctx)? else {
                     return Ok(None);
                 };
-                if !append_path(&mut parameter_points, points) {
+                if !append_path(&mut item_points, points) {
                     return Ok(None);
                 }
+            }
+            if item.pcurves_run_backward() {
+                item_points.reverse();
+            }
+            if !append_path(&mut parameter_points, item_points) {
+                return Ok(None);
             }
         }
         normalize_parameter_ring_endpoints(&mut parameter_points, closure_tolerance);
@@ -1076,6 +1104,36 @@ fn linear_boundary_geometry(
     } else {
         Ok(Some(LinearBoundaryGeometry::Model(model_coordinates)))
     }
+}
+
+/// The stated interval of each parameter-curve use of each boundary item.
+type UseRanges = Vec<Vec<Option<cadmpeg_ir::geometry::DirectedParameterRange>>>;
+
+/// The use interval of each parameter curve of each item when the boundary
+/// is traversed backward (`runs_backward`) or in source order: absent when
+/// the collection runs in the coedge traversal, and the reversed interval of
+/// the parameter curve when it runs against it. The error names why a
+/// reversed interval cannot be stated.
+fn use_ranges(items: &[BoundaryItem], runs_backward: bool) -> Result<UseRanges, &'static str> {
+    items
+        .iter()
+        .map(|item| {
+            let backward = item.pcurves_run_backward() != runs_backward;
+            item.pcurves
+                .iter()
+                .map(|(_, [start, end])| {
+                    if !backward {
+                        return Ok(None);
+                    }
+                    cadmpeg_ir::geometry::DirectedParameterRange::new([*end, *start])
+                        .map(Some)
+                        .map_err(|_| {
+                            "a parameter curve has no interval whose reversal a use can state"
+                        })
+                })
+                .collect()
+        })
+        .collect()
 }
 
 #[derive(Debug)]
@@ -1791,7 +1849,7 @@ fn select_boundary_edge(
     carrier_index: &ModelIndex<'_>,
     boundary: BoundaryMatch<'_>,
     ctx: &DecodeContext<'_>,
-) -> Result<(Edge, FinitePoint3, FinitePoint3, bool), BoundaryEdgeSelectionError> {
+) -> Result<(Edge, FinitePoint3, FinitePoint3, PcurveDirection), BoundaryEdgeSelectionError> {
     let BoundaryMatch {
         surface_id,
         pcurves,
@@ -1826,38 +1884,57 @@ fn select_boundary_edge(
     if pcurves.is_empty() {
         return if candidates.len() == 1 {
             let (edge, start, end) = candidates[0];
-            Ok((clone_boundary_edge(edge), start, end, true))
+            Ok((
+                clone_boundary_edge(edge),
+                start,
+                end,
+                PcurveDirection::Traversal,
+            ))
         } else {
             Err(BoundaryEdgeSelectionError::Ambiguous)
         };
     }
 
-    let mut agreeing = Vec::new();
-    for candidate @ (_, start, end) in &candidates {
-        let (expected_start, expected_end) = if sense == Sense::Forward {
-            (*start, *end)
-        } else {
-            (*end, *start)
-        };
-        if pcurves_agree(
-            carrier_index,
-            surface_id,
-            pcurves,
-            expected_start.get(),
-            expected_end.get(),
-            tolerance,
-            ctx,
-        )
-        .map_err(BoundaryEdgeSelectionError::Resource)?
-        {
-            agreeing.push(candidate);
+    let agreeing_in = |direction: Sense| {
+        let mut agreeing = Vec::new();
+        for candidate @ (_, start, end) in &candidates {
+            let (expected_start, expected_end) = if direction == Sense::Forward {
+                (*start, *end)
+            } else {
+                (*end, *start)
+            };
+            if pcurves_agree(
+                carrier_index,
+                surface_id,
+                pcurves,
+                expected_start.get(),
+                expected_end.get(),
+                tolerance,
+                ctx,
+            )
+            .map_err(BoundaryEdgeSelectionError::Resource)?
+            {
+                agreeing.push(*candidate);
+            }
         }
+        Ok(agreeing)
+    };
+    let mut agreeing = agreeing_in(sense)?;
+    let mut direction = PcurveDirection::Traversal;
+    if agreeing.is_empty() && sense == Sense::Reversed {
+        agreeing = agreeing_in(Sense::Forward)?;
+        direction = PcurveDirection::ModelCurve;
     }
     match agreeing.as_slice() {
-        [(edge, start, end)] => Ok((clone_boundary_edge(edge), *start, *end, true)),
+        [(edge, start, end)] => Ok((clone_boundary_edge(edge), *start, *end, direction)),
         [] if !parameter_curves_authoritative && candidates.len() == 1 => {
             let (edge, start, end) = candidates[0];
-            Ok((clone_boundary_edge(edge), start, end, false))
+            Ok((
+                clone_boundary_edge(edge),
+                start,
+                end,
+                PcurveDirection::Disagrees,
+            ))
         }
         [] => {
             if parameter_curves_authoritative {
@@ -2589,7 +2666,7 @@ pub(super) fn project(
                     );
                     pcurves.clear();
                 }
-                let (source_edge, start, end, pcurves_agree) = match select_boundary_edge(
+                let (source_edge, start, end, pcurve_direction) = match select_boundary_edge(
                     candidates,
                     &carrier_index,
                     BoundaryMatch {
@@ -2646,7 +2723,20 @@ pub(super) fn project(
                     }
                     Err(BoundaryEdgeSelectionError::Resource(error)) => return Err(error),
                 };
-                if !pcurves_agree {
+                if pcurve_direction == PcurveDirection::Disagrees {
+                    super::push_attributed_loss(
+                        &mut losses,
+                        entry,
+                        IgesLossCode::BoundaryPcurveDisagrees,
+                        format_args!(
+                            concat!(
+                                "IGES entity type {} form {}: alternate boundary parameter curve ",
+                                "does not compose its model-space curve; model-space curve retained",
+                            ),
+                            entry.entity_type,
+                            entry.form,
+                        ),
+                    );
                     pcurves.clear();
                 }
                 items.push(BoundaryItem {
@@ -2656,6 +2746,7 @@ pub(super) fn project(
                     start,
                     end,
                     pcurves,
+                    pcurve_direction,
                 });
             }
             if !valid {
@@ -2703,6 +2794,41 @@ pub(super) fn project(
                 surface_kind,
                 ctx,
             )?);
+            let winding = if surface_kind == BoundarySurfaceKind::Trimmed {
+                winding::trimmed_boundary_winding(
+                    &items,
+                    explicit_outer_sequence == Some(sequence),
+                    &carrier_index,
+                    &support_geometry,
+                    ctx,
+                )?
+            } else {
+                winding::BoundaryWinding::Kept
+            };
+            let reversal = match winding {
+                winding::BoundaryWinding::Kept => Ok(false),
+                winding::BoundaryWinding::Reversed => use_ranges(&items, true).map(|_| true),
+                winding::BoundaryWinding::Unresolved(reason) => Err(reason),
+            };
+            let runs_backward = reversal.unwrap_or_else(|reason| {
+                super::push_attributed_loss(
+                    &mut losses,
+                    entry,
+                    IgesLossCode::BoundaryWindingUnresolved,
+                    format_args!(
+                        "IGES Type 144 boundary {boundary_index} keeps its source traversal: {reason}"
+                    ),
+                );
+                false
+            });
+            let use_ranges = match use_ranges(&items, runs_backward) {
+                Ok(use_ranges) => use_ranges,
+                Err(reason) => {
+                    super::push_geometry_loss(&mut losses, entry, format_args!("{reason}"));
+                    valid = false;
+                    break;
+                }
+            };
             let loop_id = crate::ids::r#loop(&stem.slot(boundary_index));
             let mut coedge_ids = Vec::new();
             let mut source_endpoints = Vec::new();
@@ -2773,6 +2899,7 @@ pub(super) fn project(
 
             candidate_boundary_vertex_derivations.extend(derivations);
             for (segment_index, item) in items.into_iter().enumerate() {
+                let uses_run_backward = item.pcurves_run_backward() != runs_backward;
                 let edge_id = crate::ids::edge(&stem.slot(boundary_index).slot(segment_index));
                 let start_vertex = vertex_ids[segment_index * 2].clone();
                 let end_vertex = vertex_ids[segment_index * 2 + 1].clone();
@@ -2811,8 +2938,11 @@ pub(super) fn project(
                     break;
                 }
                 let mut pcurve_uses = Vec::new();
-                for (pcurve_index, (geometry, parameter_range)) in
-                    item.pcurves.into_iter().enumerate()
+                for (pcurve_index, ((geometry, parameter_range), use_range)) in item
+                    .pcurves
+                    .into_iter()
+                    .zip(use_ranges[segment_index].iter().copied())
+                    .enumerate()
                 {
                     let id = crate::ids::pcurve(
                         &stem
@@ -2837,8 +2967,11 @@ pub(super) fn project(
                     pcurve_uses.push(PcurveUse {
                         pcurve: id,
                         isoparametric: None,
-                        parameter_range: None,
+                        parameter_range: use_range,
                     });
+                }
+                if uses_run_backward {
+                    pcurve_uses.reverse();
                 }
                 let coedge_id = coedge_ids[segment_index].clone();
                 ctx.charge_entities(1, "iges_geometry_trimming")?;
@@ -2847,10 +2980,16 @@ pub(super) fn project(
                     owner_loop: loop_id.clone(),
                     edge: edge_id,
                     radial_next: coedge_id,
-                    sense: item.segment.sense,
+                    sense: match (item.segment.sense, runs_backward) {
+                        (Sense::Forward, false) | (Sense::Reversed, true) => Sense::Forward,
+                        (Sense::Forward, true) | (Sense::Reversed, false) => Sense::Reversed,
+                    },
                     pcurves: pcurve_uses,
                     use_curve: None,
                 });
+            }
+            if runs_backward {
+                coedge_ids.reverse();
             }
             let Ok(ring) = cadmpeg_ir::topology::LoopRing::new(coedge_ids, Vec::new()) else {
                 super::push_geometry_loss(
@@ -3060,6 +3199,8 @@ pub(super) fn project(
         boundary_vertex_derivations,
     ))
 }
+
+mod winding;
 
 #[cfg(test)]
 mod tests;

@@ -55,6 +55,8 @@ pub(crate) enum InventorLossCode {
     /// Sketch curves carry entity flags whose construction meaning is
     /// unresolved.
     SketchConstructionUnresolved,
+    /// A sketch-point paired association has no neutral relation semantics.
+    SketchPairedAssociationUnprojected,
     /// Profile-body records do not decode, so the profiles that select them
     /// stay native.
     FeatureProfileBodyUndecoded,
@@ -63,7 +65,39 @@ pub(crate) enum InventorLossCode {
     FeatureLabelNameReplaced,
     /// Typed feature records have an operation graph that is not closed.
     FeatureOperationGraphOpen,
-    /// Inventor operations retain native result-body identity with unresolved state.
+    /// Thread annotations retain sizing and termination operands only natively.
+    FeatureThreadDefinitionPartial,
+    /// Thicken selections and thickness side remain native operands.
+    FeatureThickenOperandsNative,
+    /// Shell operations retain construction controls only natively.
+    FeatureShellDefinitionPartial,
+    /// Attachment type-9 modes, Boolean controls, and states have no construction map.
+    FeatureSheetMetalAttachmentControlsNative,
+    /// Separate bends retain unresolved attachment and scalar controls.
+    FeatureSheetMetalBendControlsNative,
+    /// Corner topology transitions and construction operands remain native.
+    FeatureSheetMetalCornerEffectNative,
+    /// Projected unchanged corners retain construction controls natively.
+    FeatureSheetMetalCornerControlsRetained,
+    /// Projected attached plates retain construction controls in native records.
+    FeatureSheetMetalAttachmentControlsRetained,
+    /// Projected bends retain construction controls in native records.
+    FeatureSheetMetalBendControlsRetained,
+    /// Projected sheet-metal relief and transition forms remain in native style records.
+    FeatureSheetMetalStyleFormsNative,
+    /// Revolve operands differ from the admitted construction forms.
+    FeatureRevolveOperandsNative,
+    /// Revolve extents retain unresolved angular termination operands.
+    FeatureRevolveExtentNative,
+    /// Fixed-angle revolutions retain an unresolved direction control.
+    FeatureRevolveDirectionNative,
+    /// A projected revolve retains an unresolved Boolean control natively.
+    FeatureRevolveControlUnresolved,
+    /// Sweep construction controls have no exact neutral interpretation.
+    FeatureSweepControlsUnresolved,
+    /// Loft construction controls and section conditions have no exact neutral interpretation.
+    FeatureLoftControlsUnresolved,
+    /// Inventor operations retain unresolved suppression and dependency state.
     FeatureStateUnresolved,
     /// Parameter records have a unit or expression graph that is not closed.
     ParameterGraphOpen,
@@ -135,9 +169,26 @@ impl InventorLossCode {
         Self::FeatureRecordMalformed,
         Self::FeatureLabelUnusable,
         Self::SketchConstructionUnresolved,
+        Self::SketchPairedAssociationUnprojected,
         Self::FeatureProfileBodyUndecoded,
         Self::FeatureLabelNameReplaced,
         Self::FeatureOperationGraphOpen,
+        Self::FeatureThreadDefinitionPartial,
+        Self::FeatureThickenOperandsNative,
+        Self::FeatureShellDefinitionPartial,
+        Self::FeatureSheetMetalAttachmentControlsNative,
+        Self::FeatureSheetMetalBendControlsNative,
+        Self::FeatureSheetMetalCornerEffectNative,
+        Self::FeatureSheetMetalCornerControlsRetained,
+        Self::FeatureSheetMetalAttachmentControlsRetained,
+        Self::FeatureSheetMetalBendControlsRetained,
+        Self::FeatureSheetMetalStyleFormsNative,
+        Self::FeatureRevolveOperandsNative,
+        Self::FeatureRevolveExtentNative,
+        Self::FeatureRevolveDirectionNative,
+        Self::FeatureRevolveControlUnresolved,
+        Self::FeatureSweepControlsUnresolved,
+        Self::FeatureLoftControlsUnresolved,
         Self::FeatureStateUnresolved,
         Self::ParameterGraphOpen,
         Self::ParameterExpressionBounded,
@@ -185,9 +236,34 @@ impl InventorLossCode {
             Self::FeatureRecordMalformed => "feature.record-malformed",
             Self::FeatureLabelUnusable => "feature.label-unusable",
             Self::SketchConstructionUnresolved => "sketch.construction-unresolved",
+            Self::SketchPairedAssociationUnprojected => "sketch.paired-association-unprojected",
             Self::FeatureProfileBodyUndecoded => "feature.profile-body-undecoded",
             Self::FeatureLabelNameReplaced => "feature.label-name-replaced",
             Self::FeatureOperationGraphOpen => "feature.operation-graph-open",
+            Self::FeatureThreadDefinitionPartial => "feature.thread-definition-partial",
+            Self::FeatureThickenOperandsNative => "feature.thicken-operands-native",
+            Self::FeatureShellDefinitionPartial => "feature.shell-definition-partial",
+            Self::FeatureSheetMetalAttachmentControlsNative => {
+                "feature.sheet-metal-attachment-controls-native"
+            }
+            Self::FeatureSheetMetalBendControlsNative => "feature.sheet-metal-bend-controls-native",
+            Self::FeatureSheetMetalCornerEffectNative => "feature.sheet-metal-corner-effect-native",
+            Self::FeatureSheetMetalCornerControlsRetained => {
+                "feature.sheet-metal-corner-controls-retained"
+            }
+            Self::FeatureSheetMetalAttachmentControlsRetained => {
+                "feature.sheet-metal-attachment-controls-retained"
+            }
+            Self::FeatureSheetMetalBendControlsRetained => {
+                "feature.sheet-metal-bend-controls-retained"
+            }
+            Self::FeatureSheetMetalStyleFormsNative => "feature.sheet-metal-style-forms-native",
+            Self::FeatureRevolveOperandsNative => "feature.revolve-operands-native",
+            Self::FeatureRevolveExtentNative => "feature.revolve-extent-native",
+            Self::FeatureRevolveDirectionNative => "feature.revolve-direction-native",
+            Self::FeatureRevolveControlUnresolved => "feature.revolve-control-unresolved",
+            Self::FeatureSweepControlsUnresolved => "feature.sweep-controls-unresolved",
+            Self::FeatureLoftControlsUnresolved => "feature.loft-controls-unresolved",
             Self::FeatureStateUnresolved => "feature.state-unresolved",
             Self::ParameterGraphOpen => "parameter.graph-open",
             Self::ParameterExpressionBounded => "parameter.expression-bounded",
@@ -252,8 +328,25 @@ impl InventorLossCode {
             }
             Self::KernelHeaderToleranceUnresolved => LossTaxonomy::GeometryNotTransferred,
             Self::FeatureOperationGraphOpen
+            | Self::FeatureThreadDefinitionPartial
+            | Self::FeatureThickenOperandsNative
+            | Self::FeatureShellDefinitionPartial
+            | Self::FeatureSheetMetalAttachmentControlsNative
+            | Self::FeatureSheetMetalBendControlsNative
+            | Self::FeatureSheetMetalCornerEffectNative
+            | Self::FeatureSheetMetalCornerControlsRetained
+            | Self::FeatureSheetMetalAttachmentControlsRetained
+            | Self::FeatureSheetMetalBendControlsRetained
+            | Self::FeatureSheetMetalStyleFormsNative
+            | Self::FeatureRevolveOperandsNative
+            | Self::FeatureRevolveExtentNative
+            | Self::FeatureRevolveDirectionNative
+            | Self::FeatureRevolveControlUnresolved
+            | Self::FeatureSweepControlsUnresolved
+            | Self::FeatureLoftControlsUnresolved
             | Self::FeatureProfileBodyUndecoded
             | Self::SketchConstructionUnresolved
+            | Self::SketchPairedAssociationUnprojected
             | Self::FeatureStateUnresolved
             | Self::SketchGraphOpen => LossTaxonomy::FeatureHistoryRetained,
             Self::ParameterGraphOpen
@@ -328,9 +421,26 @@ mod tests {
                 "feature.record-malformed",
                 "feature.label-unusable",
                 "sketch.construction-unresolved",
+                "sketch.paired-association-unprojected",
                 "feature.profile-body-undecoded",
                 "feature.label-name-replaced",
                 "feature.operation-graph-open",
+                "feature.thread-definition-partial",
+                "feature.thicken-operands-native",
+                "feature.shell-definition-partial",
+                "feature.sheet-metal-attachment-controls-native",
+                "feature.sheet-metal-bend-controls-native",
+                "feature.sheet-metal-corner-effect-native",
+                "feature.sheet-metal-corner-controls-retained",
+                "feature.sheet-metal-attachment-controls-retained",
+                "feature.sheet-metal-bend-controls-retained",
+                "feature.sheet-metal-style-forms-native",
+                "feature.revolve-operands-native",
+                "feature.revolve-extent-native",
+                "feature.revolve-direction-native",
+                "feature.revolve-control-unresolved",
+                "feature.sweep-controls-unresolved",
+                "feature.loft-controls-unresolved",
                 "feature.state-unresolved",
                 "parameter.graph-open",
                 "parameter.expression-bounded",

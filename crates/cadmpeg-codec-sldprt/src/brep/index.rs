@@ -350,7 +350,7 @@ mod tests {
             &cadmpeg_core::decode::DecodePolicy::service(),
         )
         .unwrap();
-        for status in [b'I', b'U'] {
+        for status in *b"IU" {
             let mut raw = authored_surface(0x3c, 73);
             raw[2 + crate::layout::offset_surface_00_3c::DISCRIMINATOR] = status;
             let mut index = super::scan_carriers(&ctx, &raw).unwrap();

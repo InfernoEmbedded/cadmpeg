@@ -34,7 +34,7 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 **Known.** `f3d.md` §3.1 "A `Sketch` scope joined" gives the member order, the version gates, the identity-marked matrix, and the unmarked version-4 matrix. The independent `extraOffset` reference reaches a scalar owner linked to an `ExtraOffset` length parameter. `refType` is a u32 whose value does not change the member sequence. The scalar-role table defines the ordered `values` names and direct-reference shapes. Owner-scope references remain independent of the direct geometry slots, and the solved matrix does not select the construction rule. Code `15` has a `RotateAngle` scalar and two face-selection lineages; those operands do not distinguish the exact plane-construction subtype.
 
-**Need.** We must know which references a given `refType` requires to write a placement that Fusion re-solves rather than accepts as stored. A controlled nonzero `ExtraOffset` must establish its direction and effect for each supported construction.
+**Need.** We must know which references a given `refType` requires to write a placement that Fusion re-solves rather than accepts as stored. A controlled nonzero `ExtraOffset` must establish its direction and effect for each supported construction. Nonzero axis-state and direction-control bytes also require a solved-frame orientation rule. An offset-plane definition also requires the scope operand role that selects its reference plane or planar face; a solved matrix and an `AlongDistance` parameter do not assign that role.
 
 ### DR-14. `SurfacePatch` boundary-side ordinal mapping
 
@@ -82,13 +82,13 @@ The class-290 primary paired with class-261 uses the same six-byte fields on its
 
 **Need.** A positive direction-two symmetry control must bind the third rectangular flag to its serialized state. A circular pattern with a positive closing flag and a partial angular extent must distinguish symmetric from one-direction distribution. A non-empty two-direction rectangular map must identify its general instance-to-key rule. Empty maps remain valid and do not require that rule.
 
-### DR-31. Editable Pipe section-type carrier
+### DR-31. Editable Pipe section-type carrier and path parameterization
 
-**Question.** Which native carrier stores the editable `Pipe` section type?
+**Question.** Which native carrier stores the editable `Pipe` section type? What sets the origin and orientation of a partially consumed path?
 
-**Known.** `f3d.md` defines the compact and legacy operation prefixes, the independent `isHollow` Boolean, the four scalar roles, and the outside-size and inward-thickness conventions. The two bytes after the operation are opaque. Square hollow, circular hollow, and triangular solid sections can share that pair. A section shape can be bound from unique saved topology.
+**Known.** `f3d.md` defines the compact and legacy operation prefixes, the independent `isHollow` Boolean, the four canonical scalar owners, the settings record, the complete construction groups, the optional point-selection pair, and the outside-size and inward-thickness conventions. The two bytes after the operation are opaque. Square hollow, circular hollow, and triangular solid sections can share that pair. A section shape can be bound from unique saved topology. Forward and reverse path fractions remain exact native values. The point-selection pair does not establish a path origin.
 
-**Need.** Independently authored section-type changes must hold the path, fractions, hollow state, size, and thickness fixed and identify the changing semantic carrier through its type registration and owner links.
+**Need.** Independently authored section-type changes must hold the path, fractions, hollow state, size, and thickness fixed and identify the changing semantic carrier through its type registration and owner links. Partial-path reconstruction needs the native path parameter origin and orientation.
 
 ### DR-61. Cross-document selection stamp and evaluation scalar
 
@@ -145,20 +145,6 @@ name one component definition record can store different carrier GUIDs. The
 **Conflict.** When a component definition record stores no naming-space
 binding, the decoder keys the neutral component definition by the carrier GUID.
 Two carriers of one definition then project as two definitions.
-
-### DR-76. Nested local occurrence placement
-
-**Question.** How does a local occurrence whose owner entity is the root entity
-of a non-root component compose into the document frame?
-
-**Known.** `f3d.md` §3.1 "The component-record reference names the component
-definition record." gives the owner entity and the root-instance record. An
-occurrence that the root component contains is a child of the root occurrence,
-and its transform maps the component definition into the root component frame.
-
-**Need.** A reader must place every occurrence of a nested component in each
-occurrence of its containing component. The decoder does not place a nested
-occurrence and reports `assembly.local-occurrence-unplaced`.
 
 ### DR-77. Operation placements of identity-frame carriers
 
@@ -240,7 +226,7 @@ the native feature when a fixed lane carries a symmetric distance.
 
 **Question.** What is the entity that a linked component context binding names between the component reference and the context UUID?
 
-**Known.** `f3d.md` §3.1 "A Design component naming-space type" gives the linked form. The entity is registered to type GUID `8ACBA2E5-5A4C-4438-8351-276DE96E6982`, add-in name `Fusion`, base-type GUID `046D6232-EDAB-414D-9CB0-A2E3F115AE1C`, and type version `4`. In a Design stream that uses the linked form, every component except the root component binds in this form, and several components can name the same entity.
+**Known.** `f3d.md` §3.1 "A Design component naming-space type" gives the linked form. In a Design stream that uses the linked form, every component except the root component binds in this form, and several components can name the same entity. In one such stream the entity is registered to type GUID `8ACBA2E5-5A4C-4438-8351-276DE96E6982`, add-in name `Fusion`, base-type GUID `046D6232-EDAB-414D-9CB0-A2E3F115AE1C`, and type version `4`. In others, the components name one entity that the MetaStream registers to no type and whose record it does not index.
 
 **Need.** A writer must emit the entity to produce the linked form. The shared entity can group components by their parent component or source document.
 
@@ -259,14 +245,6 @@ the native feature when a fixed lane carries a symmetric distance.
 **Known.** `f3d.md` §1.3 "The asset-folder tail is the unique suffix" gives both runs. The secondary run is empty in most documents. In documents that also store a toolpath, animation, or simulation asset, it lists the `Simulation Model` folder, and the first run lists the Design, toolpath, and animation folders.
 
 **Need.** A writer must place each asset in the correct run. A document with two simulation studies, or with a simulation asset and no toolpath, shows which asset kinds the secondary run holds.
-
-### DR-90. Component of a sketch Geometry member in a multi-component Design
-
-**Question.** Which component numbers a sketch Geometry member ordinal when a Design stream names several components?
-
-**Known.** `f3d.md` §3.1 "The current sketch entity container" counts the ordinals within the component whose entity cluster holds the sketch entity. The validator selects that component as the naming space with the greatest component record index at or below the sketch entity suffix. In single-component Designs the ordinals increase with the sketch entity suffix. In some Designs with 10 to 362 component naming spaces, two sketches that this rule places in one component carry the same ordinal.
-
-**Need.** The entity cluster boundaries of each component, or the owner link from a sketch entity to its component, give the component of each sketch.
 
 ### DR-91. Opposed joint frame mate
 
@@ -298,6 +276,16 @@ the native feature when a fixed lane carries a symmetric distance.
 
 **Conflict.** Treating the word as an entry count reads one entry fewer than the record holds.
 
+### DR-94. Freedom entry word and trailing value
+
+**Question.** What does the u32 word before a freedom code state, and what does the f64 after the code of a word-`1` entry state?
+
+**Known.** Word-`3` entries occur in current-document joints. Word-`1` entries occur in the motion records of `As-built` joints in inserted designs. The trailing f64 of those entries is `0` or 2π. Their freedom codes select the same motion as word-`3` codes: each word-`1` code-`2` joint's two connector frames share an origin and a z axis.
+
+**Need.** Joints that differ only in their motion settings, saved once with each word, would fix what the word selects. Varying such a joint's angle would show whether the trailing value tracks it.
+
+**Conflict.** Treating the trailing value as an angle, a period, or a limit states a meaning no sample fixes.
+
 ### DR-95. Rectangular-pattern direction selection kind `16` and the reference at offset 138
 
 **Question.** What does selection kind `16` select in a rectangular-pattern direction record, what do its origin and displacement mean, and what record does the marked reference at offset 138 name?
@@ -306,23 +294,115 @@ the native feature when a fixed lane carries a symmetric distance.
 
 **Need.** A writer must emit the selection kind, the origin, and the reference at offset 138 for a direction that does not come from a linear edge, and a reader must know whether a kind-`16` origin is a point of a planar face, an axis, or another entity.
 
-### DR-96. Rectangular-pattern distance type and the 221-byte direction form
+### DR-97. Freedom entry second value `0`
 
-**Question.** Where does a rectangular-pattern scope store whether its extent owners hold the seed-to-final-instance extent or the adjacent spacing, what does the u32 at direction-record offset 89 select, and how does a direction with no stored displacement define its vector?
+**Question.** What does a freedom entry state when its second f64 is `0` rather than π?
 
-**Known.** `f3d.md` §3.1 "A rectangular-pattern direction record is a 220-byte frame" gives the 220-byte form, which stores u32 `8` at offset 89. A 221-byte direction frame stores u32 `7` at offset 89 and one zero byte at offset 93; its later fields keep the 220-byte order one byte later. A frame in this form is not a 220-byte direction record, so a scope that stores one has no direction records. A class-261 frame in the scope reference table holds the selection-operand reference, the auxiliary reference, the role, and the closing references of a direction record, with no selection kind, origin, or displacement.
+**Known.** `f3d.md` "Assembly operands" gives the freedom entry and its second f64. The one zero-lane entry seen is a word-`1` rotation entry whose joint record enables both limit flags, with a −58° minimum and a 0° maximum. Word-`1` rotation entries of unlimited joints and word-`1` translation entries of limited joints store π.
 
-**Need.** A reader must convert both extent owners to adjacent spacing and must define each active direction's vector, including the vector of a class-261 direction.
+**Need.** A reader must know whether the value bounds the freedom, so that it can tell whether a limited rotation's range is complete without it. Rotations saved with and without limits, and with ranges of different widths, would fix what it states.
 
-**Conflict.** A Features-type rectangular pattern with 3 by 2 instances at 10 mm spacing stores an extent of 1.0 cm in both directions. Extent divided by count minus one gives 5 mm and 10 mm, not 10 mm and 10 mm. That scope stores its direction in the 221-byte form. In scopes that store 220-byte direction records, the extent divided by count minus one reproduces the measured pitch in both directions.
+**Conflict.** Treating the value as a period or as a range bound states a meaning that one sample does not fix.
+
+### DR-98. Persistent selection long-tail fields
+
+**Question.** What do the u32 and u64 fields in the fourteen-byte persistent selection tail select?
+
+**Known.** The 204-byte member retains the complete local, asset, and context identity and a present optional slot. Its extra bytes are `00`, u32 `2`, u64 `1`, and `00`. A following Design header or the stream-end boundary terminates the tail. The frame extent distinguishes this form from the 190-byte member without a new identity field.
+
+**Need.** Independently varied tail fields and an unchanged selected entity must establish each field's meaning before the grammar admits other values.
+
+**Conflict.** The tail values alone do not assign a new selected entity or an additional member.
+
+### DR-99. Sketch ordinal collection frame tail
+
+**Question.** What fields follow the counted sketch-member run in a Geometry ordinal collection frame?
+
+**Known.** `f3d.md` §3.1 "The current sketch entity container" defines the collection prefix, property block, counted local-reference run, and reciprocal sketch membership. The counted run does not consume the frame. The remaining bytes include nonzero values.
+
+**Need.** A complete field grammar must identify the tail boundaries and reference roles before a writer can construct the full collection frame.
+
+### DR-107. Fillet face groups with several radius sets
+
+**Question.** Which radius set does a role-`0x0000001000000000` face group use when a Fillet scope has more than one radius set?
+
+**Known.** `f3d.md` §3.1 "A Fillet selection set can store its face selections" defines the face group and its radius when the scope has one edge group, one face group, and one constant radius. With one radius per group, `f3d.md` §3.1 "Within a scope of the Fillet family" pairs groups and radii in scope-reference order, and that pairing gives the face group the radius at its position. Groups and parameters store no assignment cross-reference.
+
+**Need.** The scope-order pairing must be confirmed or replaced for face groups before a Fillet with several selection sets and face selections transfers its radii as authored.
+
+### DR-108. Sketch scope references without a record
+
+**Question.** What did a Sketch scope reference name when the Design stream contains no record with that index?
+
+**Known.** `f3d.md` §3.1 "A parameter scope is one logical indexed record" defines the ordered reference table. A Sketch scope can name record indices that occur in no indexed header and in no other record of the stream. Its other references name records that only the generic indexed header classifies. `f3d.md` §3.1 "An owner frame whose stored scope record is absent" defines detached parameter owners, which remain after their dimension is deleted.
+
+**Need.** A rule must tell a deleted sketch member from a missing record before the scope can pass structural validation without its absent references.
+
+### DR-101. Fixed typed occurrence path discriminator
+
+**Question.** What binding does the path discriminator of a fixed typed local component occurrence select?
+
+**Known.** The u32 path discriminator follows the typed definition reference at offset 75. The path terminator at offset 79 and the occurrence ordinal at offset 80 follow it. The definition references, owner, and stored placement identify the local occurrence independently of a neutral interpretation of this word.
+
+**Need.** The discriminator's target domain and binding rule are needed to retain its meaning in a component path.
+
+**Conflict.** An occurrence ordinal does not state a path-discriminator binding.
+
+**Note.** The fixed native occurrence record retains the discriminator value without a component-path binding.
+
+### DR-104. ACT component-link root selection
+
+**Question.** Can an ACT segment contain only non-root component links, or does another reference identify its document-root link?
+
+**Known.** `f3d.md` §3.1 "An **ACT component link** payload" defines the complete component-link frame. The tracked-entity field is a record reference. A link can close under this frame without its tracked-entity reference having value `3`. Exact frame closure does not establish the link's document-root role.
+
+**Need.** A join between the ACT references and the Design root component must distinguish an absent root link from a root link selected by another reference. The join must establish whether the tracked-entity record value is a root selector or only a target identity.
+
+**Conflict.** No complete root-selection rule is defined.
 
 ## 2. External references
 
+### DR-100. Rigid-group operand forms and root identities
+
+**Question.** Which native identities do the two identity GUIDs of a zero-count root operand path name? What do byte 20 of the alternate ordinary prologue and the payload of the two- or three-byte field before the final ordinary-tail reference mean? Is there a separate selector for the optional tail reference?
+
+**Known.** The typed root operand path stores a zero count, the zero root key, a zero word, u64 value 1, two ordered identity GUIDs, u32 value 2, and an eight-byte zero tail. The complete frame is 277 bytes. `f3d.md` "Assembly operands" defines every member locator form, null or nonnull, for versions 2, 3 and 5. A separate 181-byte version-2 pathless locator has a nonzero construction reference and discriminator 0; it is not a member locator. The ordinary-tail field starts with tag 0 for two bytes and tag 1 for three bytes. Its measured byte sequences are `00 00`, `01 00 00`, and `01 01 01`. The tag selects width independently of the optional reference. The reader requires unique exact closure for the reference choice; no separate presence selector is established. An alternate ordinary prologue has byte 1 at offset 20, its pathless reference at offset 26, its member count at offset 41, and its first member reference at offset 45. Its 88-byte-tail frame is `251 + 11N` bytes. This prologue is refused.
+
+**Need.** The meaning of alternate-prologue byte 20 and the variable-width field payload, and a separate optional-reference selector if one exists. An explicit join from each identity GUID to its owning native record or document context.
+
+**Conflict.** None.
+
+**Note.** The zero-count path selects the current document root. Its identity GUIDs remain native.
+
+### DR-102. Repeated-target metadata and unresolved class-294/299 identities
+
+**Question.** Which native identity does the first metadata UUID of a repeated-target placement name, and which namespace does the first identity GUID of an operand path admitted by class 294/299 name when its root occurrence key does not resolve?
+
+**Known.** The placement stores two ordered LP-UTF16 UUIDs after its positive stored word. The second UUID is the occurrence key used by assembly operand paths in the source Design stream.
+
+**Need.** An explicit join from the first metadata UUID to its native identity and containing namespace, and a document-identity join for unresolved class-294/299 paths.
+
+**Conflict.** The second UUID's occurrence binding does not establish an identity domain for the first metadata UUID or the first class-294/299 identity GUID.
+
+**Note.** UUID equality alone does not identify a namespace. An unresolved path admitted by class 294/299 remains native and its joint is refused with `assembly.joint-unprojected`. An ambiguous local occurrence key also refuses the joint with that loss; it does not state an external document.
+
+### DR-103. Rigid-group member keys without occurrence carriers
+
+**Question.** Which native relation selects the occurrence and liveness of a positive-count null-construction rigid-group member path whose root key has no local carrier or repeated-target placement carrier?
+
+**Known.** Versions 2 and 3 admit null construction references with stored matrices or identity flags. The member locator has discriminator 2 and a complete counted path wrapper. A positive-count typed path retains its root occurrence key and identity suffix. A null construction reference also occurs with a concrete occurrence binding.
+
+**Need.** A native relation must distinguish a current instance, an archived instance and an unresolved external instance. Controlled saves that delete, suppress and restore a grouped occurrence must establish that relation and the carrier join for a current instance.
+
+**Conflict.** A null construction reference alone does not establish that a member is deleted or suppressed. A document identity does not select one repeated occurrence.
+
+**Note.** The complete locator frame and ordered path remain native. A positive-count null-construction member path projects only with a concrete local occurrence carrier or placement carrier join. A member without that join contributes to `AssemblyJointUnprojected`.
+
 ### DR-82. Other joint freedom codes and the limit flags
 
-**Question.** Which degrees of freedom do freedom codes other than `1`, `2`, and `8` name, what do the two joint-record limit flag bytes select, and in which unit is a translation limit stored?
+**Question.** Which degrees of freedom do freedom codes other than `1`, `2`, and `8` name, and what do the two joint-record limit flag bytes select, and does the 444-byte `As-built` form's `SlideRest` owner hold the joint-record rest value?
 
-**Known.** `f3d.md` "Assembly operands" gives the joint and motion records, the freedom entry, codes `1`, `2`, and `8`, and the limit lanes. Freedom codes `0`, `6`, and `7` also occur, alone and in pairs such as `2` with `7`, `0` with `8`, and `2` with `6` and `7`. Both flags are `1` on a joint with a minimum and a maximum.
+**Known.** `f3d.md` "Assembly operands" gives the joint and motion records, the freedom entry, codes `1`, `2`, and `8`, and the limit lanes. Freedom codes `0`, `6`, and `7` also occur, alone and in pairs such as `2` with `7`, `0` with `8`, and `2` with `6` and `7`. Both flags are `1` on a joint with a minimum and a maximum. A slide whose joint record stores −0.5 and 1.6 has `SlideMinimum` and `SlideMaximum` owners of −5 mm and 16 mm, so translation limits are in centimetres. The 444-byte `As-built` form adds `SlideMinimum`, `SlideMaximum`, and `SlideRest` owners at local ordinals four, five, and six. Where both a `SlideRest` owner and a joint-record rest value are stored, both are `0.0`, so the stored values do not show whether the owner holds the rest value. In both 444-byte scopes, its owner stores f64 `0.0` cm and the linked joint rest lane stores f64 `0.0` cm (`0.0` mm). The two value pairs agree; the name is not the only evidence. Both joint rest flags are `1`.
 
 **Need.** Cylindrical, pin-slot, planar, and ball joints combine freedoms. A joint with only one limit needs the flag that enables it.
 
@@ -330,7 +410,7 @@ the native feature when a fixed lane carries a symmetric distance.
 
 **Question.** What do the two bytes before the occurrence ordinal and the marked record reference after the occurrence key of an attributed local component occurrence store?
 
-**Known.** `f3d.md` §3.1 "An attributed local component occurrence" gives the frame. The two bytes are `00 00` in most frames and `01 00` in one. The reference names a different record in each frame, in increasing order.
+**Known.** `f3d.md` §3.1 "An attributed local component occurrence carries a counted attribute run and an occurrence key." gives the frame. The two bytes are `00 00` in most frames and `01 00` in one. The reference names a different record in each frame, in increasing order.
 
 **Need.** The two bytes can be a grounding or visibility state of the occurrence.
 

@@ -65,7 +65,7 @@ fn compact_cone_origin_rejection_retains_raw_and_marks_incident_curves() {
             offset: 60,
         });
     crate::decode::with_service_context(|ctx| {
-        withhold_unresolved_cone_origins(ctx, &mut scan).expect("owned cone")
+        withhold_unresolved_cone_origins(ctx, &mut scan).expect("owned cone");
     });
     let r = &scan.surfaces.parameters[0];
     assert_eq!(r.body, raw);
@@ -98,7 +98,7 @@ fn compact_cone_origin_rejection_requires_unique_cone_row_and_parameter() {
         }
         let before = scan.surfaces.parameters.clone();
         crate::decode::with_service_context(|ctx| {
-            withhold_unresolved_cone_origins(ctx, &mut scan).expect("unmatched owner")
+            withhold_unresolved_cone_origins(ctx, &mut scan).expect("unmatched owner");
         });
         assert_eq!(scan.surfaces.parameters, before);
         assert!(scan.surfaces.withheld_cone_origin_surface_ids.is_empty());

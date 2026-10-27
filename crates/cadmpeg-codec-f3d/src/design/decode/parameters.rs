@@ -31,6 +31,7 @@ use cadmpeg_core::decode::u64_from_index;
 use cadmpeg_core::decode::View;
 use cadmpeg_core::CodecError;
 use cadmpeg_ir::scalar::FiniteReal;
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 macro_rules! parameter_text {
@@ -749,18 +750,46 @@ fn valid_design_parameter_family(
     }
 }
 
+/// Decoded owner bindings and parameters with an unsupported owner frame.
+#[derive(Debug, Default)]
+pub(crate) struct DecodedParameterOwners {
+    /// Owner frames that satisfy an admitted grammar.
+    pub(crate) owners: Vec<DesignParameterOwner>,
+    /// Native identities of parameters with an unsupported owner frame.
+    pub(crate) unparsed: Vec<String>,
+}
+
+/// Keep parameters with unsupported owner frames in native storage only.
+pub(crate) fn parameters_for_projection<'a>(
+    parameters: &'a [DesignParameter],
+    unparsed_owners: &[String],
+) -> Cow<'a, [DesignParameter]> {
+    if unparsed_owners.is_empty() {
+        return Cow::Borrowed(parameters);
+    }
+    let unparsed: HashSet<&str> = unparsed_owners.iter().map(String::as_str).collect();
+    Cow::Owned(
+        parameters
+            .iter()
+            .filter(|parameter| !unparsed.contains(parameter.id.as_str()))
+            .cloned()
+            .collect(),
+    )
+}
+
 /// Decode the exact same-index-delimited owner frame for every owned Design
-/// parameter.
+/// parameter. Retain an unsupported binding without an interpreted owner.
 pub(crate) fn decode_parameter_owners(
     scan: &ContainerScan,
     parameters: &[DesignParameter],
     headers: &[DesignRecordHeader],
-) -> Result<Vec<DesignParameterOwner>, CodecError> {
+) -> Result<DecodedParameterOwners, CodecError> {
     if parameters
         .iter()
         .all(|parameter| parameter.owner_record_index().is_none())
+        && !has_pipe_type(scan)?
     {
-        return Ok(Vec::new());
+        return Ok(DecodedParameterOwners::default());
     }
     let mut headers_by_stream = HashMap::<&str, HashMap<u32, &DesignRecordHeader>>::new();
     for header in headers {
@@ -814,6 +843,19 @@ pub(crate) fn decode_parameter_owners(
             .or_insert((entry, IndexedRecordOffsets::build(bytes), owner_typed));
     }
     let mut out = Vec::new();
+    // Pipe scalar owners are canonical records of their scope; they are read
+    // from their registered type even when no parameter links to them.
+    let mut emitted = HashMap::new();
+    for (stream, (entry, records, _)) in &streams {
+        for owner in pipe_scalar_owners(scan, &entry.name, records)? {
+            let key = (stream.clone(), owner.record_index());
+            if let std::collections::hash_map::Entry::Vacant(slot) = emitted.entry(key) {
+                slot.insert(out.len());
+                out.push(owner);
+            }
+        }
+    }
+    let mut unparsed = Vec::new();
     for parameter in parameters {
         let Some(owner_index) = parameter.owner_record_index() else {
             continue;
@@ -826,6 +868,12 @@ pub(crate) fn decode_parameter_owners(
         };
         let scope = native_stream(&parameter.id)
             .ok_or_else(|| malformed("has no Design stream identity"))?;
+        if let Some(ordinal) = emitted.get(&(scope.to_owned(), owner_index)).copied() {
+            if out[ordinal].parameter_record_index() != parameter.record_index {
+                return Err(malformed("does not link back to its referencing parameter"));
+            }
+            continue;
+        }
         let Some(header) = headers_by_stream
             .get(scope)
             .and_then(|headers| headers.get(&owner_index))
@@ -857,7 +905,7 @@ pub(crate) fn decode_parameter_owners(
             value: parameter.evaluated_value().get(),
             offset: parameter.evaluated_value_offset(),
         };
-        let owner = parse_parameter_owner(frame)
+        let parsed = parse_parameter_owner(frame)
             .or_else(|| {
                 parse_admitted_legacy_parameter_owner_68(
                     frame,
@@ -873,8 +921,12 @@ pub(crate) fn decode_parameter_owners(
                     header.byte_offset,
                     owner_typed.contains(&at),
                 )
-            })
-            .ok_or_else(|| malformed("does not match the parameter-owner grammar"))?
+            });
+        let Some(parsed) = parsed else {
+            unparsed.push(parameter.id.clone());
+            continue;
+        };
+        let owner = parsed
             .into_record(&entry.name, header.byte_offset)
             .ok_or_else(|| malformed("has invalid owner fields or evaluated-value offset"))?;
         if owner.record_index() != owner_index
@@ -886,6 +938,91 @@ pub(crate) fn decode_parameter_owners(
         out.push(owner);
     }
     out.sort_by(|a, b| a.id().cmp(b.id()));
+    Ok(DecodedParameterOwners {
+        owners: out,
+        unparsed,
+    })
+}
+
+/// Whether any Design `MetaStream` registers the `Pipe` type.
+fn has_pipe_type(scan: &ContainerScan) -> Result<bool, CodecError> {
+    for entry in scan
+        .entries
+        .iter()
+        .filter(|entry| scan.is_design_stream(entry, ContainerRole::Bulkstream))
+    {
+        if super::meta::metadata_for_bulk_stream(scan, &entry.name)?.is_some_and(|meta| {
+            meta.types
+                .iter()
+                .any(crate::records::feature::path_features::pipe::is_pipe)
+        }) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+/// Scalar owners of uniquely registered `Pipe` scopes in one Design stream.
+///
+/// An owner frame is admitted when its entity has one type registration, it
+/// parses as a 103- or 104-byte parameter owner, it is the only indexed frame
+/// with that extent, and its owning scope is a uniquely registered Pipe with
+/// one primary frame.
+fn pipe_scalar_owners(
+    scan: &ContainerScan,
+    entry_name: &str,
+    records: &IndexedRecordOffsets,
+) -> Result<Vec<DesignParameterOwner>, CodecError> {
+    use crate::records::feature::path_features::pipe;
+    let Some(meta) = super::meta::metadata_for_bulk_stream(scan, entry_name)? else {
+        return Ok(Vec::new());
+    };
+    if !meta.types.iter().any(pipe::is_pipe) {
+        return Ok(Vec::new());
+    }
+    let bytes = scan.entry_bytes(entry_name)?;
+    let Ok(frames) = super::meta::design_primary_frames(bytes, &meta) else {
+        return Ok(Vec::new());
+    };
+    let mut registrations = HashMap::<u64, usize>::new();
+    for data in &meta.types {
+        for id in data.entities.values() {
+            *registrations.entry(*id).or_default() += 1;
+        }
+    }
+    let unique = |id: u64| registrations.get(&id) == Some(&1);
+    let mut pipe_frames = HashMap::<u64, usize>::new();
+    for frame in frames
+        .iter()
+        .filter(|frame| pipe::is_pipe(frame.design_type) && unique(frame.entity_id))
+    {
+        *pipe_frames.entry(frame.entity_id).or_default() += 1;
+    }
+    let mut out = Vec::new();
+    for frame in frames
+        .iter()
+        .filter(|frame| pipe::is_scalar(frame.design_type) && unique(frame.entity_id))
+    {
+        let Some(parsed) = bytes
+            .get(frame.start..frame.member_end)
+            .and_then(parse_parameter_owner)
+        else {
+            continue;
+        };
+        if !matches!(parsed.frame_length, 103 | 104)
+            || pipe_frames.get(&u64::from(parsed.scope_record_index)) != Some(&1)
+            || records
+                .frames(parsed.record_index)
+                .filter(|(start, end)| *start == frame.start && *end == frame.member_end)
+                .count()
+                != 1
+        {
+            continue;
+        }
+        if let Some(owner) = parsed.into_record(entry_name, u64_from_index(frame.start)) {
+            out.push(owner);
+        }
+    }
     Ok(out)
 }
 

@@ -153,6 +153,8 @@ fn sketch(ordinal: u32) -> crate::sketch::PmDcSketch {
 /// document model; model root 20 is the flat-pattern model.
 fn inventory() -> (FeatureInventory, Vec<crate::sketch::PmDcSketch>) {
     let inventory = FeatureInventory {
+        edge_inputs: crate::feature::edge_selection::EdgeInventory::default(),
+        record_types: std::collections::HashMap::new(),
         features: vec![
             feature(2, 0x6200),
             feature(4, 0x6604),
@@ -162,6 +164,7 @@ fn inventory() -> (FeatureInventory, Vec<crate::sketch::PmDcSketch>) {
         ],
         pattern_features: Vec::new(),
         terminators: vec![terminator(5), terminator(22)],
+        dimensions: Vec::new(),
         properties: Vec::new(),
         labels: vec![
             label(
@@ -195,6 +198,7 @@ fn inventory() -> (FeatureInventory, Vec<crate::sketch::PmDcSketch>) {
         kernel_entity_links: Vec::new(),
         work_planes: Vec::new(),
         issues: Vec::new(),
+        ..Default::default()
     };
     (inventory, vec![sketch(7), sketch(10)])
 }
@@ -267,6 +271,7 @@ fn projection_orders_history_and_marks_suppression() {
             sketches: &[],
             entities: &[],
             profile_bodies: &[],
+            result_model: None,
         },
     )
     .expect("feature projection");

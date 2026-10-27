@@ -21,6 +21,7 @@ use cadmpeg_ir::{report::export::WritePath, CadIr, SourceFidelity};
 
 use crate::F3dCodec;
 
+pub(crate) mod act_links;
 pub(crate) mod sketch_relations;
 pub(crate) mod sketch_text;
 pub(crate) mod verification;
@@ -197,3 +198,7 @@ pub(crate) mod step_conversion;
 pub(crate) mod body_reference_tail_test;
 
 pub(crate) mod placement_construction;
+
+pub(crate) mod pipe;
+
+pub(crate) mod work_plane;
