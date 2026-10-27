@@ -1238,6 +1238,22 @@ fn named_linear_sweep_reuses_materialized_cap_extent() {
         offset: 0,
     };
     scan.surfaces.rows.extend([row(31), row(32)]);
+    // Cap equations establish the construction; an admitted recipe establishes
+    // the authored linear family independently of the generic material label.
+    scan.features
+        .operations
+        .push(crate::feature::operations::FeatureOperation {
+            feature_id: 7,
+            kind: crate::feature::operations::OperationKind::Stored("Protrusion".into()),
+            name: crate::feature::operations::OperationName::Derived,
+            recipe: crate::feature::operations::RecipeResolution::Resolved(
+                crate::feature::operations::FeatureRecipe::ProtrudeExtrude,
+            ),
+            display_state_conflict: false,
+            depdb: None,
+            offset: 0,
+            state_offset: 0,
+        });
     let plane = |id, z| Surface {
         id: SurfaceId::mint(format!("creo:visibgeom:surface#{id}")).expect("identity grammar"),
         geometry: SurfaceGeometry::Solved(SolvedSurfaceGeometry::Plane(

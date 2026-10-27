@@ -3552,8 +3552,14 @@ state through `geoms_affected`, `edgs_affected`, and `qlts_affected`.
 table containing materialized surfaces identifies a section-shape operation
 that creates curves at the intersections of two selected shape sets.
 `Boundary Blend <decimal-ordinal>` identifies a boundary-surface operation.
-`Protrusion` identifies a linear extrusion operation; absent section operands
-leave its profile, direction, and extent unresolved without changing its family.
+`Protrusion` and `Cut` identify generic material-addition and material-removal
+labels, not a linear or rotational family. For example, the panel-lamp source
+stores `protrevolve` beside `Protrusion id 667`; that stored state does not by
+itself establish the current recipe. Without an independently admitted current
+procedural family, retain a generic material feature as Native with its
+parameters and source identity. An admitted `protextrude` or `cutextrude`
+selects extrusion, while `protrevolve` or `cutrevolve` selects rotation;
+unresolved construction operands do not change an established family.
 For `Protrusion`, `Cut`, `Extrude`, `Revolve`, and numbered `Extrude` or
 `Revolve` operations, exactly one feature-bound section transform selects its
 matching section definition.
@@ -4309,9 +4315,12 @@ their axes, positive lengths, and section-plane origins agree. Generated arc
 rows without a decoded frame do not compete with those direct witnesses.
 Duplicate parameter rows for any joined cylinder reject the construction.
 A class-916 or class-917 section sweep with one complete section transform and
-parallel generated cap-plane equations is a linear extrusion even when its
-current feature-state record omits the recipe discriminator. A stored
-rotational recipe excludes this classification.
+parallel generated cap-plane equations can support linear carrier reconstruction
+without an admitted procedural family. This geometric construction does not
+select the authored history operation: the generic classes and material labels
+do not distinguish extrusion from rotation. An admitted rotational recipe excludes
+that linear carrier route; only an admitted current family selects the generic
+history definition.
 In a table-class `29` linear section sweep, a source-less class-`204` entry is
 the start cap and a source-less class-`203` entry is the end cap when each is
 unique and every remaining entry is class `200` with a populated source section
@@ -4319,10 +4328,11 @@ entity. Both cap identifiers must be materialized by the table and resolve to
 unique same-feature plane rows. Parallel placed cap equations define a blind
 extent: their absolute normal separation is the length, and their ordered
 signed separation is the direction.
-Without complete placement, ordered cap equations, or the rectilinear section
-flag witness, the same non-rotational class
-remains a linear extrusion with unresolved direction and extent. Its uniquely
-owned section definition still supplies the native profile reference. That
+Once an admitted recipe establishes linear extrusion, missing placement,
+ordered cap equations, or the rectilinear section-flag witness leave its
+direction and extent unresolved. A history feature identified only by
+`Protrusion` or `Cut` remains Native instead. A uniquely owned section definition can still supply
+the native profile reference independently of that history classification. That
 reference resolves to the neutral sketch when the sketch contains a resolved
 profile chain; competing definitions leave the profile unresolved.
 Within the generating feature, a complete plane `local_sys` supplies the cap

@@ -608,9 +608,12 @@ pub(in super::super) fn schema_feature_definition(
             outward: None,
         }));
     }
+    let recipe = feature_recipe(scan, feature_id);
+    let generic_sweep_without_recipe = matches!(kind, "Protrusion" | "Cut") && recipe.is_none();
     if schema_class == Some(SchemaClass::Protrusion)
+        && !generic_sweep_without_recipe
         && !feature_section_sweep_semantics_conflict(scan, feature_id)
-        && section_sweep_allows_linear_extrusion(schema_class, feature_recipe(scan, feature_id))
+        && section_sweep_allows_linear_extrusion(schema_class, recipe)
     {
         if let Some(sweep) = circular_sweep_geometry(scan, feature_id) {
             let definition =
@@ -641,9 +644,7 @@ pub(in super::super) fn schema_feature_definition(
             ));
         }
     }
-    if feature_recipe(scan, feature_id)
-        == Some(crate::feature::operations::FeatureRecipeKind::Revolve)
-    {
+    if recipe == Some(crate::feature::operations::FeatureRecipeKind::Revolve) {
         let extent = feature_revolution_extent(scan, feature_id);
         let profile = unique_feature_profile_ref(scan, ir, feature_id);
         let axis = feature_revolution_axis_for_transfer(
@@ -712,8 +713,8 @@ pub(in super::super) fn schema_feature_definition(
             },
         ));
     }
-    let recipe = feature_recipe(scan, feature_id);
-    if (!feature_section_sweep_semantics_conflict(scan, feature_id)
+    if (!generic_sweep_without_recipe
+        && !feature_section_sweep_semantics_conflict(scan, feature_id)
         && section_sweep_allows_linear_extrusion(schema_class, recipe))
         || feature_is_sheet_extrusion(scan, feature_id)
     {
