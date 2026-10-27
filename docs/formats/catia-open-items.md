@@ -40,11 +40,11 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 ### DI-03. Part-container object-graph ownership
 
-**Question.** How does an outer `Data` declaration's 16-byte identifier select the physical stream containing the part's design-history object graph?
+**Question.** Which other directory-name and metadata-table forms establish part-container graph ownership?
 
-**Known.** `catia.md` §3.1 "The outer logical stream named `Data`" defines concrete/base class declarations and their identifiers. `CATFeatCont` names a base class of `CATPrtCont`, directly or through `CATProdCont`. This class ancestry does not join object graphs. `catia.md` §7.3 "An object graph is preceded by" defines object-graph framing, entity identity, structural owner groups, and source-schema selection. Class names, structural owner groups, and physical stream ownership are distinct incidences.
+**Known.** `catia.md` §3.1 "The outer logical stream named `Data`" defines concrete/base class declarations and their identifiers. `CATFeatCont` names a base class of `CATPrtCont`, directly or through `CATProdCont`. This class ancestry does not join object graphs. `catia.md` §7.3 "An object graph is preceded by" defines object-graph framing, entity identity, structural owner groups, and source-schema selection. Class names, structural owner groups, and physical stream ownership are distinct incidences. `catia.md` §3.1 defines the complete four-word identifier, length-owned metadata name, counted UTF-16BE content reference, and unique complete graph-extent containment. Numeric metadata identities do not assign graph ownership.
 
-**Need.** We must know the identifier-to-stream mapping across directory name forms and establish unique complete graph-extent containment before assigning the part's modeling scope.
+**Need.** A complete name/table grammar and unique content-stream reference are required for other directory-name forms or fragmented metadata. No prefix removal, class ancestry, or first-graph fallback establishes that relation.
 
 ### DI-04. Opaque inline values and head-slot namespaces
 

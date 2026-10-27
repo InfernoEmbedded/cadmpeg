@@ -343,7 +343,7 @@ fn a_route_that_refuses_and_falls_through_states_both_notes_in_the_report() {
 #[test]
 fn unresolved_outer_stream_identity_withholds_every_modeling_graph() {
     let (mut bytes, _) = outer_container_object_graph_catpart();
-    let name = "1048_62eb7b6f_1825"
+    let name = "4bbc295c_1048_62eb7b6f_1825"
         .encode_utf16()
         .flat_map(u16::to_le_bytes)
         .collect::<Vec<_>>();

@@ -3317,7 +3317,7 @@ pub(crate) struct CatiaOuterContainerBinding {
     pub(crate) class_name: String,
     /// Declared base container class.
     pub(crate) base_class: String,
-    /// Resolved UUID-derived outer stream name.
+    /// Raw descriptor key of the content stream referenced by the UUID metadata.
     pub(crate) stream_name: String,
 }
 

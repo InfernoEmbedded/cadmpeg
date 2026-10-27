@@ -34,6 +34,8 @@ use crate::layout::stream_descriptor_header as stream_desc;
 use crate::variant::Variant;
 use crate::wire::records::SourceExtent;
 
+mod declared_contents;
+
 /// The outer and inner container magic.
 pub(crate) const OUTER_MAGIC: &[u8; 8] = &outer_hdr::MAGIC_VALUE;
 /// The nested-container stream-directory magic.
@@ -1481,11 +1483,20 @@ fn outer_container_inventory(data: &[u8], outer: &InnerDir) -> OuterContainerInv
     if data_descriptors.next().is_some() {
         return OuterContainerInventory::default();
     }
+    let names = declared_contents::DirectoryNames::new(data, outer);
     if let Some(range) = contiguous_descriptor_range(data_descriptor, outer.inner, data.len()) {
-        return parse_outer_container_declarations(&data[range], &outer.descriptors);
+        return parse_outer_container_declarations(&data[range], |name| {
+            names
+                .as_ref()
+                .and_then(|names| declared_contents::resolve(data, outer, names, name))
+        });
     }
     let logical = reconstruct_logical_stream(data, data_descriptor, outer.inner);
-    parse_outer_container_declarations(&logical, &outer.descriptors)
+    parse_outer_container_declarations(&logical, |name| {
+        names
+            .as_ref()
+            .and_then(|names| declared_contents::resolve(data, outer, names, name))
+    })
 }
 
 /// Select the unique declared outer container whose physical extent contains
@@ -1521,7 +1532,7 @@ pub(crate) fn outer_container_for_extent<'a>(
 
 fn parse_outer_container_declarations(
     data: &[u8],
-    descriptors: &[Descriptor],
+    resolve: impl Fn(&str) -> Option<String>,
 ) -> OuterContainerInventory {
     const HEADER: &[u8] = b"\x01\x00\x03\x00";
     const PREFIX: &[u8] = b"\x01\x00\x6c\x00\x02\x00\x00\x00";
@@ -1553,27 +1564,18 @@ fn parse_outer_container_declarations(
         let Some(uuid) = data.get(terminal + TERMINAL.len()..terminal + TERMINAL.len() + 16) else {
             continue;
         };
-        let Some((first, middle, last)) = View::u32_be_at(uuid, 4)
+        let Some((word0, first, middle, last)) = View::u32_be_at(uuid, 0)
+            .zip(View::u32_be_at(uuid, 4))
             .zip(View::u32_be_at(uuid, 8))
             .zip(View::u32_be_at(uuid, 12))
-            .map(|((first, middle), last)| (first, middle, last))
+            .map(|(((word0, first), middle), last)| (word0, first, middle, last))
         else {
             continue;
         };
         inventory.has_declarations = true;
-        let canonical_stream_name = format!("{first:x}_{middle:08x}_{last:x}");
-        let prefixed_stream_name = format!("_{canonical_stream_name}");
-        let stream_name = match (
-            descriptors
-                .iter()
-                .any(|descriptor| descriptor.name == canonical_stream_name),
-            descriptors
-                .iter()
-                .any(|descriptor| descriptor.name == prefixed_stream_name),
-        ) {
-            (true, false) => canonical_stream_name,
-            (false, true) => prefixed_stream_name,
-            (false, false) | (true, true) => continue,
+        let canonical_stream_name = format!("{word0:x}_{first:x}_{middle:08x}_{last:x}");
+        let Some(stream_name) = resolve(&canonical_stream_name) else {
+            continue;
         };
         let Some(ordinal) = View::u32_le_at(data, start + 12) else {
             continue;

@@ -3880,3 +3880,70 @@ offset = 163
 type = "f64"
 source = "spec"
 anchor = "the payload has exactly 171 bytes after that variable-width reference"
+
+[[record]]
+name = "container_property_header"
+parsed_by = "crates/cadmpeg-codec-catia/src/container/declared_contents.rs"
+kind = "byte"
+section = "3.1"
+anchor = "The metadata property table starts"
+size = 12
+endianness = "big"
+
+[[record.field]]
+name = "total_size"
+offset = 0
+type = "u32"
+source = "spec"
+anchor = "The metadata property table starts"
+
+[[record.field]]
+name = "identity"
+offset = 4
+type = "u32"
+source = "spec"
+anchor = "The metadata property table starts"
+
+[[record.field]]
+name = "count"
+offset = 8
+type = "u32"
+source = "spec"
+anchor = "The metadata property table starts"
+
+[[record]]
+name = "container_property_record"
+parsed_by = "crates/cadmpeg-codec-catia/src/container/declared_contents.rs"
+kind = "byte"
+section = "3.1"
+anchor = "Each counted record starts"
+size = 14
+endianness = "big"
+
+[[record.field]]
+name = "size"
+offset = 0
+type = "u32"
+source = "spec"
+anchor = "Each counted record starts"
+
+[[record.field]]
+name = "identity"
+offset = 4
+type = "u32"
+source = "spec"
+anchor = "Each counted record starts"
+
+[[record.field]]
+name = "value_type"
+offset = 8
+type = "u16"
+source = "spec"
+anchor = "Each counted record starts"
+
+[[record.field]]
+name = "value_bytes"
+offset = 10
+type = "u32"
+source = "spec"
+anchor = "Each counted record starts"

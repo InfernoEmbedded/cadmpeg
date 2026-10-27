@@ -1325,6 +1325,33 @@ Parsed by:
 | 162 | 1 | `terminal` | `u8` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
 | 163 | 8 | `half_turn` | `f64` | little | spec | the payload has exactly 171 bytes after that variable-width reference |
 
+## `container_property_header`
+
+Spec §3.1 · layout: byte offsets · size: 12 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/container/declared_contents.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `total_size` | `u32` | big | spec | The metadata property table starts |
+| 4 | 4 | `identity` | `u32` | big | spec | The metadata property table starts |
+| 8 | 4 | `count` | `u32` | big | spec | The metadata property table starts |
+
+## `container_property_record`
+
+Spec §3.1 · layout: byte offsets · size: 14 B
+
+Parsed by:
+- `crates/cadmpeg-codec-catia/src/container/declared_contents.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `size` | `u32` | big | spec | Each counted record starts |
+| 4 | 4 | `identity` | `u32` | big | spec | Each counted record starts |
+| 8 | 2 | `value_type` | `u16` | big | spec | Each counted record starts |
+| 10 | 4 | `value_bytes` | `u32` | big | spec | Each counted record starts |
+
 ## Not tabulated
 
 | Area | Spec | Reason |

@@ -54,6 +54,8 @@ pub(crate) mod inner_header {
 /// Descriptor-relative. `k` extent structs of 20 bytes each follow at ds+0x54. The standard name form ends at the three-byte tail ds-3..ds (`00 00 00`); the legacy form starts at ds+0x10 and ends with the same UTF-16LE terminator, with zero fill through ds+0x50.
 /// ```
 pub(crate) mod stream_descriptor_header {
+    /// Record length in bytes. Spec §3.4.
+    pub(crate) const LEN: usize = 84;
     /// Offset of `logical_stream_length` (`u32`, big-endian). Spec §3.4.
     pub(crate) const LOGICAL_STREAM_LENGTH: usize = 12;
     /// Offset of `extent_count` (`u32`, big-endian). Spec §3.4.
@@ -810,4 +812,30 @@ pub(crate) mod b5_revolution_carrier_tail {
     pub(crate) const TERMINAL: usize = 162;
     /// Offset of `half_turn` (`f64`, little-endian). Spec §6.7.
     pub(crate) const HALF_TURN: usize = 163;
+}
+
+/// Byte offsets for the `container_property_header` record.
+///
+/// Spec §3.1. Record length 12 B.
+pub(crate) mod container_property_header {
+    /// Record length in bytes. Spec §3.1.
+    pub(crate) const LEN: usize = 12;
+    /// Offset of `total_size` (`u32`, big-endian). Spec §3.1.
+    pub(crate) const TOTAL_SIZE: usize = 0;
+    /// Offset of `count` (`u32`, big-endian). Spec §3.1.
+    pub(crate) const COUNT: usize = 8;
+}
+
+/// Byte offsets for the `container_property_record` record.
+///
+/// Spec §3.1. Record length 14 B.
+pub(crate) mod container_property_record {
+    /// Record length in bytes. Spec §3.1.
+    pub(crate) const LEN: usize = 14;
+    /// Offset of `size` (`u32`, big-endian). Spec §3.1.
+    pub(crate) const SIZE: usize = 0;
+    /// Offset of `value_type` (`u16`, big-endian). Spec §3.1.
+    pub(crate) const VALUE_TYPE: usize = 8;
+    /// Offset of `value_bytes` (`u32`, big-endian). Spec §3.1.
+    pub(crate) const VALUE_BYTES: usize = 10;
 }
