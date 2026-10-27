@@ -1878,6 +1878,8 @@ fn group_layout_with_statuses(
     let linked_reference_status = GroupReferenceStatus::try_from(*stream.get(at)?).ok()?;
     at += 1;
     references.push(reference);
+    crate::records::group::valid_group_references(references.as_slice().try_into().ok()?)
+        .then_some(())?;
     Some((
         xmt,
         node_id,
@@ -1918,6 +1920,8 @@ fn group_layout_without_leading_statuses(
     let linked_reference_status = GroupReferenceStatus::try_from(*stream.get(at)?).ok()?;
     at += 1;
     references.push(reference);
+    crate::records::group::valid_group_references(references.as_slice().try_into().ok()?)
+        .then_some(())?;
     Some((
         xmt,
         node_id,

@@ -1064,6 +1064,8 @@ The public GROUP field `attributes_groups` is named `attributes_features`
 in schemas 11004 and 13006. The public MEMBER_OF_GROUP field `owning_group`
 is named `owning_feature` in those schemas. These pairs name the same fields.
 
+Each GROUP pointer has a nonzero biased index token. The owning-part pointer is non-null; the other four pointers permit null XMT 1.
+
 `owner` references the owning part. `next` and `previous` chain groups and
 attributes within that part. `attributes_features` starts the group's own
 attribute chain. `first_member` references the first `MEMBER_OF_GROUP`
