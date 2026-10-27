@@ -28,6 +28,14 @@ relation applies when its explicit node key does not match a partition node?
 **Need.** Establish the deletion grammar in PS-28 and the target's partition
 and pmark scope before applying any unmatched key.
 
+**Conflict.** A six-byte deletion-shaped run can be a status/reference tuple
+inside a complete FACE. That pattern does not establish a separate deletion
+or justify an alternative target join.
+
+**Note.** Complete schema-bound BODY lengths and full enclosing-record
+ownership precede target lookup. Preserve unmatched keys without assigning a
+node or family fallback.
+
 ### PS-02. Terminal procedural-intersection branches
 
 **Question.** How does a terminal type-38 procedural intersection select a finite branch when it has no usable support-parameter lane or paired FIN-carried `SP_CURVE` witnesses?
