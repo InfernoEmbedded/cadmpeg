@@ -988,13 +988,15 @@ fourth status byte, participates in the deltas byte ledger, and remains in
 the semantic lane. The native record retains the pointers in the order
 `[owner, next, previous, shared_geometry]`.
 
-Type 67 has the complete deltas record
-`0043 [ff], xmt, node_id:u32 BE, ref(1) 01, ref(3) 01, ref 01, ref 01,
-ref 00, 2b, ref 01, value[4]:f64 BE`. The XMT identity and the final four
-non-null references are non-null. Every value is finite and either zero or
-normal. The optional `ff` envelope byte precedes the XMT identity. The record
-ends after the fourth value, participates in
-the deltas byte ledger, and remains in the semantic lane.
+Type 67 `SWEPT_SURF` has the complete deltas record
+`0043 [ff], xmt, node_id:u32 BE, ref(1) 01, owner 01, next 01, previous 01,
+geometric_owner 00, sense:u8, section 01, value[4]:f64 BE`.
+The owner targets the SURFACE_OWNER union, pointer class 1007. It is not a
+fixed BODY XMT. The XMT identity, owner, and final four references are
+non-null. Sense is positive `2b` or negative `2d`. Every value is finite and
+either zero or normal. The optional `ff` envelope byte precedes the XMT
+identity. The record ends after the fourth value, participates in the deltas
+byte ledger, and remains in the semantic lane.
 
 Type 70 `LIST` has the complete deltas record
 `0046 [ff], xmt, node_id:u32 BE, list_type:u8, notransmit:logical,

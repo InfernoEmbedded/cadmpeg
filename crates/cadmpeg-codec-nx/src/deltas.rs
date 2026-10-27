@@ -2059,11 +2059,8 @@ fn type_67_layout(
         at += 1;
         references.push(reference);
     }
-    (references[0] == 1
-        && references[1] == 3
-        && references[2..].iter().all(|reference| *reference > 1))
-    .then_some(())?;
-    (stream.get(at) == Some(&0x2b)).then_some(())?;
+    (references[0] == 1 && references[1..].iter().all(|reference| *reference > 1)).then_some(())?;
+    matches!(stream.get(at), Some(0x2b | 0x2d)).then_some(())?;
     at += 1;
     let (linked_reference, consumed) = read_xmt(stream, at)?;
     (linked_reference > 1).then_some(())?;
@@ -2279,6 +2276,46 @@ mod type_67_record_tests {
                     && *end == bytes.len()
             ));
             assert_eq!(census.bytes_decoded(), bytes.len());
+        }
+    }
+
+    #[test]
+    fn swept_surface_owner_is_a_non_null_surface_owner() {
+        for escaped in [false, true] {
+            for owner in [3_u16, 291] {
+                let mut bytes = record(escaped);
+                let owner_at = 11 + usize::from(escaped);
+                bytes[owner_at..owner_at + 2].copy_from_slice(&owner.to_be_bytes());
+                let parsed = consume_type_67(&bytes, 0).unwrap();
+                assert!(matches!(parsed.family,
+                    RecordFamily::Type67 { references, .. } if references[1] == u32::from(owner)));
+                assert_eq!(parsed.canonical_bytes, bytes);
+                assert_eq!(walk(&bytes).unwrap().records.len(), 1);
+                for invalid_owner in [0_u16, 1] {
+                    let mut invalid = bytes.clone();
+                    invalid[owner_at..owner_at + 2].copy_from_slice(&invalid_owner.to_be_bytes());
+                    assert!(consume_type_67(&invalid, 0).is_none());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn swept_surface_sense_accepts_both_orientations() {
+        for escaped in [false, true] {
+            for sense in [b'+', b'-'] {
+                let mut bytes = record(escaped);
+                let sense_at = 23 + usize::from(escaped);
+                bytes[sense_at] = sense;
+                let parsed = consume_type_67(&bytes, 0).unwrap();
+                assert_eq!(parsed.end, bytes.len());
+                assert_eq!(parsed.canonical_bytes, bytes);
+                let census = walk(&bytes).unwrap();
+                assert_eq!(census.records.len(), 1);
+                assert!(census.tombstones.is_empty());
+                bytes[sense_at] = 0;
+                assert!(consume_type_67(&bytes, 0).is_none());
+            }
         }
     }
 
