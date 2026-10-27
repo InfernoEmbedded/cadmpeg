@@ -50,9 +50,16 @@ and pmark scope before applying any unmatched key.
 
 **Question.** How does correction select terminal folds and multiple corrected branches for a degenerate support-0 array or a sentinel-truncated marker-4 plane-support array?
 
-**Known.** `siemens_nx.md` §6.3 "When independent support inversion still leaves a procedural support lane incomplete" and `siemens_nx.md` §6.3 "Each CHART_s point first maps independently through one support carrier's inverse parameterization." define predictor inversion and correction for complete supported procedural curves.
+**Known.** `siemens_nx.md` §6.3 "When independent support inversion still leaves a procedural support lane incomplete" and `siemens_nx.md` §6.3 "Each CHART_s point first maps independently through one support carrier's inverse parameterization." define predictor inversion and correction for complete supported procedural curves. The paragraph beginning "When completing a support lane" defines complete serialized-lane precedence and structural refusal of a constant pcurve for spatially distinct chart points.
 
 **Need.** We must know the correction rule to construct these curves without an arbitrary branch choice.
+
+**Conflict.** A loose cache tolerance can accept repeated UV samples at
+distinct chart points. That numerical acceptance does not supply a branch
+selector or certify the collapsed curve.
+
+**Note.** Retain raw values and established support associations. An unresolved
+inverse or indistinguishable corrected branches remain unassigned.
 
 ### PS-05. NURBS-offset spine support identity
 

@@ -1631,6 +1631,15 @@ Without one unique values array, the construction retains its serialized
 reference order. Missing or repeated arrays do not supply a selector.
 Sentinel-bearing or unevaluable lanes do not establish a validated pcurve.
 
+When completing a support lane, a complete finite serialized values lane for
+the same established support precedes inverse candidates when its sample count
+matches the chart and every sample forward-evaluates within the effective
+chart and cache fit tolerance. A constant UV curve cannot represent spatially
+distinct chart points. Refuse that derived lane before approximate numerical
+acceptance, including when numerical work is exhausted. Native values retain
+their raw identity. A sample certificate does not establish a continuous
+inverse or resolve indistinguishable branches.
+
 When exactly one serialized support is null, an edge using the construction
 supplies the missing support if its incident face surfaces contain exactly one
 surface not already named by the construction. That unique complement occupies
