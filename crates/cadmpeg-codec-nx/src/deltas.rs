@@ -98,6 +98,8 @@ pub(crate) struct BodyRevision {
     pub(crate) prefix_end: usize,
     /// First byte following the complete revision envelope.
     pub(crate) end: usize,
+    /// A complete effective schema owns the end, including an empty state tail.
+    pub(crate) schema_complete: bool,
 }
 
 /// Framed Parasolid transmit header at the start of a deltas stream.
@@ -923,6 +925,7 @@ fn body_revision_prefix(stream: &[u8], offset: usize) -> Option<BodyRevision> {
         offset,
         prefix_end: at,
         end: at,
+        schema_complete: false,
     })
 }
 

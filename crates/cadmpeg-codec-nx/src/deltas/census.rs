@@ -128,6 +128,7 @@ pub(crate) fn walk(stream: &[u8]) -> Result<Census, CodecError> {
     let mut value_boundary = true;
     let mut referenced_value_offsets = None::<BTreeSet<usize>>;
 
+    let mut body_schema = None;
     let mut region_schema = None;
     let mut world_layout = None;
     let mut schema_seen = [false; 102];
@@ -159,6 +160,9 @@ pub(crate) fn walk(stream: &[u8]) -> Result<Census, CodecError> {
             None
         };
         if let Some(declaration) = declaration {
+            if declaration.fields.kind() == 12 && value_boundary {
+                body_schema = Some(declaration.fields.definition().clone());
+            }
             if declaration.fields.kind() == 19 && value_boundary {
                 region_schema = Some(declaration.fields.definition().clone());
             }
@@ -271,11 +275,35 @@ pub(crate) fn walk(stream: &[u8]) -> Result<Census, CodecError> {
             continue;
         };
         if kind == 12 {
-            if let Some(revision) = body_revision_prefix(stream, offset) {
-                census.bytes_decoded += revision.prefix_end - revision.offset;
-                offset = revision.prefix_end;
+            let revision = if let Some(schema) = body_schema.as_ref() {
+                if value_boundary {
+                    schema
+                        .read_body_instance(stream, offset)
+                        .map(|body| BodyRevision {
+                            xmt: body.xmt,
+                            node_id: body.node_id,
+                            references: body.references,
+                            offset,
+                            prefix_end: body.prefix_end,
+                            end: body.end,
+                            schema_complete: true,
+                        })
+                } else {
+                    None
+                }
+            } else {
+                body_revision_prefix(stream, offset)
+            };
+            if let Some(revision) = revision {
+                census.bytes_decoded += revision.end - revision.offset;
+                offset = revision.end;
                 value_boundary = true;
                 census.events.body_revisions.push(revision);
+                continue;
+            }
+            if body_schema.is_some() {
+                offset += 1;
+                value_boundary = false;
                 continue;
             }
         }
@@ -474,7 +502,7 @@ fn populate_body_revision_state_tails(stream: &[u8], census: &mut Census) -> usi
             .events
             .body_revisions
             .iter_mut()
-            .find(|revision| revision.prefix_end == start)
+            .find(|revision| !revision.schema_complete && revision.prefix_end == start)
         {
             revision.end = end;
             byte_len += end - start;
@@ -518,6 +546,7 @@ fn extend_covered_spans(
 
 #[cfg(test)]
 mod tests {
+    mod body_framing;
     mod region_framing;
     use super::{extend_covered_spans, value_is_owned};
     use std::collections::BTreeSet;

@@ -306,5 +306,71 @@ impl EmbeddedSchema {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct BodyInstance {
+    pub(crate) xmt: NonNullXmt,
+    pub(crate) node_id: u32,
+    /// First eight schema-declared pointer values in physical order.
+    pub(crate) references: [u32; 8],
+    pub(crate) prefix_end: usize,
+    pub(crate) end: usize,
+}
+
+impl EmbeddedSchema {
+    pub(crate) fn read_body_instance(&self, stream: &[u8], offset: usize) -> Option<BodyInstance> {
+        if self.plan.kind != 12
+            || View::u16_be_at(stream, offset)? != 12
+            || self
+                .plan
+                .fields
+                .iter()
+                .any(|field| field.n_elements != 0 || !field.transmit)
+        {
+            return None;
+        }
+        let first = self.plan.fields.first()?;
+        if first.name.as_str() != "highest_node_id"
+            || first.data_type != DataType::Integer
+            || first.pointer_class != 0
+        {
+            return None;
+        }
+        let mut at = offset.checked_add(2)?;
+        let xmt = NonNullXmt::try_from(read_and_advance(stream, &mut at)?).ok()?;
+        let mut view = View::over_retained(stream);
+        view.seek(at)?;
+        let mut node_id = None;
+        let mut references = [0; 8];
+        let mut reference_count = 0;
+        let mut prefix_end = None;
+        for field in &self.plan.fields {
+            let value = FieldValue::read(field.data_type, stream, &mut view)?;
+            if field.name.as_str() == "highest_node_id" {
+                let FieldValue::Integer(value) = value else {
+                    return None;
+                };
+                if node_id.replace(value).is_some() {
+                    return None;
+                }
+            } else if let FieldValue::Pointer { target, .. } = value {
+                if reference_count < references.len() {
+                    references[reference_count] = target.get();
+                    reference_count += 1;
+                    if reference_count == references.len() {
+                        prefix_end = Some(view.position());
+                    }
+                }
+            }
+        }
+        Some(BodyInstance {
+            xmt,
+            node_id: node_id?,
+            references,
+            prefix_end: prefix_end?,
+            end: view.position(),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests;

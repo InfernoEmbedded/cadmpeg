@@ -84,6 +84,16 @@ instance from adjacent rollback or change-state packets?
 **Need.** Identify each packet's start, complete field cardinalities, and
 relation to the owning pmark edge before assigning body change-state roles.
 
+**Conflict.** SHELL- or FACE-shaped bytes can occur inside declared BODY
+fields. Neither those candidates nor a preceding eight-pointer prefix bound
+the instance. The first eight physical pointers do not establish eight fixed
+topology roles when an effective schema inserts fields.
+
+**Note.** Bound an admitted BODY through its complete fixed, transmitted field
+list at an established value boundary. Preserve unsupported framing without
+guessing a shorter instance or deriving revision authority from physical
+order or `highest_node_id`.
+
 ### PS-10. Compact NURBS descriptor roles and alias ownership
 
 **Question.** Which compact-header fields establish a control array's rational layout, and which declaration owns repeated descriptor identities?
