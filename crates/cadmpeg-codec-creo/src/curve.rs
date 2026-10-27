@@ -6797,7 +6797,6 @@ pub(crate) fn depdb_cross_section_rows(
         return Ok(Vec::new());
     };
     let mut cursor = topology + b"topol_ref_data\0".len();
-    let cache = scalar::ScalarCache::from_section_checked(payload);
     let positional_count = count - 1;
     // Each row consumes at least one payload byte past the topology cursor
     // before its terminator, so the row count cannot exceed the unread bytes.
@@ -6823,15 +6822,19 @@ pub(crate) fn depdb_cross_section_rows(
             search = offset + marker.len();
         }
     }
+    // This close is owned by the end of the supplied cross-section payload;
+    // an interior image does not establish a curve-row boundary.
+    let section_terminal = b"\xe1\xf4\x04";
+    if let Some(before_close) = payload.strip_suffix(section_terminal) {
+        boundaries.push((before_close.len(), section_terminal.len()));
+    }
     boundaries.sort_unstable_by(Ord::cmp);
     boundaries.dedup();
     while rows.len() < positional_count {
         let first_candidate = boundaries.partition_point(|(end, _)| *end < cursor);
         let mut selected = None;
         for (end, length) in boundaries[first_candidate..].iter().copied() {
-            if let Some(row) =
-                parse_depdb_curve_segment(ctx, &payload[cursor..end], cursor, &cache)?
-            {
+            if let Some(row) = parse_depdb_curve_segment(ctx, &payload[cursor..end], cursor)? {
                 selected = Some((row, end, length));
                 break;
             }
@@ -6865,7 +6868,6 @@ fn parse_depdb_curve_segment(
     ctx: &cadmpeg_core::decode::DecodeContext<'_>,
     segment: &[u8],
     absolute_offset: usize,
-    cache: &scalar::ScalarCache,
 ) -> Result<Option<DepdbCurveRow>, cadmpeg_core::CodecError> {
     let mut suffix_candidate = None;
     for suffix_length in 6..=9 {
@@ -6900,12 +6902,22 @@ fn parse_depdb_curve_segment(
     let Some((row_start, prefix)) = prefix_candidate else {
         return Ok(None);
     };
-    let body = segment[prefix.end..suffix_start].to_vec();
-    let CurveScalarLane {
-        scalar_tokens,
-        references,
-        opaque_spans,
-    } = curve_scalar_lane(ctx, &body, prefix.type_byte, cache)?;
+    let source_body = &segment[prefix.end..suffix_start];
+    let mut body = ctx.alloc_filled(source_body.len(), 0, "creo cross-section body bytes")?;
+    body.copy_from_slice(source_body);
+    // Prefix and pointer ownership do not establish the body's internal
+    // scalar grammar. Do not resynchronize into unowned coordinate images.
+    let opaque_spans = if body.is_empty() {
+        Vec::new()
+    } else {
+        let mut raw = ctx.alloc_filled(body.len(), 0, "creo cross-section opaque bytes")?;
+        raw.copy_from_slice(&body);
+        ctx.alloc_filled(
+            1,
+            CurveParameterOpaqueSpan { raw, offset: 0 },
+            "creo cross-section opaque body",
+        )?
+    };
     Ok(Some(DepdbCurveRow {
         id: prefix.id,
         type_byte: prefix.type_byte,
@@ -6917,8 +6929,8 @@ fn parse_depdb_curve_segment(
             reference_surface: suffix[4],
         },
         body,
-        scalar_tokens,
-        references,
+        scalar_tokens: Vec::new(),
+        references: Vec::new(),
         opaque_spans,
         offset: absolute_offset + row_start,
     }))

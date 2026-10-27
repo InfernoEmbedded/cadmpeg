@@ -707,10 +707,11 @@ fn decodes_complete_depdb_one_sided_curve_array() {
         }
     );
     assert_eq!(rows[0].body, [0xe4, 0xff]);
-    assert_eq!(rows[0].scalar_tokens.len(), 1);
-    assert_eq!(rows[0].scalar_tokens[0].value, 1.0);
+    assert!(rows[0].scalar_tokens.is_empty());
+    assert!(rows[0].references.is_empty());
     assert_eq!(rows[0].opaque_spans.len(), 1);
-    assert_eq!(rows[0].opaque_spans[0].raw, [0xff]);
+    assert_eq!(rows[0].opaque_spans[0].offset, 0);
+    assert_eq!(rows[0].opaque_spans[0].raw, [0xe4, 0xff]);
 }
 
 #[test]
@@ -1012,21 +1013,15 @@ fn cross_section_suffix_keeps_pointer_roles_out_of_parameters() {
     let mut segment = vec![21, 0, 4, 1, 0xf6, 0xe4];
     segment.extend(tail);
     let row = crate::decode::with_service_context(|ctx| {
-        super::super::parse_depdb_curve_segment(
-            ctx,
-            &segment,
-            100,
-            &crate::scalar::ScalarCache::default(),
-        )
+        super::super::parse_depdb_curve_segment(ctx, &segment, 100)
     })
     .expect("cross-section row")
     .expect("complete stored pointers");
     assert_eq!(row.body, [0xe4]);
-    assert_eq!(row.scalar_tokens.len(), 1);
-    assert_eq!(row.scalar_tokens[0].offset, 0);
-    assert_eq!(row.scalar_tokens[0].raw.len(), 1);
-    assert_eq!(row.scalar_tokens[0].value, 1.0);
-    assert!(row.opaque_spans.is_empty());
+    assert!(row.scalar_tokens.is_empty());
+    assert!(row.references.is_empty());
+    assert_eq!(row.opaque_spans.len(), 1);
+    assert_eq!(row.opaque_spans[0].raw, [0xe4]);
     assert_eq!(
         serde_json::to_value(row.suffix).expect("stored pointer tuple"),
         serde_json::json!([0, 1280, 0, 1536, 1792, 0]),
@@ -1047,12 +1042,7 @@ fn cross_section_suffix_requires_six_complete_typed_references() {
         let mut segment = vec![21, 0, 4, 1, 0xf6, 0xff];
         segment.extend(tail);
         assert!(crate::decode::with_service_context(|ctx| {
-            super::super::parse_depdb_curve_segment(
-                ctx,
-                &segment,
-                0,
-                &crate::scalar::ScalarCache::default(),
-            )
+            super::super::parse_depdb_curve_segment(ctx, &segment, 0)
         })
         .expect("typed pointer validation")
         .is_none());
@@ -1083,23 +1073,18 @@ fn cross_section_suffix_canonical_reference_widths() {
 }
 
 #[test]
-fn cross_section_parameter_terminal_zero_precedes_all_pointer_fields() {
+fn cross_section_body_retains_terminal_byte_without_numeric_roles() {
     let segment = [21, 0, 4, 1, 0xf6, 0x18, 0, 8, 0, 9, 10, 0];
     let row = crate::decode::with_service_context(|ctx| {
-        super::super::parse_depdb_curve_segment(
-            ctx,
-            &segment,
-            0,
-            &crate::scalar::ScalarCache::default(),
-        )
+        super::super::parse_depdb_curve_segment(ctx, &segment, 0)
     })
     .expect("cross-section scalar lane")
     .expect("complete six-reference tail");
     assert_eq!(row.body, [0x18]);
-    assert_eq!(row.scalar_tokens.len(), 1);
-    assert_eq!(row.scalar_tokens[0].value, 0.0);
-    assert_eq!(row.scalar_tokens[0].raw, [0x18]);
-    assert!(row.opaque_spans.is_empty());
+    assert!(row.scalar_tokens.is_empty());
+    assert!(row.references.is_empty());
+    assert_eq!(row.opaque_spans.len(), 1);
+    assert_eq!(row.opaque_spans[0].raw, [0x18]);
 }
 
 #[test]

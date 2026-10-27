@@ -2205,10 +2205,16 @@ A DEPDB cross-section curve count includes one labeled prototype followed by
 `count - 1` positional rows. Each positional row has one fixed prefix and one
 uniquely bounded six-reference `[0, P, 0, N, S, 0]` suffix. The bytes between them are the row's
 parameter body. The final positional row can end at the `e1` immediately
-before the next `e0` named-record header. These one-sided rows remain in the
-cross-section namespace and do not define model half-edge topology. Parameter
-bodies use the positional curve scalar and canonical-reference token lanes;
-unclaimed spans remain exact opaque bytes.
+before the next `e0` named-record header. In NIST FTC11 Creo 4, a final
+`e1 f4 04` occupies the last three bytes of the physical `Xsections` payload,
+following the fifteenth positional row of a count-16 array. This section-end
+form does not admit an interior `e1 f4 04` image or other `f4` operands as row
+boundaries. These one-sided rows remain in the cross-section namespace and
+do not define model half-edge topology. The prefix and six-reference tail
+do not establish the internal numeric field grammar of the parameter body.
+Retain that entire bounded body as opaque bytes until its producer and field
+boundaries are established; do not scan past unknown bytes to promote interior
+images as scalar values or references.
 
 In `Sld_Xsections.xsec_geom`, the six fields are
 `crv_hdr_geom_ptr[0]`, `crv_hdr_geom_ptr[1]`, `next_crv_hdr_ptr[0]`,
