@@ -439,3 +439,53 @@ fn variable_rows_require_complete_full_width_value_and_guess_images() {
         }
     }
 }
+
+#[test]
+fn real_named_variable_table_retains_full_width_coordinate_fields() {
+    // Exact wine-glass.prt excerpt at38624..39773, including the following
+    // eqtn_arr opener as boundary context. No isolated-table EOF claim.
+    let bytes = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/wine-variable-table-with-next-opener.bin"
+    ));
+    let table = variable_table(bytes, 0, bytes.len(), &scalar::ScalarCache::default())
+        .expect("real seven-field named prototype");
+    assert!(table.is_complete());
+    assert_eq!(table.declared_count, 72);
+    assert_eq!(table.entity_ref, Some(151));
+    assert_eq!(table.rows.len(), 72);
+    let prototype = &table.rows[0];
+    assert_eq!(prototype.variable_type.code(), 5);
+    assert_eq!(prototype.key, 0);
+    assert_eq!(prototype.value_body, [0x18]);
+    assert_eq!(prototype.guess_body, [0x18]);
+    assert_eq!(
+        (prototype.known, prototype.homogeneity, prototype.uvar_id),
+        (Some(1), Some(0), Some(0))
+    );
+    let value_word = [0xba, 0x10, 0x0c, 0x8d, 0xee, 0x90, 0xb4, 0x0c];
+    let guess_word = [0x3a, 0x50, 0x22, 0xce, 0xe9, 0x91, 0x0f, 0x6b];
+    for (ordinal, key, uvar) in [(8, 1, 1), (9, 2, 2), (47, 20, 28)] {
+        let row = &table.rows[ordinal];
+        assert_eq!(row.variable_type.code(), 1);
+        assert_eq!(row.key, key);
+        assert_eq!(row.value_body[0], 0xed);
+        assert_eq!(row.guess_body[0], 0xed);
+        assert_eq!(row.value_body[1..], value_word);
+        assert_eq!(row.guess_body[1..], guess_word);
+        assert_eq!(row.value_body.len(), 9);
+        assert_eq!(row.guess_body.len(), 9);
+        assert_eq!(
+            row.value.value().expect("stored IEEE value").to_bits(),
+            u64::from_be_bytes(value_word)
+        );
+        assert_eq!(
+            row.guess.value().expect("stored IEEE guess").to_bits(),
+            u64::from_be_bytes(guess_word)
+        );
+        assert_eq!(
+            (row.known, row.homogeneity, row.uvar_id),
+            (Some(0), Some(1), Some(uvar))
+        );
+    }
+}
