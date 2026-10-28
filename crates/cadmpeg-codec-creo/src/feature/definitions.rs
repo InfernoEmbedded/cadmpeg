@@ -33,11 +33,24 @@ pub(crate) enum FeatureParameterFrameKind {
     Transform,
 }
 
+/// Record that owns a definition-space parameter frame.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum FeatureParameterFrameOwner {
+    /// First field of the feature's `place_rec_ptr` placement record.
+    PlacementRecord,
+    /// `gsec2d_ptr` section-location field, followed by `rigid_data`.
+    SectionLocation,
+    /// Any other owning record.
+    Other,
+}
+
 /// One `f9 04 03` definition-space parameter frame.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct FeatureParameterFrame {
     /// Frame field kind.
     pub(crate) kind: FeatureParameterFrameKind,
+    /// Record that owns the frame field.
+    pub(crate) owner: FeatureParameterFrameOwner,
     /// Exact scalar-body bytes after `f9 04 03`.
     pub(crate) body: Vec<u8>,
     /// Twelve values when the body consists entirely of defined scalar tokens.
@@ -6722,6 +6735,24 @@ fn positional_saved_section(
     Some(FeatureSavedSection { entities, offset })
 }
 
+/// Owner of the frame field whose label starts at `label` and whose bounded
+/// body ends at `body_end`.
+fn parameter_frame_owner(
+    payload: &[u8],
+    label: usize,
+    body_end: usize,
+) -> FeatureParameterFrameOwner {
+    const PLACEMENT_RECORD_OPEN: &[u8] = b"\xe0\x00place_rec_ptr\0\xe3\xe0\x02";
+    const SECTION_LOCATION_SUCCESSOR: &[u8] = b"\xe0\x00rigid_data\0";
+    if payload[..label].ends_with(PLACEMENT_RECORD_OPEN) {
+        FeatureParameterFrameOwner::PlacementRecord
+    } else if payload[body_end..].starts_with(SECTION_LOCATION_SUCCESSOR) {
+        FeatureParameterFrameOwner::SectionLocation
+    } else {
+        FeatureParameterFrameOwner::Other
+    }
+}
+
 fn definitions_in_ranges(
     payload: &[u8],
     starts: &[DefinitionStart],
@@ -6776,6 +6807,7 @@ fn definitions_in_ranges(
                 let body = payload[body_start..body_end].to_vec();
                 parameter_frames.push(FeatureParameterFrame {
                     kind,
+                    owner: parameter_frame_owner(payload, field_offset, body_end),
                     decoded_values: scalar::decode_feature_local_system_slots(&body, &cache),
                     body,
                     offset: field_offset,
@@ -7617,6 +7649,38 @@ mod tables_tests;
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn local_system_frame_owner_follows_its_enclosing_record() {
+        use super::{parameter_frame_owner, FeatureParameterFrameOwner};
+        const BODY: &[u8] = b"\xf9\x04\x03\x0f\x18\xe5\x0f\x18\xe5\x0f\x18\xe5";
+        let frame = |prefix: &[u8], suffix: &[u8]| {
+            let mut payload = prefix.to_vec();
+            payload.extend_from_slice(b"\xe0\x02");
+            let label = payload.len();
+            payload.extend_from_slice(b"local_sys\0");
+            payload.extend_from_slice(BODY);
+            let body_end = payload.len();
+            payload.extend_from_slice(suffix);
+            parameter_frame_owner(&payload, label, body_end)
+        };
+
+        assert_eq!(
+            frame(b"\xe0\x00place_rec_ptr\0\xe3", b"\xe0\x01own_ref_id\0"),
+            FeatureParameterFrameOwner::PlacementRecord
+        );
+        assert_eq!(
+            frame(b"\xe0\x00p_saved_result\0\xe3", b"\xe0\x00rigid_data\0"),
+            FeatureParameterFrameOwner::SectionLocation
+        );
+        assert_eq!(
+            frame(
+                b"\xe0\x00p_saved_result\0\xe3",
+                b"\xe0\x01entities_to_hide\0"
+            ),
+            FeatureParameterFrameOwner::Other
+        );
+    }
 
     #[test]
     fn trim_endpoint_radius_preserves_missing_agreement_and_refusal() {

@@ -20,6 +20,8 @@ pub(super) mod double_xar;
 
 use crate::container::ContainerScan;
 use crate::feature::definitions::{FeatureRelationTable, ScalarLane, VariableType};
+use crate::feature::entity::loop_boundary_surface;
+use crate::feature::rows::loop_history_prior_loop;
 use crate::feature::schema::SchemaClass;
 
 use super::coverage::{source_section_ref, surface_family, surface_variant};
@@ -181,6 +183,8 @@ struct CreoFeatureEntityTableEntryRecord {
     source_entity_id: Option<u32>,
     related_entity_id: Option<u32>,
     related_entity_state: Option<u8>,
+    loop_head_id: Option<u32>,
+    loop_tail_id: Option<u32>,
     prefixed: bool,
     offset: usize,
     end_offset: usize,
@@ -227,6 +231,8 @@ pub(super) struct CreoFeatureLoopHistoryEntryRecord<'a> {
     lo_subtype: Option<u32>,
     operands: [Option<u32>; 3],
     lo_type: Option<u32>,
+    boundary_surface_id: Option<u32>,
+    prior_loop_id: Option<u32>,
     #[serde(serialize_with = "serialize_loop_history_fields")]
     field_bytes: &'a crate::feature::rows::FeatureLoopHistoryEntry,
     #[serde(flatten, serialize_with = "serialize_loop_history_boundary")]
@@ -878,6 +884,8 @@ pub(super) fn feature_entity_table_records(
                 source_entity_id: entry.source_entity_id(),
                 related_entity_id: entry.related_entity_id(),
                 related_entity_state: entry.related_entity_state(),
+                loop_head_id: entry.loop_head_id(),
+                loop_tail_id: entry.loop_tail_id(),
                 prefixed: entry.prefixed,
                 offset: entry.offset,
                 end_offset: entry.end_offset,
@@ -971,6 +979,8 @@ pub(super) fn feature_loop_history_entry_records<'a>(
                 entry.logical_fields[3],
             ],
             lo_type: entry.logical_fields[4],
+            boundary_surface_id: loop_boundary_surface(entry, &scan.features.entity_tables),
+            prior_loop_id: loop_history_prior_loop(entry, &scan.features.loop_history_entries),
             field_bytes: entry,
             boundary: &entry.boundary,
             offset: entry.offset,
@@ -3920,7 +3930,7 @@ mod feature_definition_projection_tests {
     use super::feature_definition_records;
     use crate::feature::definitions::{
         DecodedField, DefinitionIdentity, FeatureDefinition, FeatureOutline, FeatureParameterFrame,
-        FeatureParameterFrameKind, OutlinePhase,
+        FeatureParameterFrameKind, FeatureParameterFrameOwner, OutlinePhase,
     };
 
     fn scan() -> crate::container::ContainerScan<'static> {
@@ -3941,6 +3951,7 @@ mod feature_definition_projection_tests {
             body: vec![0xe3],
             parameter_frames: vec![FeatureParameterFrame {
                 kind: FeatureParameterFrameKind::Transform,
+                owner: FeatureParameterFrameOwner::PlacementRecord,
                 body: vec![0xf9],
                 decoded_values: None,
                 offset: 4,

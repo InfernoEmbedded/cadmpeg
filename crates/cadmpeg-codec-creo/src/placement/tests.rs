@@ -18,7 +18,8 @@ use super::{
 use crate::datum::DatumPlaneRecord;
 use crate::feature::definitions::ReferencePlanes;
 use crate::feature::definitions::{
-    BinaryFlag, FeatureDefinition, FeatureParameterFrameKind, FeatureSegmentKind,
+    BinaryFlag, FeatureDefinition, FeatureParameterFrameKind, FeatureParameterFrameOwner,
+    FeatureSegmentKind,
 };
 use crate::feature::entity::FeatureEntityTable;
 use crate::feature::rows::{AffectedIdKind, FeatureAffectedIds, FeatureGeometryTable};
@@ -140,10 +141,43 @@ fn placement_without_reference_sources_resolves_nothing() {
 }
 
 #[test]
+fn only_the_section_location_frame_supplies_the_section_plane() {
+    let mut definition = blank_definition();
+    let placement_record = FeatureParameterFrame {
+        kind: FeatureParameterFrameKind::LocalSystem,
+        owner: FeatureParameterFrameOwner::PlacementRecord,
+        body: Vec::new(),
+        decoded_values: Some(finite_frame([
+            0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        ])),
+        offset: 1,
+    };
+    definition.parameter_frames = vec![placement_record.clone()];
+    assert_eq!(definition_local_plane_equation(&definition), None);
+
+    definition.parameter_frames.push(FeatureParameterFrame {
+        owner: FeatureParameterFrameOwner::SectionLocation,
+        decoded_values: Some(finite_frame([
+            0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0,
+        ])),
+        offset: 2,
+        ..placement_record
+    });
+    assert_eq!(
+        definition_local_plane_equation(&definition),
+        Some(SignedPlaneEquation {
+            normal: [1.0, 0.0, 0.0],
+            offset: 2.0
+        })
+    );
+}
+
+#[test]
 fn unique_complete_local_system_supplies_section_plane_equation() {
     let mut definition = blank_definition();
     definition.parameter_frames = vec![FeatureParameterFrame {
         kind: FeatureParameterFrameKind::LocalSystem,
+        owner: FeatureParameterFrameOwner::SectionLocation,
         body: Vec::new(),
         decoded_values: Some(finite_frame([
             0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 3.0, 4.0, 5.0,
@@ -161,6 +195,7 @@ fn unique_complete_local_system_supplies_section_plane_equation() {
 
     definition.parameter_frames.push(FeatureParameterFrame {
         kind: FeatureParameterFrameKind::LocalSystem,
+        owner: FeatureParameterFrameOwner::SectionLocation,
         body: Vec::new(),
         decoded_values: None,
         offset: 2,
@@ -175,6 +210,7 @@ fn unique_complete_local_system_supplies_section_plane_equation() {
 
     definition.parameter_frames.push(FeatureParameterFrame {
         kind: FeatureParameterFrameKind::LocalSystem,
+        owner: FeatureParameterFrameOwner::SectionLocation,
         body: Vec::new(),
         decoded_values: Some(finite_frame([0.0; 12])),
         offset: 3,
@@ -434,6 +470,7 @@ fn resolves_section_from_complete_local_frame_when_references_are_unresolved() {
     let mut definition = blank_definition();
     definition.parameter_frames = vec![FeatureParameterFrame {
         kind: FeatureParameterFrameKind::LocalSystem,
+        owner: FeatureParameterFrameOwner::SectionLocation,
         body: Vec::new(),
         decoded_values: Some(finite_frame([
             0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -3.0, -4.0, 0.0,
@@ -486,6 +523,7 @@ fn parallel_reference_uses_only_a_unique_valid_owned_local_frame() {
     };
     definition.parameter_frames = vec![FeatureParameterFrame {
         kind: FeatureParameterFrameKind::LocalSystem,
+        owner: FeatureParameterFrameOwner::SectionLocation,
         body: Vec::new(),
         decoded_values: Some(finite_frame([
             0.0, 0.6, 0.8, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 7.0, -11.0, 13.0,

@@ -643,8 +643,10 @@ A contour binds to the unique closed successor loop on the same surface
 reference and in the same topology namespace that contains its curve-header
 reference. A complete classification requires a bijection between the stored
 contours and those loops. A missing or ambiguous join does not classify a
-loop. Several outer contours on one carrier do not by themselves assign each
-inner contour to a distinct bounded face instance.
+loop. When the classification is complete, each `trv = 01` contour bounds a
+separate face instance on that surface; the instances share the surface
+carrier. Several outer contours on one carrier do not by themselves assign
+each inner contour to a distinct bounded face instance.
 A `geom_type = 22`, `boundary_type = 01`, `next_geom_ptr = 0` row is an
 unbounded feature plane. When it is the unique plane row carrying its
 `feat_id`, its placed carrier is the datum-plane definition for that feature.
@@ -1609,6 +1611,11 @@ Negative prefixes `a4..a6`, `a7..b1`, and `b2..c7` add to `BF2B`, `BF2C`, and
 `BF2E`, `BF2F`, and `BF32`, respectively. Prefixes `2c`, `4c..4d`, `50`, and `54` reconstruct
 `3F <tail6> 00`; `45` reconstructs `BF <tail6> 00`; `28` and `41`
 reconstruct `3F <tail7>`.
+A second-coordinate `4d <tail6>`, `50 <tail6>`, or `54 <tail6>` point token
+omits IEEE byte one when the owning row's six-scalar frame contains exactly one
+`41 <byte1> <tail6>` slot with the same six-byte tail. The token then
+reconstructs `3F <byte1> <tail6>`, the value of that frame slot. Without such a
+unique frame partner, the token uses the `3F <tail6> 00` form.
 
 A replay-bound six-scalar frame stores two opposite corners of the directrix
 and extrusion bounds. Slots zero and three use the first directrix-coordinate
@@ -4422,8 +4429,15 @@ When four slots precede `18 e5`, the token expands to `[0, 0, 1, 0, 0]`. This
 rank-two form completes the zero local-y triple and supplies the local-z unit
 direction.
 The four consecutive triples are the local x axis, local y axis, local z axis,
-and origin. When a definition contains exactly one complete `local_sys`, its
-local z axis and origin define the section-plane equation. A zero-length local
+and origin. A frame belongs to the record that encloses it. The
+`place_rec_ptr` placement record opens with its own `local_sys` field. The
+section-location `local_sys` of `gsec2d_ptr` follows the section's
+`p_saved_result` and immediately precedes its `rigid_data` record; it maps
+section coordinates into the model. When a definition contains exactly one
+complete section-location `local_sys`, its local z axis and origin define the
+section-plane equation. A placement-record frame or a frame of another owner
+does not define the section location, and it is not a substitute when the
+section-location frame is absent or incomplete. A zero-length local
 z axis does not define a plane. Perpendicular nonzero local-x and local-z axes
 also define the section's in-plane reference equation through the stored
 origin. This complete local frame supplies section orientation when the
@@ -4641,7 +4655,7 @@ center and increasing full-turn parameterization; side pcurves run from zero
 through `2π` at constant sweep offset.
 Each cap's sole loop is its outer boundary.
 
-A feature owns each mixed generated-entity table bounded by its `AllFeatur` row. The array's compact-integer count is not limited to a one-byte or 64-entry range. A positional entry has a canonical entity-reference identifier, a compact entry class, and a positional body. The first counted entry can instead be a prototype whose `f7 <entry-class>` prefix supplies the class omitted after its identifier. A class `200` entry carries its source section entity's external identifier immediately after the class when that lane is populated; a structural marker in that position leaves the source absent. Classes `210`, `219`, and `2017` carry a related canonical entity identifier immediately after the class. Class `214` has a related-entity form with the same lane; its other positional bodies do not define that relationship. Classes `210`, related-form `214`, and `219` follow the related identifier with state byte `00`; class `2017` follows it with state byte `00` or `01`. These related identifiers occupy a separate namespace from the class-200 source section entity. An entry normally closes with `e3`; a final related-form entry can terminate at the following `f2 f7` table separator after its state byte. An `e3` byte inside a canonical two-byte typed integer is not a record close. A table surface identifier denotes geometry generated or modified by that feature. When that surface is the carrier of a connected face, the face's owning body is an output of the feature. A complete class-210 surface transition resolves through one related-form class-214 entry in the same table: the class-210 related identifier names the class-214 non-surface entity, and the class-214 related identifier names the preceding materialized surface. The class-210 entity names the resulting materialized surface. Every transition in one complete table has distinct preceding, intermediate, and resulting identifiers. For a thicken operation, each placed planar source/result pair is parallel, and the common nonzero absolute normal separation is the operation thickness.
+A feature owns each mixed generated-entity table bounded by its `AllFeatur` row. The array's compact-integer count is not limited to a one-byte or 64-entry range. A positional entry has a canonical entity-reference identifier, a compact entry class, and a positional body. The first counted entry can instead be a prototype whose `f7 <entry-class>` prefix supplies the class omitted after its identifier. A class `200` entry carries its source section entity's external identifier immediately after the class when that lane is populated; a structural marker in that position leaves the source absent. Classes `210`, `219`, and `2017` carry a related canonical entity identifier immediately after the class. Class `214` has a related-entity form with the same lane; its other positional bodies do not define that relationship. Classes `210`, related-form `214`, and `219` follow the related identifier with state byte `00`; class `2017` follows it with state byte `00` or `01`. These related identifiers occupy a separate namespace from the class-200 source section entity. A class `212` entry carries two canonical entity identifiers after the class: a loop-history head and a tail identifier. A class `2006` entry carries the canonical identifier of a class-212 entry of the same table first in its body. An entry normally closes with `e3`; a final related-form entry can terminate at the following `f2 f7` table separator after its state byte. An `e3` byte inside a canonical two-byte typed integer is not a record close. A table surface identifier denotes geometry generated or modified by that feature. When that surface is the carrier of a connected face, the face's owning body is an output of the feature. A complete class-210 surface transition resolves through one related-form class-214 entry in the same table: the class-210 related identifier names the class-214 non-surface entity, and the class-214 related identifier names the preceding materialized surface. The class-210 entity names the resulting materialized surface. Every transition in one complete table has distinct preceding, intermediate, and resulting identifiers. For a thicken operation, each placed planar source/result pair is parallel, and the common nonzero absolute normal separation is the operation thickness.
 The source row's reversal flag orients its plane normal. When every placed
 planar transition has the same signed separation along that oriented normal,
 positive separation selects the forward side and negative separation selects
@@ -4725,6 +4739,25 @@ tail fields, early closes, and nonfinal named or table-separator boundaries
 define no complete loop roster. Subtype and type
 values do not by themselves resolve the three operands or a current boundary
 network.
+
+Records of subtypes 750 through 757 have an absent first operand and zero in
+the second and third operands. Subtypes 750 through 753 have loop type 700, and
+subtypes 754 through 757 have loop type 701. A subtype-759 record has loop type
+701 and an absent third operand. When present, its first operand is the loop
+identifier of exactly one earlier record of type 700 in the same feature's loop
+history. A missing, repeated, or later record, or a record of another type,
+leaves that join unresolved.
+
+A subtype-767 record has loop type 700, an absent second operand, and third
+operand one. Its first operand is a loop-history head. It names the boundary
+surface of the loop through the generated-entity tables of the record's
+owning feature: exactly one class-212 entry carries that head, exactly one
+related-form class-214 entry has the class-212 entity as its related
+identifier, and the class-214 entity identifier is the materialized
+`srf_array` identifier of the boundary surface. The curve network of that
+surface is the set of `crv_array` face uses that name it. A missing
+or repeated class-212 or class-214 entry, or a class-214 entity that is not a
+materialized surface, leaves the boundary surface unresolved.
 
 The implicit `AllFeatur` entity table begins at section-body offset zero with
 `e0 00 Sld_Features 00`. A section body without this root does not carry the

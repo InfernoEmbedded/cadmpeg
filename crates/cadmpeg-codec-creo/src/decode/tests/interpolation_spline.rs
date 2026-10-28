@@ -1613,6 +1613,7 @@ fn datum_feature_uses_its_unique_complete_local_system() {
             parameter_frames: vec![
                 crate::feature::definitions::FeatureParameterFrame {
                     kind: crate::feature::definitions::FeatureParameterFrameKind::LocalSystem,
+                    owner: crate::feature::definitions::FeatureParameterFrameOwner::PlacementRecord,
                     body: Vec::new(),
                     decoded_values: Some(finite_local_system([
                         1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 2.0, 3.0, 4.0, 5.0,
@@ -1621,6 +1622,7 @@ fn datum_feature_uses_its_unique_complete_local_system() {
                 },
                 crate::feature::definitions::FeatureParameterFrame {
                     kind: crate::feature::definitions::FeatureParameterFrameKind::LocalSystem,
+                    owner: crate::feature::definitions::FeatureParameterFrameOwner::PlacementRecord,
                     body: vec![0xff],
                     decoded_values: None,
                     offset: 2,
@@ -1675,6 +1677,7 @@ fn coordinate_system_feature_uses_its_unique_complete_local_system() {
             parameter_frames: vec![
                 crate::feature::definitions::FeatureParameterFrame {
                     kind: crate::feature::definitions::FeatureParameterFrameKind::LocalSystem,
+                    owner: crate::feature::definitions::FeatureParameterFrameOwner::PlacementRecord,
                     body: Vec::new(),
                     decoded_values: Some(finite_local_system([
                         0.0, 2.0, 0.0, -3.0, 0.0, 0.0, 0.0, 0.0, 4.0, 5.0, 6.0, 7.0,
@@ -1683,6 +1686,7 @@ fn coordinate_system_feature_uses_its_unique_complete_local_system() {
                 },
                 crate::feature::definitions::FeatureParameterFrame {
                     kind: crate::feature::definitions::FeatureParameterFrameKind::LocalSystem,
+                    owner: crate::feature::definitions::FeatureParameterFrameOwner::PlacementRecord,
                     body: vec![0xff],
                     decoded_values: None,
                     offset: 2,
@@ -1737,6 +1741,7 @@ fn coordinate_system_feature_rejects_a_reflected_local_system() {
             body: Vec::new(),
             parameter_frames: vec![crate::feature::definitions::FeatureParameterFrame {
                 kind: crate::feature::definitions::FeatureParameterFrameKind::LocalSystem,
+                owner: crate::feature::definitions::FeatureParameterFrameOwner::PlacementRecord,
                 body: Vec::new(),
                 decoded_values: Some(finite_local_system([
                     1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 5.0, 6.0, 7.0,
@@ -1786,6 +1791,7 @@ fn coordinate_system_feature_rejects_a_local_system_outside_the_record_tolerance
             body: Vec::new(),
             parameter_frames: vec![crate::feature::definitions::FeatureParameterFrame {
                 kind: crate::feature::definitions::FeatureParameterFrameKind::LocalSystem,
+                owner: crate::feature::definitions::FeatureParameterFrameOwner::PlacementRecord,
                 body: Vec::new(),
                 decoded_values: Some(finite_local_system([
                     1.0, 0.0, 0.0, 1.0e-10, 1.0, 0.0, 0.0, 0.0, 1.0, 5.0, 6.0, 7.0,

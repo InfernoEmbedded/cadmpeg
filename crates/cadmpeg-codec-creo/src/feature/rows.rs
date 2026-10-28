@@ -1511,6 +1511,29 @@ pub(crate) fn loop_restore_directions(rows: &[FeatureRow]) -> Vec<FeatureLoopRes
     result
 }
 
+/// Earlier type-700 loop named by the first operand of a subtype-759
+/// `lo_hist` record in the same feature's loop history.
+pub(crate) fn loop_history_prior_loop(
+    entry: &FeatureLoopHistoryEntry,
+    entries: &[FeatureLoopHistoryEntry],
+) -> Option<u32> {
+    const PRIOR_LOOP_SUBTYPE: u32 = 759;
+    const PRIOR_LOOP_TYPE: u32 = 700;
+    if entry.logical_fields[0] != Some(PRIOR_LOOP_SUBTYPE) {
+        return None;
+    }
+    let operand = entry.logical_fields[1]?;
+    let mut prior = entries.iter().filter(|candidate| {
+        candidate.feature_id == entry.feature_id
+            && candidate.ordinal < entry.ordinal
+            && candidate.offset < entry.offset
+            && candidate.loop_id == operand
+    });
+    let found = prior.next()?;
+    (prior.next().is_none() && found.logical_fields[4] == Some(PRIOR_LOOP_TYPE))
+        .then_some(found.loop_id)
+}
+
 /// Decode complete ordered `lo_hist` rosters paired with named loop tables.
 pub(crate) fn loop_history_entries(
     rows: &[FeatureRow],

@@ -71,6 +71,17 @@ surface, or pcurve transition semantics apply.
 
 **Need.** We must know the other transitions to decode all pcurve endpoint arrays.
 
+**Conflict.** A replay reading and a fixed-value reading of `e5` disagree. The
+named body `48 20 00 18 e5 48 20 00 46 13 1e b8 51 eb 85 1f 9e 1e b8 51 eb 85
+1f 18` belongs to a straight edge of length 4.78 between two planar faces. In
+the second face, endpoint B is `[4.78, 0]`. The replay reading gives endpoint
+A `[0, 0]` and the chord length 4.78 that the plane chart preserves; a fixed
+`e5 = [0, 1]` gives a chord of length 4.884. The positional rows
+`2f 20 00 46 13 1e b8 51 eb 85 1f 18 e4 2f 20 00 18 9e 1e b8 51 eb 85 1f 18`
+and `48 20 00 46 13 1e b8 51 eb 85 1f 18 e4 2f 20 00 46 13 1e b8 51 eb 85 1f
+2f 30 00 18` of straight edges with constant second face coordinate likewise
+need `e4` to replay the preceding zero, not to store one.
+
 ### SE-07. Additional model scalar-heap forms
 
 **Question.** Which numeric images do the unresolved model-scale and bounding
@@ -197,9 +208,9 @@ display name, or an API-enum cast.
 
 **Question.** How does a replay-bound `tab_cyl` select its placement when its axis span matches neither directrix-coordinate range uniquely?
 
-**Known.** `creo_prt.md` §3.2 "A repeated `tab_cyl` cubic-curve replay has this structure:" defines the repeated cubic replay and the unique axis-span placement cases.
+**Known.** `creo_prt.md` §3.2 "A repeated `tab_cyl` cubic-curve replay has this structure:" defines the repeated cubic replay, the unique axis-span placement cases, and the paired short second-coordinate form. A span mismatch caused by the unpaired reading of a paired short token is not a placement ambiguity.
 
-**Need.** We must know the selection rule to place the surface in model space.
+**Need.** Establish whether each remaining span mismatch has a scalar cause before a selection rule is defined, and place the surface in model space only through a unique chart.
 
 ### GS-08. Unresolved `fc 02` bodies
 
@@ -483,13 +494,20 @@ coordinates. Neither case permits an endpoint substitution or an invented point.
 
 **Need.** Define the complete owning field and variable-type contracts before numerically admitting an opaque full-width variable or assigning solver state to it.
 
-### SP-08. Multiple `local_sys` frames
+### SP-08. Other `local_sys` owners
 
-**Question.** What geometric role does each feature-definition `local_sys` frame have when one definition contains more than one frame?
+**Question.** What geometric role does a feature-definition `local_sys` frame
+have when it is neither the placement-record frame nor the section-location
+frame?
 
-**Known.** `creo_prt.md` §6 "Feature-definition `local_sys f9 04 03` and `transf f9 04 03` bodies use the" defines the twelve-slot feature frame and its complete rank-two form.
+**Known.** `creo_prt.md` §6 "Feature-definition `local_sys f9 04 03` and
+`transf f9 04 03` bodies use the" defines the twelve-slot feature frame, the
+placement-record frame, and the section-location frame. A frame that follows a
+saved section result and precedes `entities_to_hide` does not define the
+section plane.
 
-**Need.** We must know each role to select the feature placement.
+**Need.** Identify the enclosing record of each such frame before a consumer
+uses it.
 
 ### SP-09. Multiple `transf` frames
 
@@ -561,6 +579,15 @@ Entity-orientation and point-alignment constraint families are distinct.
 **Need.** Establish complete copied-result ownership for projected identities and complete, compatible incidence roles for ownerless identities. A saved result with the same integer in another definition does not establish a join.
 
 **Note.** A missing or ambiguous owner and an unproved locus sense retain native geometry. Family does not follow from the numeric entity identifier or a single center-like sense.
+
+**Conflict.** `creo_prt.md` §5 states that sense `4` establishes a native
+circular family, and a solver-only identity with only sense-four roles takes
+that family. Sense four also selects a locus on entities that are not circular:
+a type-0 incidence stores the `segtab` type-5 point row `05 00 00 f6 f6 11` as
+item `11 04`, and a centered type-47 construction line has a sense-four center.
+A solver-only identity that is the sense-zero point of a type-35 midpoint row
+and also takes sense four therefore has both point and circular evidence and
+remains unresolved.
 
 ### SP-17. Solver-only external references
 
@@ -823,20 +850,21 @@ remains unresolved.
 
 ### TP-06. Shared-surface face partition
 
-**Question.** Which source-owned reference partitions several outer loops of
-one surface carrier into separate face instances and assigns their inner loops?
+**Question.** Which source-owned reference assigns each inner loop of a surface
+carrier to one of several outer-loop face instances?
 
-**Known.** A surface carrier identity does not identify one bounded face
-instance. Complete same-surface contour/closed-loop joins distinguish stored
-outer and inner roles. A parameter-envelope containment test only filters
-candidate owners: a circle inside a concave polygon's bounding box can remain
-outside the polygon. Independent complete boundary containment can corroborate
-a partition when both boundaries share a proved chart.
+**Known.** `creo_prt.md` §3 "A contour binds to the unique closed successor
+loop" defines the outer and inner contour roles and one face instance per
+outer contour of a complete classification. A surface carrier identity does not
+identify one bounded face instance. A parameter-envelope containment test only
+filters candidate owners: a circle inside a concave polygon's bounding box can
+remain outside the polygon. Independent complete boundary containment can
+corroborate an assignment when both boundaries share a proved chart.
 
 **Need.** Establish a complete owner reference or common-chart geometric
 containment for every inner-to-outer assignment. Preserve distinct outer
 instances and all unmatched contours. Partial joins, bounding boxes, and
-surface identity alone must not admit a face partition.
+surface identity alone must not admit an assignment.
 
 ### TP-07. `lo_restore.direction`
 
@@ -873,19 +901,19 @@ cycle rotation proves restoration semantics or persistence lifecycle.
 ### TP-09. Loop-history operand ownership
 
 **Question.** Which source-owned namespace and complete history relation
-resolve each of the three `lo_hist` operands for every subtype?
+resolve the `lo_hist` operands of subtypes without a defined operand
+production, and the second operand of subtype 759?
 
-**Known.** A row contains the loop identifier, subtype, three operand slots,
-and required loop type. Operand-only `e5` expands to two zeros; `e4` is one
-and `f6` is absent. Original physical tokens are retained independently of
-these logical values. The subtype and type do not make an arbitrary operand
-a surface, curve, or current loop identity.
+**Known.** `creo_prt.md` §6 "Records of subtypes 750 through 757" defines the
+operand forms of subtypes 750 through 757 and 759 and the subtype-759 join of
+the first operand to an earlier type-700 loop. The subtype-767 first operand is
+a class-212 loop-history head that resolves the loop's boundary surface. The joins do not establish a current boundary network
+or restoration order.
 
-**Need.** Establish each subtype's complete owning production and independently
-joined target namespace before applying history. Preserve opaque operands,
-nullable states, unsupported forms, and historical rows outside the admitted
-feature/table caller scope. A roster alone does not establish current material
-boundaries or restoration order.
+**Need.** Establish the owning production and target namespace of the
+subtype-759 second operand, of other subtypes, of the class-212 tail
+identifier, and of the class-2006 body after its class-212 identifier before
+applying history. Preserve opaque operands and nullable states.
 
 ### TP-10. Required final loop-history type
 
@@ -900,14 +928,6 @@ Row-boundary tokens follow all six logical slots.
 **Need.** Bind type and subtype to their complete history production before
 traversal or restoration. Retaining the raw enum values does not prove a
 current-boundary selector, operand namespace, or face-side action.
-
-### TP-11. Loop-to-boundary-surface join
-
-**Question.** Which field joins a feature-local loop identifier to its boundary-surface curve network?
-
-**Known.** Loop-history identifiers and surface and curve identifiers occupy separate namespaces.
-
-**Need.** We must know the join to bind the restored loop to geometric edges.
 
 ### TP-12. Complete body-owned material rosters
 
