@@ -36,14 +36,6 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 ## 2. Geometry carriers
 
-### GC-03. Surface-owned edge curve attributes
-
-**Question.** What grammar and role do untyped edge curve attributes have when a surface record owns them instead of a curve carrier?
-
-**Known.** `sldprt.md` §7.1 "Stream-scope" defines `00 86` as a B-spline or list curve carrier. `sldprt.md` §7.2 "Curve carriers: an edge's `00 10.refs[3]` can point to a `00 86` B-spline/list curve carrier," defines the intersection curve carriers. An edge selects its support curve through `00 10.refs[3]`.
-
-**Need.** We must know the grammar to construct the edge curve.
-
 ### GC-04. Offset-surface admission
 
 **Question.** Which complete support and selected-set relation validates an unchecked offset for exact transfer, including negative support sense and full canonical indexes?

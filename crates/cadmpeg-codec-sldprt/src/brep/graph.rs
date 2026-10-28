@@ -493,6 +493,8 @@ pub(crate) struct Stats {
     pub(crate) unknown_procedural_supports: usize,
     /// Edges whose support curve is an untyped carrier (emitted with no curve).
     pub(crate) unknown_curve_edges: usize,
+    /// Tolerant edges emitted with no curve, because their fin geometry is not read.
+    pub(crate) tolerant_edges_without_curve: usize,
     /// Pcurves withheld because geometric inverse selection was ambiguous.
     pub(crate) ambiguous_pcurve_parameters: usize,
     /// NURBS edge carriers whose vertex range is off their bound surface.
@@ -1692,6 +1694,7 @@ fn decode_graph(
     let mut kept_points: HashSet<u16> = HashSet::new();
     // Edge attr -> (canonical start vuse, canonical end vuse, curve carrier attr).
     let mut edge_ends: HashMap<u16, (u16, u16, u16)> = HashMap::new();
+    let mut tolerant_edges: HashSet<EdgeId> = HashSet::new();
 
     let mut unresolved_points = HashSet::new();
     for (edge_attr, incidences) in edge_incidence {
@@ -1707,9 +1710,12 @@ fn decode_graph(
             continue;
         };
         let end_vuse = edge_end_vuse(canonical, *ring_end_vuse, t.coedges());
-        let curve_attr = t
-            .edge_uses()
-            .get(&edge_attr)
+        let edge_use = t.edge_uses().get(&edge_attr);
+        if edge_use.is_some_and(|edge_use| edge_use.references.tolerant()) {
+            tolerant_edges.insert(id_edge(edge_attr));
+        }
+        let curve_attr = edge_use
+            .filter(|edge_use| !edge_use.references.tolerant())
             .map_or(0, |edge_use| edge_use.references.curve());
         edge_ends.insert(edge_attr, (*start_vuse, end_vuse, curve_attr));
         for vuse in [*start_vuse, end_vuse] {
@@ -2570,6 +2576,11 @@ fn decode_graph(
     derive_spherical_pcurves(ctx, &mut out, &mut annotations, &source_stream)?;
     derive_nurbs_isoparametric_pcurves(ctx, &mut out, &mut annotations, &source_stream)?;
     prune_rejected_topology(&mut out);
+    out.stats.tolerant_edges_without_curve = out
+        .edges
+        .iter()
+        .filter(|edge| edge.curve().is_none() && tolerant_edges.contains(&edge.id))
+        .count();
 
     if out.faces.is_empty() {
         return Ok(Brep {

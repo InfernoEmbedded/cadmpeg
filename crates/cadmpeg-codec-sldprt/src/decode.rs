@@ -2339,6 +2339,7 @@ fn merge_brep(target: &mut Brep, mut source: Brep) -> Result<(), CodecError> {
     target.stats.unknown_surface_faces += source.stats.unknown_surface_faces;
     target.stats.unknown_procedural_supports += source.stats.unknown_procedural_supports;
     target.stats.unknown_curve_edges += source.stats.unknown_curve_edges;
+    target.stats.tolerant_edges_without_curve += source.stats.tolerant_edges_without_curve;
     target.stats.ambiguous_pcurve_parameters += source.stats.ambiguous_pcurve_parameters;
     target.stats.off_surface_nurbs_pcurves += source.stats.off_surface_nurbs_pcurves;
     target
@@ -3664,6 +3665,15 @@ fn build_geometry_report(
                 "{} edge(s) reference an untyped support curve; topology references an opaque \
                  curve carrier linked to the retained partition.",
                 s.unknown_curve_edges
+            )),
+        );
+    }
+    if s.tolerant_edges_without_curve > 0 {
+        losses.push(
+            SldprtLossCode::GeometryTolerantEdgeCurveUnread.note(format!(
+                "{} tolerant edge(s) carry their geometry in fin SP_CURVE records, which the \
+                 decoder does not read; the edges have topology and vertices but no curve.",
+                s.tolerant_edges_without_curve
             )),
         );
     }

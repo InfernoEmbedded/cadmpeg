@@ -117,6 +117,8 @@ pub(crate) enum SldprtLossCode {
     GeometryOffsetValidityUnresolved,
     /// Edge references an untyped support curve carried opaque.
     GeometryEdgeSupportCurveUntyped,
+    /// Tolerant edge has no curve because its fin geometry is not read.
+    GeometryTolerantEdgeCurveUnread,
     /// Referenced POINT records have conflicting complete frames.
     GeometryPointRecordAmbiguous,
     /// A derived pcurve parameter has multiple geometric candidates.
@@ -252,6 +254,7 @@ impl SldprtLossCode {
         Self::GeometrySurfaceCarrierAmbiguous,
         Self::GeometryOffsetValidityUnresolved,
         Self::GeometryEdgeSupportCurveUntyped,
+        Self::GeometryTolerantEdgeCurveUnread,
         Self::GeometryPointRecordAmbiguous,
         Self::GeometryPcurveAmbiguous,
         Self::GeometrySurfaceSolverWorkCapped,
@@ -333,6 +336,7 @@ impl SldprtLossCode {
             Self::GeometrySurfaceCarrierAmbiguous => "geometry.surface-carrier-ambiguous",
             Self::GeometryOffsetValidityUnresolved => "geometry.offset-validity-unresolved",
             Self::GeometryEdgeSupportCurveUntyped => "geometry.edge-support-curve-untyped",
+            Self::GeometryTolerantEdgeCurveUnread => "geometry.tolerant-edge-curve-unread",
             Self::GeometryPointRecordAmbiguous => "geometry.point-record-ambiguous",
             Self::GeometryPcurveAmbiguous => "geometry.pcurve-ambiguous",
             Self::GeometrySurfaceSolverWorkCapped => "geometry.surface-solver-work-capped",
@@ -435,6 +439,7 @@ impl SldprtLossCode {
             | Self::GeometrySurfaceCarrierAmbiguous
             | Self::GeometryOffsetValidityUnresolved
             | Self::GeometryEdgeSupportCurveUntyped
+            | Self::GeometryTolerantEdgeCurveUnread
             | Self::GeometryPointRecordAmbiguous
             | Self::GeometryPcurveAmbiguous
             | Self::GeometrySurfaceSolverWorkCapped
@@ -507,6 +512,7 @@ impl SldprtLossCode {
             | Self::GeometrySurfaceCarrierAmbiguous
             | Self::GeometryOffsetValidityUnresolved
             | Self::GeometryEdgeSupportCurveUntyped
+            | Self::GeometryTolerantEdgeCurveUnread
             | Self::GeometryPointRecordAmbiguous
             | Self::GeometrySplineLanesUnpaired
             | Self::GeometryParasolidNotTransferred
@@ -741,6 +747,7 @@ mod tests {
                 "geometry.surface-carrier-ambiguous",
                 "geometry.offset-validity-unresolved",
                 "geometry.edge-support-curve-untyped",
+                "geometry.tolerant-edge-curve-unread",
                 "geometry.point-record-ambiguous",
                 "geometry.pcurve-ambiguous",
                 "geometry.surface-solver-work-capped",

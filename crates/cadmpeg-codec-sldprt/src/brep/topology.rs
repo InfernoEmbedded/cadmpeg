@@ -43,6 +43,9 @@ const MAGIC: [u8; 8] = [0xc2, 0xbc, 0x92, 0x8f, 0x99, 0x6e, 0x00, 0x00];
 
 const MAX_SHORT_POINTER_INDEX: u16 = 0x7ffe;
 
+/// The XT null pointer code.
+const NULL_POINTER: u16 = 1;
+
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct Bridge {
     pub(super) attr: u16,
@@ -102,6 +105,11 @@ impl EdgeReferences {
             Self::Bare(refs) => refs[3],
             Self::Compact { curve } => *curve,
         }
+    }
+
+    /// A null support-curve slot marks a tolerant edge, whose fins carry its geometry.
+    pub(super) fn tolerant(&self) -> bool {
+        self.curve() == NULL_POINTER
     }
 }
 
@@ -213,6 +221,11 @@ impl BareHead {
 
     fn finite_tolerance(&self) -> bool {
         View::f64_be_at(&self.tolerance, 0).is_some_and(f64::is_finite)
+    }
+
+    fn positive_tolerance(&self) -> bool {
+        View::f64_be_at(&self.tolerance, 0)
+            .is_some_and(|tolerance| tolerance.is_finite() && tolerance > 0.0)
     }
 }
 
@@ -420,7 +433,9 @@ fn parse_edge_use_candidates(buf: &[u8], off: usize) -> Vec<EdgeUse> {
     let mut out = Vec::new();
     for (head, refs, _) in bare_body_starts(buf, off, 0x10)
         .filter_map(|start| bare_edge(buf, start))
-        .filter(|(head, _, _)| head.null_tolerance())
+        .filter(|(head, refs, _)| {
+            head.null_tolerance() || (refs[3] == NULL_POINTER && head.positive_tolerance())
+        })
     {
         out.push(EdgeUse {
             attr: head.attr,
@@ -1373,7 +1388,9 @@ fn edge_candidate_is_valid(
     let curve = candidate.references.curve();
     let canonical_valid =
         canonical.is_none_or(|canonical| canonical == 0 || coedges.contains_key(&canonical));
-    let curve_valid = curve == 0 || curve_attrs.is_none_or(|attrs| attrs.contains(&curve));
+    // A tolerant reading is selected only as the sole reading of its edge.
+    let curve_valid = !candidate.references.tolerant()
+        && (curve == 0 || curve_attrs.is_none_or(|attrs| attrs.contains(&curve)));
     canonical_valid && curve_valid
 }
 
@@ -3831,3 +3848,6 @@ mod tests {
         assert!(partition.bridges().contains_key(&11));
     }
 }
+
+#[cfg(test)]
+mod tolerant_edge_tests;

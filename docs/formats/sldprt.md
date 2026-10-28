@@ -2952,7 +2952,7 @@ The offset retains the support parameterization and has the same surface sense a
 
 ### 7.6 Tolerant edges and surface-parameter curves
 
-An edge-use whose support-curve slot holds the null `1` is a tolerant edge. Its tolerance slot holds a value rather than the null-real sentinel, and its geometry is carried by its fins: each `00 11` coedge names its own curve in `refs[7]`. Every fin's curve of a tolerant edge is null or a `00 85` bounded curve (§7.2) whose source is a `00 89` SP_CURVE on the fin's face's support surface, and every such edge-use stores a valued tolerance. An ordinary edge's own curve slot can also name an SP_CURVE, bounded or bare.
+An edge-use whose support-curve slot holds the null `1` is a tolerant edge. Its tolerance slot holds a value rather than the null-real sentinel, and its geometry is carried by its fins: each `00 11` coedge names its own curve in `refs[7]`. Every fin's curve of a tolerant edge is null or a `00 85` bounded curve (§7.2) whose source is a `00 89` SP_CURVE on the fin's face's support surface, and every such edge-use stores a valued tolerance. A tolerant edge-use is read only when no other edge-use record in its stream has the same `attr`. An ordinary edge's own curve slot can also name an SP_CURVE, bounded or bare.
 
 ```
 00 89 [ff]? attr  node_id u32  refs[5]  marker u8 (0x2b|0x2d)
