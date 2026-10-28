@@ -4903,8 +4903,9 @@ Surface type `5` and edge type `6` are distinct namespaces. The reference type
 uses the public `ProType` discriminator. An edge reference does not join a
 datum plane because its integer identifier happens to match one. A table's
 `f7` class reference is distinct from the model-item `plane_id`.
-The six-field reference form ends with `sub_index` and `flip_flag`. A schema
-can declare another collection qualifier after the fourth field. A non-null
+The six-integer prefix ends with `sub_index` and `flip_flag`. The selected
+row declaration determines any following fields. A schema can declare another
+collection qualifier after the fourth field. A non-null
 external-reference qualifier, sub-item selector, or unhandled collection
 qualifier requires its own complete grammar before projection. A missing or
 ambiguous typed target does not supply geometry.
@@ -5040,9 +5041,10 @@ section `u` axis, and the intersection of the two plane equations defines the
 section origin. Parallel support planes and non-plane references do not define
 the section axis. The selected reference row supplies its own `ref_type`,
 `seg_id`, and `flip_flag`; fields from another row do not orient the section.
-A positional reference-plane selection requires exactly one row with the
-selected `plane_id`; a duplicate or missing row leaves the section placement
-unresolved.
+A positional reference-plane selection requires exactly one complete
+surface-reference row with the selected `plane_id`. Rows from another
+model-item namespace do not participate in that selection. A duplicate or
+missing eligible row leaves the reference-derived section placement unresolved.
 
 A linear section frame is also complete when at least two distinct solved arc
 centers bind through same-feature class-200 entries to complete positional

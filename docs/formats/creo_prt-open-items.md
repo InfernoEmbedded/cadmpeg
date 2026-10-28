@@ -537,9 +537,9 @@ Entity-orientation and point-alignment constraint families are distinct.
 
 ### SP-17. Solver-only external references
 
-**Question.** What complete schema and projection rules handle qualified
-external `ref_planes` rows, including a collection qualifier or non-null
-`ext_ref_id` or `sub_index`, while preserving their typed model-item namespace?
+**Question.** What complete declaration and replay grammar certifies
+`ref_planes` rows and their projection, including mixed model-item namespaces,
+a collection qualifier, or non-null `ext_ref_id` or `sub_index`?
 
 **Known.** A complete `gsec3d_ptr.ref_planes` row binds its fourth field,
 `known_ext_id` or `seg_id`, to the known section-entity identifier. The typed
@@ -548,9 +548,12 @@ and `flip_flag`. Surface and edge references are distinct from table-class,
 point-key, relation, and dimension namespaces. Missing local `segtab` geometry
 does not prove an external binding. A counted class reference is not a
 model-item identifier. The section location frame is a separate projection
-input.
+input. A row declaration can continue after `flip_flag` with a
+`save_entity_ptr(line)` object. A six-integer prefix and a declared row count
+do not certify that complete declaration or its replay binding.
 
-**Need.** We must own the complete row schema and any qualifiers before
+**Need.** Establish the selected row-class declaration, field order, complete
+row boundaries, declared table cardinality, and all nested fields before
 looking up and projecting the typed model item. Missing or multiple candidate
 rows, unknown types, unhandled qualifiers, or an unresolved section frame must
 retain native geometry instead of selecting a same-valued datum or class ID.
