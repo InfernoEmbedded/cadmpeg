@@ -643,8 +643,10 @@ A contour binds to the unique closed successor loop on the same surface
 reference and in the same topology namespace that contains its curve-header
 reference. A complete classification requires a bijection between the stored
 contours and those loops. A missing or ambiguous join does not classify a
-loop. Several outer contours on one carrier do not by themselves assign each
-inner contour to a distinct bounded face instance.
+loop. When the classification is complete, each `trv = 01` contour bounds a
+separate face instance on that surface; the instances share the surface
+carrier. Several outer contours on one carrier do not by themselves assign
+each inner contour to a distinct bounded face instance.
 A `geom_type = 22`, `boundary_type = 01`, `next_geom_ptr = 0` row is an
 unbounded feature plane. When it is the unique plane row carrying its
 `feat_id`, its placed carrier is the datum-plane definition for that feature.

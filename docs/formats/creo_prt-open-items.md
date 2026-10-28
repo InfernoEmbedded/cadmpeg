@@ -821,20 +821,21 @@ remains unresolved.
 
 ### TP-06. Shared-surface face partition
 
-**Question.** Which source-owned reference partitions several outer loops of
-one surface carrier into separate face instances and assigns their inner loops?
+**Question.** Which source-owned reference assigns each inner loop of a surface
+carrier to one of several outer-loop face instances?
 
-**Known.** A surface carrier identity does not identify one bounded face
-instance. Complete same-surface contour/closed-loop joins distinguish stored
-outer and inner roles. A parameter-envelope containment test only filters
-candidate owners: a circle inside a concave polygon's bounding box can remain
-outside the polygon. Independent complete boundary containment can corroborate
-a partition when both boundaries share a proved chart.
+**Known.** `creo_prt.md` §3 "A contour binds to the unique closed successor
+loop" defines the outer and inner contour roles and one face instance per
+outer contour of a complete classification. A surface carrier identity does not
+identify one bounded face instance. A parameter-envelope containment test only
+filters candidate owners: a circle inside a concave polygon's bounding box can
+remain outside the polygon. Independent complete boundary containment can
+corroborate an assignment when both boundaries share a proved chart.
 
 **Need.** Establish a complete owner reference or common-chart geometric
 containment for every inner-to-outer assignment. Preserve distinct outer
 instances and all unmatched contours. Partial joins, bounding boxes, and
-surface identity alone must not admit a face partition.
+surface identity alone must not admit an assignment.
 
 ### TP-07. `lo_restore.direction`
 
