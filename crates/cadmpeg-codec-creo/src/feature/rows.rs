@@ -13,6 +13,7 @@ use crate::scalar;
 
 use super::dimensions::{ModelDimension, ANGULAR_DIMENSION_TYPE};
 use super::helpers::decode_exact_scalars;
+use super::operations::FeatureRecipe;
 use super::schema::SchemaClass;
 
 /// One byte-bounded positional `AllFeatur` row for a known model feature.
@@ -32,6 +33,43 @@ pub(crate) struct FeatureRow {
     pub(crate) body_offset: usize,
     /// Byte offset of the feature identifier in the original stream.
     pub(crate) offset: usize,
+}
+
+impl FeatureRow {
+    /// Offset in `body` immediately after the fixed `e3 f6 <class> e1` prefix.
+    fn schema_prefix_end(&self) -> Option<usize> {
+        (0..self.body.len().min(20)).find_map(|offset| {
+            if self.body.get(offset..offset + 2) != Some(&[0xe3, 0xf6]) {
+                return None;
+            }
+            let (schema_class, after) = psb::compact_int(&self.body, offset + 2);
+            (Some(SchemaClass::from(schema_class)) == self.root_schema_class
+                && self.body.get(after) == Some(&0xe1))
+            .then_some(after + 1)
+        })
+    }
+
+    /// Stored `feat_type_ptr.form`.
+    pub(crate) fn feature_form(&self) -> Option<u32> {
+        psb::complete_compact_int(&self.body, self.schema_prefix_end()?).map(|(form, _)| form)
+    }
+
+    /// Section-sweep recipe that a class-916 or class-917 row states through
+    /// its feature form: `1` is a linear sweep and `2` a rotational sweep.
+    pub(crate) fn section_sweep_form_recipe(&self) -> Option<FeatureRecipe> {
+        let rotational = match self.feature_form()? {
+            1 => false,
+            2 => true,
+            _ => return None,
+        };
+        match (self.root_schema_class?, rotational) {
+            (SchemaClass::Protrusion, false) => Some(FeatureRecipe::ProtrudeExtrude),
+            (SchemaClass::Protrusion, true) => Some(FeatureRecipe::ProtrudeRevolve),
+            (SchemaClass::Cut, false) => Some(FeatureRecipe::CutExtrude),
+            (SchemaClass::Cut, true) => Some(FeatureRecipe::CutRevolve),
+            _ => None,
+        }
+    }
 }
 
 /// Row bytes with a complete two-byte header.
@@ -1671,18 +1709,10 @@ pub(crate) fn revolution_extents(
         ) {
             continue;
         }
-        let Some(schema_end) = (0..row.body.len().min(20)).find_map(|offset| {
-            if row.body.get(offset..offset + 2) != Some(&[0xe3, 0xf6]) {
-                return None;
-            }
-            let (schema_class, after) = psb::compact_int(&row.body, offset + 2);
-            (Some(SchemaClass::from(schema_class)) == row.root_schema_class
-                && row.body.get(after) == Some(&0xe1))
-            .then_some(after + 1)
-        }) else {
+        let Some(schema_end) = row.schema_prefix_end() else {
             continue;
         };
-        if row.body.get(schema_end) != Some(&2) {
+        if row.feature_form() != Some(2) {
             continue;
         }
         let Some(choice_start) = find_in(

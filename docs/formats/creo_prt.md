@@ -3597,7 +3597,8 @@ surface-of-revolution reductions require `ratio = 1`.
 `MdlStatus` item names can contain feature-kind text as `<Kind> id <N>`. A
 name alone does not select a current native candidate; same-ID names project a
 common operation only under the agreement rule below. A generic material name
-describes a sweep family only through an admitted recipe. Kind names include
+describes a sweep family only through an admitted recipe or the feature form
+of its section-sweep row. Kind names include
 `Annotation Feature`, `Cross Section`, `Datum Plane`, `Round`, `Chamfer`,
 `Protrusion`, `Extrude`, `Revolve`, `Hole`, `Cut`, `Draft`, `Mirror`, and
 `Surface`. Reference-backed `Thicken <decimal-ordinal>` and
@@ -3646,7 +3647,12 @@ that creates curves at the intersections of two selected shape sets.
 `Protrusion` and `Cut` identify generic material-addition and material-removal
 labels, not a linear or rotational family. For example, the panel-lamp source
 stores `protrevolve` beside `Protrusion id 667`; that stored state does not by
-itself establish the current recipe. Without an independently admitted current
+itself establish the current recipe. When every `AllFeatur` row of the
+feature is a class-916 or class-917 row with the same `feat_type_ptr.form`,
+that form is an independent family: form `1` selects extrusion and form `2`
+selects rotation. A stored
+recipe of the other family conflicts with the form, and neither then selects
+the family. Without an independently admitted current
 procedural family, retain a generic material feature as Native with its
 parameters and source identity. An admitted `protextrude` or `cutextrude`
 selects extrusion, while `protrevolve` or `cutrevolve` selects rotation;
@@ -3969,7 +3975,7 @@ row-shaped bytes inside an existing row do not create a boundary.
 
 The root schema class dispatches the row to its operation-definition grammar.
 Class 916 is a subtractive section-sweep definition and class 917 is an
-additive section-sweep definition; their recipes discriminate linear
+additive section-sweep definition; their feature form and recipes discriminate linear
 extrusion from rotation. Class 911 is a hole definition, class 913 is a round definition,
 class 914 is a chamfer definition, class 923 is a datum-plane definition, and
 class 926 is a saved section. In a DEPDB recipe prefix, the root schema class
@@ -4057,8 +4063,9 @@ new-body semantics. A hole,
 round, chamfer, or joining sweep without a body output does not establish a
 body for subsequent Boolean classification.
 
-In a class-916 or class-917 positional feature row, feature form `2` selects a
-rotational section sweep. Its `param_choice_ptr` body begins after
+In a class-916 or class-917 positional feature row, feature form `1` selects a
+linear section sweep and feature form `2` selects a rotational section sweep.
+The rotational row's `param_choice_ptr` body begins after
 `83 df f6 e3` and stores the choices in the labelled prototype order. The
 `angle_choice` lane contains a termination-mode bit mask. For this lane,
 `ea` introduces three big-endian mask bytes and `eb` introduces four.

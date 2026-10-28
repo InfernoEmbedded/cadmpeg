@@ -93,3 +93,96 @@ fn admitted_recipe_selects_the_generic_material_family() {
         }
     }
 }
+
+fn section_sweep_row(
+    class: SchemaClass,
+    class_bytes: &[u8],
+    form: u8,
+) -> crate::feature::rows::FeatureRow {
+    let mut body = vec![0x90, 0x00, 0x00, 0x98, 0x00, 0xe3, 0xf6];
+    body.extend_from_slice(class_bytes);
+    body.extend_from_slice(&[0xe1, form, 0x00]);
+    crate::feature::rows::FeatureRow {
+        feature_id: 824,
+        root_schema_class: Some(class),
+        stream_offset: 0,
+        body: body.try_into().expect("row body"),
+        body_offset: 0,
+        offset: 0,
+    }
+}
+
+#[test]
+fn section_sweep_row_form_selects_the_generic_material_family() {
+    let ir = CadIr::empty();
+    let carriers = crate::decode::source_carriers::SourceUnitCarriers::default();
+    for (class, class_bytes, kind) in [
+        (SchemaClass::Protrusion, [0x83, 0x95], "Protrusion"),
+        (SchemaClass::Cut, [0x83, 0x94], "Cut"),
+    ] {
+        for (form, family) in [
+            (1, FeatureRecipeKind::Extrude),
+            (2, FeatureRecipeKind::Revolve),
+        ] {
+            let mut scan = crate::test_support::empty_container_scan();
+            scan.features
+                .rows
+                .push(section_sweep_row(class, &class_bytes, form));
+            let named = crate::decode::with_service_context(|ctx| {
+                named_feature_definition(ctx, &scan, &ir, &carriers, 824, kind)
+            })
+            .expect("row form family")
+            .expect("row form projects the family");
+            let schema = crate::decode::with_service_context(|ctx| {
+                schema_feature_definition(ctx, &scan, &ir, &carriers, 824, Some(class), kind)
+            })
+            .expect("row form schema family");
+            for definition in [named, schema] {
+                match family {
+                    FeatureRecipeKind::Extrude => assert!(matches!(
+                        definition,
+                        FeatureDefinition::Operation(IrOperation::Extrude { .. })
+                    )),
+                    FeatureRecipeKind::Revolve => assert!(matches!(
+                        definition,
+                        FeatureDefinition::Operation(IrOperation::Revolve { .. })
+                    )),
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn other_row_forms_and_disagreeing_recipes_select_no_family() {
+    let ir = CadIr::empty();
+    let carriers = crate::decode::source_carriers::SourceUnitCarriers::default();
+    let mut scan = crate::test_support::empty_container_scan();
+    scan.features
+        .rows
+        .push(section_sweep_row(SchemaClass::Protrusion, &[0x83, 0x95], 4));
+    let definition = crate::decode::with_service_context(|ctx| {
+        named_feature_definition(ctx, &scan, &ir, &carriers, 824, "Protrusion")
+    })
+    .expect("unknown form");
+    assert!(definition.is_none());
+
+    let mut scan = crate::test_support::empty_container_scan();
+    scan.features
+        .rows
+        .push(section_sweep_row(SchemaClass::Protrusion, &[0x83, 0x95], 1));
+    scan.features.operations.push(FeatureOperation {
+        feature_id: 824,
+        kind: OperationKind::Stored("Protrusion".to_owned()),
+        name: OperationName::Derived,
+        recipe: RecipeResolution::Resolved(FeatureRecipe::ProtrudeRevolve),
+        display_state_conflict: false,
+        depdb: None,
+        offset: 1,
+    });
+    let definition = crate::decode::with_service_context(|ctx| {
+        named_feature_definition(ctx, &scan, &ir, &carriers, 824, "Protrusion")
+    })
+    .expect("disagreeing recipe");
+    assert!(definition.is_none());
+}
