@@ -3164,7 +3164,7 @@ Parsed by:
 | -----: | ---: | ----- | ---- | ------ | --- | ------- |
 | 92 | 4 | `a` | `u32` | little | spec | `A` at `M+0x5c` |
 | 96 | 4 | `one` | `u32` | little | spec | u32 LE `1` at `M+0x60` · value `1` |
-| 100 | 4 | `independent_word` | `u32` | little | spec | independent u32 word at `M+0x64` |
+| 100 | 4 | `face_key` | `u32` | little | spec | a face key `K` as u32 LE at `M+0x64` |
 | 104 | 4 | `b` | `u32` | little | spec | `B` at `M+0x68` |
 | 108 | 4 | `c` | `u32` | little | spec | `C` at `M+0x6c` |
 | 112 | 16 | `tuple` | `bytes[16]` | little | spec | four-f32 LE tuple at `M+0x70` |

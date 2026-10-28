@@ -2691,6 +2691,8 @@ pub(crate) mod display_lists_extended_metadata {
     pub(crate) const ONE: usize = 96;
     /// Stated value of `one` (`u32`). Spec §8.
     pub(crate) const ONE_VALUE: u32 = 0x0000_0001;
+    /// Offset of `face_key` (`u32`, little-endian). Spec §8.
+    pub(crate) const FACE_KEY: usize = 100;
     /// Offset of `b` (`u32`, little-endian). Spec §8.
     pub(crate) const B: usize = 104;
     /// Offset of `c` (`u32`, little-endian). Spec §8.

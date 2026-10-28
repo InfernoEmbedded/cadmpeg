@@ -99,6 +99,8 @@ pub(crate) struct Brep {
     /// Per-face producing-feature identities resolved from Parasolid attributes.
     pub(crate) face_atoms: Vec<attrib::FaceAtom>,
     pub(crate) native_face_identities: Vec<attrib::NativeIdentity<FaceId>>,
+    /// Per-face `DisplayLists` table keys resolved from Parasolid attributes.
+    pub(crate) face_keys: Vec<(FaceId, u32)>,
     pub(crate) native_body_identities: Vec<attrib::NativeIdentity<BodyId>>,
     /// Source-local sequence-to-attribute links carried by face bridge
     /// records. The decode boundary retains this map only for the active
@@ -352,6 +354,9 @@ impl Brep {
         }
         for identity in &mut self.native_face_identities {
             identity.target = qualified(&identity.target, &tail)?;
+        }
+        for (face, _) in &mut self.face_keys {
+            *face = qualified(face, &tail)?;
         }
         for identity in &mut self.native_body_identities {
             identity.target = qualified(&identity.target, &tail)?;
@@ -1232,6 +1237,7 @@ fn append_entity_facts(target: &mut entity::Facts, mut source: entity::Facts) {
     target.face_atoms.append(&mut source.face_atoms);
     target.face_payloads.append(&mut source.face_payloads);
     target.body_payloads.append(&mut source.body_payloads);
+    target.face_keys.append(&mut source.face_keys);
     target.body_modifiers.append(&mut source.body_modifiers);
     target.entity_count += source.entity_count;
     target.unresolved_face_colors += source.unresolved_face_colors;
@@ -2530,6 +2536,14 @@ fn decode_graph(
                 target: (*face).clone(),
                 values,
             });
+        }
+    }
+    for (owner, values) in attrib::unique_payloads(entity_facts.face_keys) {
+        if let (Some(face), [key]) = (
+            emitted_faces.get(id_face(owner).as_str()),
+            values.as_slice(),
+        ) {
+            out.face_keys.push(((*face).clone(), *key));
         }
     }
     let mut bound_faces = HashSet::new();

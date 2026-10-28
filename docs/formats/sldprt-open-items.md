@@ -170,11 +170,13 @@ A later `PS\0\0` is a boundary only when the bytes from that position contain a 
 
 ### AL-01. DisplayLists face ranges
 
-**Question.** How does a B-rep face attribute select its triangle range in a DisplayLists block?
+**Question.** How does a B-rep face select its triangle range in a DisplayLists block when no face key joins them?
 
-**Known.** `sldprt.md` §7.3 "**`00 28` chart**" defines the DisplayLists descriptor table, strip lengths, and triangle-count relations. `sldprt.md` §4 "Primary ownership chain:" defines the B-rep face topology. `sldprt.md` §8 defines the complete persistent identity path carried by matching B-rep attributes and DisplayLists references, as well as unambiguous ownership from incidence with one analytic or NURBS face support and from complete bounded planar, cylindrical, and conical trims. Procedural, polygonal, opaque, and non-exact NURBS supports, other coincident trims, and tables without a complete matching identity do not supply the stored face-range mapping.
+**Known.** `sldprt.md` §7.3 "**`00 28` chart**" defines the DisplayLists descriptor table, strip lengths, and triangle-count relations. `sldprt.md` §4 "Primary ownership chain:" defines the B-rep face topology. `sldprt.md` §8 "The FACE owner of an `SWEntUnchanged` ATTRIBUTE" defines the face-key join: the integer field of an `SWEntUnchanged` ATTRIBUTE on a FACE equals the u32 at `M+0x64` of the table that face owns, when `M+0x60` is `1` and exactly one table and one current FACE carry the key. `sldprt.md` §5 "`SWEntUnchanged` has definition field codes `[1]`." defines the key family. `sldprt.md` §8 also defines the complete persistent identity path carried by matching B-rep attributes and DisplayLists references, as well as unambiguous ownership from incidence with one analytic or NURBS face support and from complete bounded planar, cylindrical, and conical trims. Procedural, polygonal, opaque, and non-exact NURBS supports, other coincident trims, and tables without a key or a complete matching identity do not supply the stored face-range mapping.
 
-**Need.** We must know the stored mapping to attach tables whose support is ambiguous or unsupported, including non-exact NURBS caches, and carry no complete matching persistent identity.
+**Need.** We must know the stored mapping to attach tables that carry no unique face key, whose support is ambiguous or unsupported, including non-exact NURBS caches, and that carry no complete matching persistent identity.
+
+**Note.** In native dictionaries the `SDL/TYSA_DENSITY` KEY can precede the `SWEntUnchanged` definition. The definition `identifier`, not adjacency, names the family (`sldprt.md` §5 "A definition is named by its `identifier`").
 
 ### AL-03. DisplayLists renderer flag meanings
 

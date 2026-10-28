@@ -12203,11 +12203,11 @@ anchor = "u32 LE `1` at `M+0x60`"
 value = 1
 
 [[record.field]]
-name = "independent_word"
+name = "face_key"
 offset = 100
 type = "u32"
 source = "spec"
-anchor = "independent u32 word at `M+0x64`"
+anchor = "a face key `K` as u32 LE at `M+0x64`"
 
 [[record.field]]
 name = "b"

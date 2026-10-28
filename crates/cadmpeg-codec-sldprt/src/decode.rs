@@ -2330,6 +2330,7 @@ fn merge_brep(target: &mut Brep, mut source: Brep) -> Result<(), CodecError> {
     target
         .native_face_identities
         .append(&mut source.native_face_identities);
+    target.face_keys.append(&mut source.face_keys);
     target
         .native_body_identities
         .append(&mut source.native_body_identities);
@@ -3050,6 +3051,7 @@ fn build_geometry_ir(
     let mut matched_feature_sources = native_appearance_plan.feature_sources.clone();
     let mut conflicting_display_references = Vec::new();
     let mut persistent_face_bindings = Vec::new();
+    let mut face_key_bindings = Vec::new();
     let mut display_appearance_ranks = BTreeMap::new();
     for (display, display_faces) in display_sections {
         if display_faces.is_empty() {
@@ -3081,12 +3083,25 @@ fn build_geometry_ir(
             matched_feature_sources.insert(source);
         }
         let mut display_links = Vec::new();
-        for (table_index, display_face) in display_faces.into_iter().enumerate() {
+        let face_keys = (0..display_faces.len())
+            .map(|index| {
+                crate::tessellation::display_face_key(display.payload(), &display_faces, index)
+            })
+            .collect::<Vec<_>>();
+        for ((table_index, display_face), face_key) in
+            display_faces.into_iter().enumerate().zip(face_keys)
+        {
             let id = format!(
                 "sldprt:displaylist:record#{}:{}",
                 display.ordinal(),
                 table_index
             );
+            if let Some(key) = face_key {
+                face_key_bindings.push(crate::tessellation::FaceKeyBinding {
+                    tessellation: id.clone(),
+                    key,
+                });
+            }
             if let Some(identity) = display_face.persistent_surface_identity() {
                 persistent_face_bindings.push(crate::tessellation::PersistentFaceBinding {
                     tessellation: id.clone(),
@@ -3171,11 +3186,16 @@ fn build_geometry_ir(
     ) {
         pmi_losses.push(SldprtLossCode::AppearanceAssignmentUnresolved.note(message));
     }
-    let mut assigned_tessellations = crate::tessellation::assign_persistent_owners(
+    let mut assigned_tessellations = crate::tessellation::assign_face_key_owners(
+        &mut ir.model,
+        &brep.face_keys,
+        &face_key_bindings,
+    );
+    assigned_tessellations.extend(crate::tessellation::assign_persistent_owners(
         &mut ir.model,
         &face_identities,
         &persistent_face_bindings,
-    );
+    ));
     let remaining_assignments =
         crate::tessellation::assign_unique_surface_owners(ctx, &mut ir.model, &mut pmi_losses)?;
     assigned_tessellations.extend(remaining_assignments);
