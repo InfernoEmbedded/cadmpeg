@@ -461,6 +461,8 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Need.** Bind the complete Merge carrier to its owning feature with independent true and false controls. Retain unresolved operations when the carrier is unavailable.
 
+**Conflict.** For an unresolved solid sweep, the compact binder still projects Join when every owned lane supplies word `15`. An owned unknown, malformed or ambiguous lane prevents that consensus, but agreement on word `15` does not supply the independent Merge Boolean carrier required here.
+
 ### DI-31. Native neutral-plane Draft direction reversal and outward flag
 
 **Question.** Which native fields identify direction reversal and an independent outward flag of a neutral-plane Draft when Keywords omits them?
@@ -476,6 +478,8 @@ Two omitted owner-qualified construction circles have separate current/extended 
 **Known.** The complete 136-byte token-terminated eight-scalar form stores its unit vector at +64. Its trailer and next-object boundary select the width. An overlapping unit triple does not select another width. The raw display-spacing fields and bare history literals are separate carriers; a new direction does not establish the literals' length unit.
 
 **Need.** Bind the complete dimension-record framing, feature owner, role and unit before enabling a pattern extent. Preserve unknown directions or spacing semantics when those joins are unavailable. Do not apply a document-wide scale from numeric agreement.
+
+**Conflict.** The compact direction reader has no discriminator for the complete 136-byte token-terminated framing. Its callers supply a feature interval, not proof of each inner record boundary. Pattern spacing callers also accept bare positive history literals as millimetres; a newly selected direction does not establish that unit or authorize a pattern extent.
 
 ### DI-34. SWIFT implicit nominal construction
 
