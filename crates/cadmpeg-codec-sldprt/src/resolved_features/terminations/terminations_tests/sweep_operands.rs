@@ -331,7 +331,7 @@ fn unsupported_solid_child_retains_identity_without_producer_binding() {
             });
         }
         let prefix = input.direct_prefix;
-        input.lane.native_payload[prefix..prefix + 2].copy_from_slice(&0x8d9bu16.to_le_bytes());
+        input.lane.native_payload[prefix..prefix + 2].copy_from_slice(&0x0d9bu16.to_le_bytes());
         apply(&mut input);
         assert!(
             matches!(input.features[2].evaluation.definition(), FeatureDefinition::Operation(FeatureOperation::Sweep { path: Some(PathRef::Native(id)), .. }) if id == "sldprt:feature-input:component-reference-curve:7:600")
