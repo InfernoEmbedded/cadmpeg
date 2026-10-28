@@ -1139,9 +1139,13 @@ and dictionary slots `0..255`. A first code of 480 violates that state; a later
 code beyond the next free dictionary slot also violates it. These failures can
 occur in complete TOC-bounded bodies whose two stored checksum lanes agree.
 Successful ordinary streams in the same container do not select a different
-dictionary for such a body. The stored bytes remain opaque.
+dictionary for such a body. The TOC tag `c` is a candidate discriminator;
+it does not define a compression algorithm or initial dictionary. Matching
+payload checksums do not validate the declared expanded length. The stored
+bytes remain opaque.
 
-**Need.** Define the method selector and complete decoding state, then verify
+**Need.** Establish whether the TOC tag selects an encoding, define its
+complete decoding state, then verify
 the declared output length and a fully consumed record grammar with an
 independent decoder. A partial output, valid magic prefix, or printable run
 does not establish the substrate.

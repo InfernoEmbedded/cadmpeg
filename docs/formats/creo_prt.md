@@ -243,6 +243,14 @@ row fields and `#` padding do not change the section extent. A continuation
 TOC uses the same header-relative offset base as the first TOC; its own
 position does not become a new base.
 
+The two trailing hexadecimal checksum fields of a version-2 TOC row cover
+the stored payload after the section header. They include the compression
+magic bytes when present. Start two unsigned 16-bit accumulators at zero.
+For each payload byte, add the byte to the first accumulator, then add the
+first accumulator to the second. Both additions wrap modulo 65536. The
+first checksum field stores the first accumulator; the second stores the
+second accumulator. These checksums do not validate an expansion.
+
 A section payload beginning `1f 9d <flags>` uses Unix `compress` LZW framing.
 The low five flag bits give the maximum code width from 9 through 16; bit 7
 enables block mode. In block mode, code 256 clears the dictionary. Without
