@@ -195,9 +195,9 @@ display name, or an API-enum cast.
 
 **Question.** How does a replay-bound `tab_cyl` select its placement when its axis span matches neither directrix-coordinate range uniquely?
 
-**Known.** `creo_prt.md` §3.2 "A repeated `tab_cyl` cubic-curve replay has this structure:" defines the repeated cubic replay and the unique axis-span placement cases.
+**Known.** `creo_prt.md` §3.2 "A repeated `tab_cyl` cubic-curve replay has this structure:" defines the repeated cubic replay, the unique axis-span placement cases, and the paired short second-coordinate form. A span mismatch caused by the unpaired reading of a paired short token is not a placement ambiguity.
 
-**Need.** We must know the selection rule to place the surface in model space.
+**Need.** Establish whether each remaining span mismatch has a scalar cause before a selection rule is defined, and place the surface in model space only through a unique chart.
 
 ### GS-08. Unresolved `fc 02` bodies
 

@@ -6173,6 +6173,35 @@ pub(crate) fn decode_tabulated_cylinder_frame(
     Some((TabulatedCylinderFrame::new(values, prefixes)?, cursor))
 }
 
+/// Decode a seven-byte `4d`, `50`, or `54` second directrix coordinate that
+/// omits IEEE byte one. Exactly one owner-frame `41 <byte 1> <tail>` scalar
+/// with the same six-byte tail supplies the value.
+fn paired_short_second_coordinate(
+    body: &[u8],
+    offset: usize,
+    frame: &TabulatedCylinderFrame,
+) -> Option<(f64, usize)> {
+    const PAIRED_SHORT_OPENERS: [u8; 3] = [0x4d, 0x50, 0x54];
+    const FULL_PARTNER_OPENER: u8 = 0x41;
+    const FULL_PARTNER_IEEE_BYTE_0: u8 = 0x3f;
+    PAIRED_SHORT_OPENERS
+        .contains(body.get(offset)?)
+        .then_some(())?;
+    let tail = body.get(offset + 1..offset + 7)?;
+    let mut partners = frame
+        .prefixes()
+        .into_iter()
+        .zip(frame.values().get())
+        .filter(|&(prefix, value)| {
+            let bytes = value.to_be_bytes();
+            prefix == FULL_PARTNER_OPENER
+                && bytes[0] == FULL_PARTNER_IEEE_BYTE_0
+                && bytes[2..] == *tail
+        });
+    let (_, value) = partners.next()?;
+    partners.next().is_none().then_some((value, offset + 7))
+}
+
 /// Decode the cubic curve replay owned by the preceding positional
 /// `geom_type = 2c` tabulated-cylinder row.
 pub(crate) fn tabulated_cylinder_curve_replays(
@@ -6272,15 +6301,6 @@ pub(crate) fn tabulated_cylinder_curve_replays(
         if bodies.iter().any(|body| body.is_empty()) {
             continue;
         }
-        let decode_point = |body: &[u8]| {
-            let (first, after_first) =
-                scalar::decode_tabulated_cylinder_first_coordinate(body, 0, &cache)?;
-            let (second, end) =
-                scalar::decode_tabulated_cylinder_second_coordinate(body, after_first, &cache)?;
-            (end == body.len() && first.is_finite() && second.is_finite())
-                .then_some([first, second])
-        };
-        let control_points = std::array::from_fn(|index| decode_point(bodies[index]));
         let Some(owner) = surface_rows
             .iter()
             .rev()
@@ -6291,6 +6311,22 @@ pub(crate) fn tabulated_cylinder_curve_replays(
         if owner.kind != SurfaceKind::Extrusion(ExtrusionVariant::TabulatedCylinder) {
             continue;
         }
+        let owner_frame =
+            decode_tabulated_cylinder_frame(&payload[owner.offset..replay_offset], &cache)
+                .map(|(frame, _)| frame);
+        let decode_point = |body: &[u8]| {
+            let (first, after_first) =
+                scalar::decode_tabulated_cylinder_first_coordinate(body, 0, &cache)?;
+            let (second, end) = owner_frame
+                .as_ref()
+                .and_then(|frame| paired_short_second_coordinate(body, after_first, frame))
+                .or_else(|| {
+                    scalar::decode_tabulated_cylinder_second_coordinate(body, after_first, &cache)
+                })?;
+            (end == body.len() && first.is_finite() && second.is_finite())
+                .then_some([first, second])
+        };
+        let control_points = std::array::from_fn(|index| decode_point(bodies[index]));
         let Some(last_control_point) = control_point_start.checked_add(3) else {
             continue;
         };

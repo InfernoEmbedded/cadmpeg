@@ -1608,6 +1608,11 @@ Negative prefixes `a4..a6`, `a7..b1`, and `b2..c7` add to `BF2B`, `BF2C`, and
 `BF2E`, `BF2F`, and `BF32`, respectively. Prefixes `2c`, `4c..4d`, `50`, and `54` reconstruct
 `3F <tail6> 00`; `45` reconstructs `BF <tail6> 00`; `28` and `41`
 reconstruct `3F <tail7>`.
+A second-coordinate `4d <tail6>`, `50 <tail6>`, or `54 <tail6>` point token
+omits IEEE byte one when the owning row's six-scalar frame contains exactly one
+`41 <byte1> <tail6>` slot with the same six-byte tail. The token then
+reconstructs `3F <byte1> <tail6>`, the value of that frame slot. Without such a
+unique frame partner, the token uses the `3F <tail6> 00` form.
 
 A replay-bound six-scalar frame stores two opposite corners of the directrix
 and extrusion bounds. Slots zero and three use the first directrix-coordinate
