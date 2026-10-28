@@ -520,9 +520,8 @@ Two omitted owner-qualified construction circles have separate current/extended 
 `DissectableChildren` do not identify a sketch?
 
 **Known.** An explicit `Profile` attribute or a single dissected sketch child
-binds the profile. Source identifiers order feature records, but ordering alone
-does not establish that an earlier sketch is the extrusion's regeneration
-input.
+binds the profile. Source identifiers identify feature records. Feature order alone does not
+establish that an earlier sketch is the extrusion's regeneration input.
 
 **Need.** We must decode the profile dependency before projecting the extrusion
 with a neutral sketch profile.
