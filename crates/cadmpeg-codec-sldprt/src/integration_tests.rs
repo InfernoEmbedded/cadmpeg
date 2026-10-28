@@ -604,3 +604,5 @@ mod terminal_edge_ownership;
 mod default_properties;
 
 mod weldment_refusal;
+
+mod partition_sketches;

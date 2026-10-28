@@ -5882,7 +5882,10 @@ Parsed by:
 | Offset | Size | Field | Type | Endian | Src | Meaning |
 | -----: | ---: | ----- | ---- | ------ | --- | ------- |
 | 0 | 11 | `indexed_header` | `bytes[11]` | little | spec | The ordinary two-member rigid-group |
-| 11 | 11 | `zero_run_11` | `bytes[11]` | little | spec | The ordinary two-member rigid-group |
+| 11 | 8 | `zero_run_8` | `bytes[8]` | little | spec | The ordinary two-member rigid-group |
+| 19 | 1 | `leading_block_presence` | `u8` | little | spec | The ordinary two-member rigid-group · value `0` |
+| 20 | 1 | `property_block_presence` | `u8` | little | spec | The ordinary two-member rigid-group · value `0` |
+| 21 | 1 | `zero_separator` | `u8` | little | spec | The ordinary two-member rigid-group · value `0` |
 | 22 | 11 | `pathless_locator_reference` | `bytes[11]` | little | spec | The ordinary two-member rigid-group |
 | 33 | 4 | `zero_run_33` | `bytes[4]` | little | spec | The ordinary two-member rigid-group |
 | 37 | 4 | `locator_count` | `u32` | little | spec | The ordinary two-member rigid-group |
@@ -6829,14 +6832,16 @@ Spec §Assembly operands · layout: byte offsets · size: 67 B
 The alternate ordinary prologue through its first two member references. Offsets are relative to the primary indexed header.
 
 Parsed by:
-- `crates/cadmpeg-codec-f3d/src/design/decode/scopes/parameter_scope.rs`
+- `crates/cadmpeg-codec-f3d/src/design/assembly.rs`
 
 | Offset | Size | Field | Type | Endian | Src | Meaning |
 | -----: | ---: | ----- | ---- | ------ | --- | ------- |
 | 0 | 11 | `indexed_header` | `bytes[11]` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed |
-| 11 | 9 | `zero_run_9` | `bytes[9]` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed |
-| 20 | 1 | `constant_one` | `u8` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed · value `1` |
-| 21 | 5 | `zero_run_5` | `bytes[5]` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed |
+| 11 | 8 | `zero_run_8` | `bytes[8]` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed |
+| 19 | 1 | `leading_block_presence` | `u8` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed · value `0` |
+| 20 | 1 | `property_block_presence` | `u8` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed · value `1` |
+| 21 | 4 | `property_count` | `u32` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed · value `0` |
+| 25 | 1 | `zero_separator` | `u8` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed · value `0` |
 | 26 | 11 | `pathless_locator_reference` | `bytes[11]` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed |
 | 37 | 4 | `zero_run_4` | `bytes[4]` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed |
 | 41 | 4 | `locator_count` | `u32` | little | spec | An alternate ordinary prologue stores nine zero bytes after its indexed |
@@ -6925,6 +6930,169 @@ Parsed by:
 | 74 | 51 | `wrapper_reference` | `bytes[51]` | little | spec | The null-construction identity form |
 | 125 | 4 | `discriminator` | `u32` | little | spec | The null-construction identity form |
 | 129 | 2 | `zero_tail` | `bytes[2]` | little | spec | The null-construction identity form |
+
+## `legacy_attributed_external_placement_prefix`
+
+Spec §1.4 · layout: byte offsets · size: 88 B
+
+Offsets are relative to the primary indexed header.
+
+Parsed by:
+- `crates/cadmpeg-codec-f3d/src/xref.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `class_tag_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `3` |
+| 4 | 3 | `class_tag` | `bytes[3]` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 7 | 8 | `entity` | `u64` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 15 | 4 | `instance_name_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+| 19 | 1 | `path_marker` | `u8` | little | spec | An attributed legacy occurrence placement with a zero control word · value `1` |
+| 20 | 4 | `path_count` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `1` |
+| 24 | 60 | `target_reference` | `bytes[60]` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 84 | 4 | `path_discriminator` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word |
+
+## `legacy_attributed_external_placement_empty_attributes`
+
+Spec §1.4 · layout: byte offsets · size: 5 B
+
+Offsets are relative to the byte after the path discriminator.
+
+Parsed by:
+- `crates/cadmpeg-codec-f3d/src/xref.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `marker` | `u8` | little | spec | An attributed legacy occurrence placement with a zero control word · value `1` |
+| 1 | 4 | `count` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+
+## `legacy_attributed_external_placement_attributes`
+
+Spec §1.4 · layout: byte offsets · size: 137 B
+
+Offsets are relative to the byte after the path discriminator. The resolution value is the zero UTF-16 code-unit count.
+
+Parsed by:
+- `crates/cadmpeg-codec-f3d/src/xref.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 1 | `marker` | `u8` | little | spec | An attributed legacy occurrence placement with a zero control word · value `1` |
+| 1 | 4 | `count` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `3` |
+| 5 | 4 | `parent_name_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `13` |
+| 9 | 13 | `parent_name` | `bytes[13]` | little | spec | An attributed legacy occurrence placement with a zero control word · value `"GatedByParent"` |
+| 22 | 4 | `parent_type_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `21` |
+| 26 | 21 | `parent_type` | `bytes[21]` | little | spec | An attributed legacy occurrence placement with a zero control word · value `"IntrinsicMetaTypebool"` |
+| 47 | 1 | `parent_value` | `u8` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+| 48 | 4 | `resolution_name_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `14` |
+| 52 | 14 | `resolution_name` | `bytes[14]` | little | spec | An attributed legacy occurrence placement with a zero control word · value `"ResolutionTime"` |
+| 66 | 4 | `resolution_type_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `24` |
+| 70 | 24 | `resolution_type` | `bytes[24]` | little | spec | An attributed legacy occurrence placement with a zero control word · value `"IntrinsicMetaTypeHString"` |
+| 94 | 4 | `resolution_value` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+| 98 | 4 | `self_name_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `9` |
+| 102 | 9 | `self_name` | `bytes[9]` | little | spec | An attributed legacy occurrence placement with a zero control word · value `"SelfGated"` |
+| 111 | 4 | `self_type_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `21` |
+| 115 | 21 | `self_type` | `bytes[21]` | little | spec | An attributed legacy occurrence placement with a zero control word · value `"IntrinsicMetaTypebool"` |
+| 136 | 1 | `self_value` | `u8` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+
+## `legacy_attributed_external_placement_members`
+
+Spec §1.4 · layout: byte offsets · size: 235 B
+
+Offsets are relative to the byte after the complete attribute block.
+
+Parsed by:
+- `crates/cadmpeg-codec-f3d/src/xref.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 2 | `control` | `u16` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+| 2 | 4 | `ordinal` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 6 | 4 | `metadata_guid_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `36` |
+| 10 | 72 | `metadata_guid` | `bytes[72]` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 82 | 4 | `tracking_guid_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `36` |
+| 86 | 72 | `tracking_guid` | `bytes[72]` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 158 | 15 | `metadata_reference` | `bytes[15]` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 173 | 1 | `reference_separator` | `u8` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+| 174 | 60 | `repeated_target_reference` | `bytes[60]` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 234 | 1 | `identity_flag` | `u8` | little | spec | An attributed legacy occurrence placement with a zero control word |
+
+## `legacy_attributed_external_placement_identity_tail`
+
+Spec §1.4 · layout: byte offsets · size: 92 B
+
+Offsets are relative to the byte after the identity flag.
+
+Parsed by:
+- `crates/cadmpeg-codec-f3d/src/xref.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `zero` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+| 4 | 4 | `role_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `36` |
+| 8 | 72 | `role` | `bytes[72]` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 80 | 1 | `separator` | `u8` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+| 81 | 1 | `owner_marker` | `u8` | little | spec | An attributed legacy occurrence placement with a zero control word · value `1` |
+| 82 | 8 | `owner` | `u64` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 90 | 2 | `owner_tail` | `u16` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+
+## `legacy_attributed_external_placement_matrix_tail`
+
+Spec §1.4 · layout: byte offsets · size: 220 B
+
+Offsets are relative to the byte after the identity flag.
+
+Parsed by:
+- `crates/cadmpeg-codec-f3d/src/xref.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 128 | `matrix` | `f64[16]` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 128 | 4 | `zero` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+| 132 | 4 | `role_length` | `u32` | little | spec | An attributed legacy occurrence placement with a zero control word · value `36` |
+| 136 | 72 | `role` | `bytes[72]` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 208 | 1 | `separator` | `u8` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+| 209 | 1 | `owner_marker` | `u8` | little | spec | An attributed legacy occurrence placement with a zero control word · value `1` |
+| 210 | 8 | `owner` | `u64` | little | spec | An attributed legacy occurrence placement with a zero control word |
+| 218 | 2 | `owner_tail` | `u16` | little | spec | An attributed legacy occurrence placement with a zero control word · value `0` |
+
+## `edge_flange_corner_operation`
+
+Spec §3.1 · layout: byte offsets · size: 620 B
+
+Offsets are relative to the primary scope header.
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 101 | 4 | `bend_position` | `u32` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` · value `2` |
+| 105 | 4 | `edge_count` | `u32` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` · value `2` |
+| 109 | 11 | `edge_wrapper_one_reference` | `bytes[11]` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+| 120 | 11 | `edge_wrapper_two_reference` | `bytes[11]` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+| 131 | 11 | `settings_reference` | `bytes[11]` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+| 142 | 4 | `height_datum` | `u32` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` · value `2` |
+| 146 | 11 | `angle_owner_reference` | `bytes[11]` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+| 157 | 11 | `height_owner_reference` | `bytes[11]` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+| 168 | 4 | `reference_side` | `u32` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` · value `4` |
+| 172 | 11 | `side_padding` | `bytes[11]` | little | spec | The side padding, radius padding, and group padding are zero bytes · value `[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]` |
+| 183 | 8 | `inside_bend_radius` | `f64` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+| 191 | 6 | `radius_padding` | `bytes[6]` | little | spec | The side padding, radius padding, and group padding are zero bytes · value `[0, 0, 0, 0, 0, 0]` |
+| 197 | 4 | `result_count` | `u32` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` · value `3` |
+| 201 | 11 | `result_one_reference` | `bytes[11]` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+| 212 | 4 | `result_one_trailer` | `u32` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` · value `1` |
+| 216 | 11 | `result_two_reference` | `bytes[11]` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+| 227 | 4 | `result_two_trailer` | `u32` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` · value `1` |
+| 231 | 11 | `result_three_reference` | `bytes[11]` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+| 242 | 4 | `result_three_trailer` | `u32` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` · value `0` |
+| 246 | 4 | `result_separator` | `u32` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` · value `1` |
+| 250 | 11 | `aggregate_group_reference` | `bytes[11]` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+| 261 | 12 | `group_padding` | `bytes[12]` | little | spec | The side padding, radius padding, and group padding are zero bytes · value `[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]` |
+| 273 | 4 | `edge_group_count` | `u32` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` · value `2` |
+| 277 | 11 | `edge_group_one_reference` | `bytes[11]` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+| 288 | 11 | `edge_group_two_reference` | `bytes[11]` | little | spec | The fixed fields are defined by `edge_flange_corner_operation` |
+
+Unstated regions:
+
+- `0..101` (101 B): Scope envelope or uninterpreted bytes.
+- `299..620` (321 B): Scope envelope follows the edge groups.
 
 ## Not tabulated
 

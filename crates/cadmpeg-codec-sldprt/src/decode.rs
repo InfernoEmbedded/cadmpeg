@@ -2520,7 +2520,12 @@ fn build_geometry_ir(
         mut sketches,
         entities: mut sketch_entities,
         constraints: mut sketch_constraints,
-    } = crate::resolved_features::sketch_projection::sketches(ctx, scan, &mut annotations)?;
+    } = crate::resolved_features::sketch_projection::sketches(
+        ctx,
+        scan,
+        &mut annotations,
+        &mut pmi_losses,
+    )?;
     crate::resolved_features::profiles::bind_sketch_profiles(
         &mut ir.model.features,
         crate::resolved_features::profiles::SketchArenas {
@@ -3730,7 +3735,12 @@ fn build_metadata_ir(
         sketches,
         entities: sketch_entities,
         constraints: sketch_constraints,
-    } = crate::resolved_features::sketch_projection::sketches(ctx, scan, &mut annotations)?;
+    } = crate::resolved_features::sketch_projection::sketches(
+        ctx,
+        scan,
+        &mut annotations,
+        &mut pmi_losses,
+    )?;
     let mut model_attributes =
         crate::metadata::attributes(ctx, scan, &mut annotations, &mut pmi_losses)?;
     let custom_properties = crate::history::project::custom_property_attributes(&histories)?;
