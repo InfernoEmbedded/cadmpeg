@@ -4705,6 +4705,14 @@ define no complete loop roster. Subtype and type
 values do not by themselves resolve the three operands or a current boundary
 network.
 
+Records of subtypes 750 through 757 have an absent first operand and zero in
+the second and third operands. Subtypes 750 through 753 have loop type 700, and
+subtypes 754 through 757 have loop type 701. A subtype-759 record has loop type
+701 and an absent third operand. When present, its first operand is the loop
+identifier of exactly one earlier record of type 700 in the same feature's loop
+history. A missing, repeated, or later record, or a record of another type,
+leaves that join unresolved.
+
 A subtype-767 record has loop type 700, an absent second operand, and third
 operand one. Its first operand is a loop-history head. It names the boundary
 surface of the loop through the generated-entity tables of the record's

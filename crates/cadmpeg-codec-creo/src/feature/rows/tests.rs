@@ -464,6 +464,54 @@ fn positional_datum_table_replays_the_named_stream_schema() {
 }
 
 #[test]
+fn subtype_759_first_operand_names_one_earlier_type_700_loop() {
+    let row = |ordinal: u32, loop_id: u32, fields: [Option<u32>; 5]| {
+        let mut entry = crate::feature::rows::dummy_loop_history_entry();
+        entry.ordinal = ordinal;
+        entry.loop_id = loop_id;
+        entry.offset = 100 + 10 * usize::try_from(ordinal).unwrap();
+        entry.logical_fields = fields;
+        entry
+    };
+    let source = row(0, 80, [Some(752), None, Some(0), Some(0), Some(700)]);
+    let derived = row(1, 81, [Some(759), Some(80), Some(1), None, Some(701)]);
+    let entries = [source.clone(), derived.clone()];
+
+    assert_eq!(
+        crate::feature::rows::loop_history_prior_loop(&derived, &entries),
+        Some(80)
+    );
+    assert_eq!(
+        crate::feature::rows::loop_history_prior_loop(&source, &entries),
+        None
+    );
+    let mut wrong_type = source.clone();
+    wrong_type.logical_fields[4] = Some(701);
+    assert_eq!(
+        crate::feature::rows::loop_history_prior_loop(&derived, &[wrong_type, derived.clone()]),
+        None
+    );
+    let mut other_feature = source.clone();
+    other_feature.feature_id = 8;
+    assert_eq!(
+        crate::feature::rows::loop_history_prior_loop(&derived, &[other_feature, derived.clone()]),
+        None
+    );
+    let later = row(2, 80, [Some(752), None, Some(0), Some(0), Some(700)]);
+    assert_eq!(
+        crate::feature::rows::loop_history_prior_loop(&derived, &[derived.clone(), later]),
+        None
+    );
+    assert_eq!(
+        crate::feature::rows::loop_history_prior_loop(
+            &derived,
+            &[source.clone(), source, derived.clone()]
+        ),
+        None
+    );
+}
+
+#[test]
 fn loop_history_roster_uses_declared_loop_count_and_stored_order() {
     let mut body = b"\xe0\x00lo_id_tab_ptr\0\xf8\x03\xf7\x60\xfb\xe3\
                          \xe0\x01lo_hist\0\xf8\x06"

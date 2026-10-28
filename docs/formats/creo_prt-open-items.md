@@ -871,22 +871,19 @@ cycle rotation proves restoration semantics or persistence lifecycle.
 ### TP-09. Loop-history operand ownership
 
 **Question.** Which source-owned namespace and complete history relation
-resolve each of the three `lo_hist` operands for every subtype?
+resolve the `lo_hist` operands of subtypes without a defined operand
+production, and the second operand of subtype 759?
 
-**Known.** A row contains the loop identifier, subtype, three operand slots,
-and required loop type. Operand-only `e5` expands to two zeros; `e4` is one
-and `f6` is absent. Original physical tokens are retained independently of
-these logical values. The subtype and type do not make an arbitrary operand
-a surface, curve, or current loop identity. The subtype-767 first operand is
-a class-212 loop-history head that resolves the loop's boundary surface. The
-roles of the class-212 tail identifier and of the class-2006 body after its
-class-212 identifier are unknown.
+**Known.** `creo_prt.md` §6 "Records of subtypes 750 through 757" defines the
+operand forms of subtypes 750 through 757 and 759 and the subtype-759 join of
+the first operand to an earlier type-700 loop. The subtype-767 first operand is
+a class-212 loop-history head that resolves the loop's boundary surface. The joins do not establish a current boundary network
+or restoration order.
 
-**Need.** Establish each subtype's complete owning production and independently
-joined target namespace before applying history. Preserve opaque operands,
-nullable states, unsupported forms, and historical rows outside the admitted
-feature/table caller scope. A roster alone does not establish current material
-boundaries or restoration order.
+**Need.** Establish the owning production and target namespace of the
+subtype-759 second operand, of other subtypes, of the class-212 tail
+identifier, and of the class-2006 body after its class-212 identifier before
+applying history. Preserve opaque operands and nullable states.
 
 ### TP-10. Required final loop-history type
 

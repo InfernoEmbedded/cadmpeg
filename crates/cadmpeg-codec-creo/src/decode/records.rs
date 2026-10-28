@@ -21,6 +21,7 @@ pub(super) mod double_xar;
 use crate::container::ContainerScan;
 use crate::feature::definitions::{FeatureRelationTable, ScalarLane, VariableType};
 use crate::feature::entity::loop_boundary_surface;
+use crate::feature::rows::loop_history_prior_loop;
 use crate::feature::schema::SchemaClass;
 
 use super::coverage::{source_section_ref, surface_family, surface_variant};
@@ -231,6 +232,7 @@ pub(super) struct CreoFeatureLoopHistoryEntryRecord<'a> {
     operands: [Option<u32>; 3],
     lo_type: Option<u32>,
     boundary_surface_id: Option<u32>,
+    prior_loop_id: Option<u32>,
     #[serde(serialize_with = "serialize_loop_history_fields")]
     field_bytes: &'a crate::feature::rows::FeatureLoopHistoryEntry,
     #[serde(flatten, serialize_with = "serialize_loop_history_boundary")]
@@ -978,6 +980,7 @@ pub(super) fn feature_loop_history_entry_records<'a>(
             ],
             lo_type: entry.logical_fields[4],
             boundary_surface_id: loop_boundary_surface(entry, &scan.features.entity_tables),
+            prior_loop_id: loop_history_prior_loop(entry, &scan.features.loop_history_entries),
             field_bytes: entry,
             boundary: &entry.boundary,
             offset: entry.offset,
