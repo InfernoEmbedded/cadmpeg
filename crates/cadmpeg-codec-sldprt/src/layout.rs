@@ -4,10 +4,6 @@
 //! Do not edit by hand. Regenerate with:
 //! `UPDATE_LAYOUT_CODE=1 cargo test -p cadmpeg --test layout_tables`.
 
-// Records omitted because the table declares a contradiction.
-//
-// - `chart_00_28` (overlap): The spec's ordered field list places the unnamed seventh f64 at body +34..+42, which overlaps the sentinel the same paragraph puts at body +36. The two are consistent only if the stated `+36`, `+44`, and `+52` are measured from the byte after `attr` (body +6) rather than from the body start; `crates/cadmpeg-codec-sldprt/src/brep/intersection.rs` reads them that way, placing the sentinels at body +42 and +50 and the point block at body +58. §4 uses body-relative offsets elsewhere (`00 1d` xyz at body +14), so the two conventions collide inside one document. The spec does not say which applies here.
-
 /// Byte offsets for the `feature_input_shifted_scalar_trailer` record.
 ///
 /// Spec §2. Record length 35 B.
@@ -559,22 +555,28 @@ pub(crate) mod bspline_compact_array_header {
     pub(crate) const ATTR: usize = 2;
 }
 
-/// Byte offsets for the `intersection_composite` record.
+/// Byte offsets for the `chart_00_28` record.
 ///
-/// Spec §7.3. Record length 29 B.
+/// Spec §7.3. Record length 52 B.
 ///
 /// ```text
-/// Body-relative, after the two-byte `00 26` tag. The intersection-data form replaces the tag with `00 01 5a` and keeps this layout unchanged. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7ffe`, moving each later field by two.
+/// Relative to the byte after the chart's `attr` cell, which follows `count u32 BE` at body +4. `count` point entries follow at +52; an entry is either 88 bytes (point xyz, then a finite nonzero tangent at entry +56) or a bare 24-byte point. The chart stores no stride discriminator; chart, terminator, and optional support-UV witnesses must select exactly one entry width.
 /// ```
-pub(crate) mod intersection_composite {
+pub(crate) mod chart_00_28 {
     /// Record length in bytes. Spec §7.3.
-    pub(crate) const LEN: usize = 29;
-    /// Offset of `attr` (`u16`, big-endian). Spec §7.3.
-    pub(crate) const ATTR: usize = 0;
-    /// Offset of `marker` (`u8`). Spec §7.3.
-    pub(crate) const MARKER: usize = 16;
-    /// Offset of `payload` (`u16[6]`, big-endian). Spec §7.3.
-    pub(crate) const PAYLOAD: usize = 17;
+    pub(crate) const LEN: usize = 52;
+    /// Offset of `base_parameter` (`f64`, big-endian). Spec §7.3.
+    pub(crate) const BASE_PARAMETER: usize = 0;
+    /// Offset of `base_scale` (`f64`, big-endian). Spec §7.3.
+    pub(crate) const BASE_SCALE: usize = 8;
+    /// Offset of `chart_count` (`u32`, big-endian). Spec §7.3.
+    pub(crate) const CHART_COUNT: usize = 16;
+    /// Offset of `chordal_error` (`f64`, big-endian). Spec §7.3.
+    pub(crate) const CHORDAL_ERROR: usize = 20;
+    /// Offset of `absent_sentinel_a` (`f64`, big-endian). Spec §7.3.
+    pub(crate) const ABSENT_SENTINEL_A: usize = 36;
+    /// Offset of `absent_sentinel_b` (`f64`, big-endian). Spec §7.3.
+    pub(crate) const ABSENT_SENTINEL_B: usize = 44;
 }
 
 /// Byte offsets for the `support_uv_00_cc` record.
@@ -582,17 +584,13 @@ pub(crate) mod intersection_composite {
 /// Spec §7.3. Record length 7 B.
 ///
 /// ```text
-/// Body-relative fixed prefix; f64 BE values follow at +7, `width` per chart point. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7ffe`, moving each later field by two.
+/// Body-relative fixed prefix; f64 BE values follow at +7, `width` per chart point. The offsets are the narrow form: `attr` is an XT positive integer that takes four bytes past `0x7fff`, moving `width` and the values by two.
 /// ```
 pub(crate) mod support_uv_00_cc {
-    /// Record length in bytes. Spec §7.3.
-    pub(crate) const LEN: usize = 7;
     /// Offset of `count` (`u32`, big-endian). Spec §7.3.
     pub(crate) const COUNT: usize = 0;
     /// Offset of `attr` (`u16`, big-endian). Spec §7.3.
     pub(crate) const ATTR: usize = 4;
-    /// Offset of `width` (`u8`). Spec §7.3.
-    pub(crate) const WIDTH: usize = 6;
 }
 
 /// Byte offsets for the `rolling_ball_blend_00_38` record.

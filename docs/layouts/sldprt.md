@@ -648,54 +648,44 @@ Parsed by:
 
 ## `intersection_composite`
 
-Spec §7.3 · layout: byte offsets · size: 29 B
+Spec §7.3 · layout: byte offsets · size: 27 B
 
-Body-relative, after the two-byte `00 26` tag. The intersection-data form replaces the tag with `00 01 5a` and keeps this layout unchanged. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7ffe`, moving each later field by two.
+Body-relative, after the two-byte `00 26` tag and the optional `ff`, or after the `Z` of an edited first-of-type schema program. The offsets are the all-narrow base-schema form: `attr` and every pointer is an XT positive integer that takes four bytes past `0x7fff`, moving each later field by two. The `intersection_data` pointer follows `end` only when the embedded schema declares that field.
 
 | Offset | Size | Field | Type | Endian | Src | Meaning |
 | -----: | ---: | ----- | ---- | ------ | --- | ------- |
-| 0 | 2 | `attr` | `u16` | big | spec | 00 26 attr u16 BE ordinal u32 BE |
-| 2 | 4 | `ordinal` | `u32` | big | spec | ordinal u32 BE refs u16 BE[5] |
-| 6 | 10 | `refs` | `u16[5]` | big | spec | refs u16 BE[5] marker u8 (0x2b\|0x2d) |
+| 0 | 2 | `attr` | `u16` | big | spec | 00 26 [ff]? attr node_id u32 BE |
+| 2 | 4 | `node_id` | `u32` | big | spec | node_id u32 BE refs[5] |
+| 6 | 10 | `refs` | `u16[5]` | big | spec | refs[5] marker u8 (0x2b\|0x2d) |
 | 16 | 1 | `marker` | `u8` | big | spec | marker u8 (0x2b\|0x2d) |
-| 17 | 12 | `payload` | `u16[6]` | big | spec | payload u16 BE[6] = [support0, support1, chart, term_start, term_end, uv] |
+| 17 | 10 | `payload` | `u16[5]` | big | spec | surface0 surface1 chart start end |
 
 ## `chart_00_28`
 
 Spec §7.3 · layout: byte offsets · size: 52 B
 
-Offsets are body-relative as the spec writes them. `count` point entries follow at +52; an entry is either 88 bytes (point xyz, then a finite nonzero tangent at entry +56) or a bare 24-byte point. The chart stores no stride discriminator; chart, terminator, and optional support-UV witnesses must select exactly one entry width.
+Relative to the byte after the chart's `attr` cell, which follows `count u32 BE` at body +4. `count` point entries follow at +52; an entry is either 88 bytes (point xyz, then a finite nonzero tangent at entry +56) or a bare 24-byte point. The chart stores no stride discriminator; chart, terminator, and optional support-UV witnesses must select exactly one entry width.
 
 | Offset | Size | Field | Type | Endian | Src | Meaning |
 | -----: | ---: | ----- | ---- | ------ | --- | ------- |
-| 0 | 4 | `count` | `u32` | big | spec | `count u32 BE, attr u16 BE, base_parameter f64 BE |
-| 4 | 2 | `attr` | `u16` | big | spec | attr u16 BE, base_parameter f64 BE |
-| 6 | 8 | `base_parameter` | `f64` | big | derived | Offset derived by laying the spec's ordered field list out from the body start. |
-| 14 | 8 | `base_scale` | `f64` | big | derived | Offset derived by laying the spec's ordered field list out from the body start. |
-| 22 | 4 | `chart_count` | `u32` | big | derived | Offset derived by laying the spec's ordered field list out from the body start. |
-| 26 | 8 | `chordal_error` | `f64` | big | derived | Offset derived by laying the spec's ordered field list out from the body start. |
-| 34 | 8 | `unnamed_f64` | `f64` | big | derived | Offset derived by laying the spec's ordered field list out from the body start. The spec gives this slot no name. |
-| 36 | 8 | `absent_sentinel_a` | `f64` | big | spec | two absent-value sentinels `-3.14158e13` at body +36 and +44 |
-| 44 | 8 | `absent_sentinel_b` | `f64` | big | spec | at body +36 and +44, then `count` point entries at body +52 |
-
-**Discrepancies:**
-
-- The spec's ordered field list places the unnamed seventh f64 at body +34..+42, which overlaps the sentinel the same paragraph puts at body +36. The two are consistent only if the stated `+36`, `+44`, and `+52` are measured from the byte after `attr` (body +6) rather than from the body start; `crates/cadmpeg-codec-sldprt/src/brep/intersection.rs` reads them that way, placing the sentinels at body +42 and +50 and the point block at body +58. §4 uses body-relative offsets elsewhere (`00 1d` xyz at body +14), so the two conventions collide inside one document. The spec does not say which applies here.
-
-Cross-checked against code:
-
-- `crates/cadmpeg-codec-sldprt/src/brep/intersection.rs` — The parser anchors the point block 52 bytes after `preamble = body + 6`, not after the body start; this is the discrepancy recorded above.
+| 0 | 8 | `base_parameter` | `f64` | big | spec | `base_parameter f64 BE` at +0 |
+| 8 | 8 | `base_scale` | `f64` | big | spec | `base_scale f64 BE` at +8 |
+| 16 | 4 | `chart_count` | `u32` | big | spec | `chart_count u32 BE` at +16 |
+| 20 | 8 | `chordal_error` | `f64` | big | spec | `chordal_error f64 BE` at +20 |
+| 28 | 8 | `unnamed_f64` | `f64` | big | spec | The spec gives this slot no name. |
+| 36 | 8 | `absent_sentinel_a` | `f64` | big | spec | two absent-value sentinels `-3.14158e13` at +36 and +44 |
+| 44 | 8 | `absent_sentinel_b` | `f64` | big | spec | at +36 and +44, and `count` point entries at +52 |
 
 ## `support_uv_00_cc`
 
 Spec §7.3 · layout: byte offsets · size: 7 B
 
-Body-relative fixed prefix; f64 BE values follow at +7, `width` per chart point. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7ffe`, moving each later field by two.
+Body-relative fixed prefix; f64 BE values follow at +7, `width` per chart point. The offsets are the narrow form: `attr` is an XT positive integer that takes four bytes past `0x7fff`, moving `width` and the values by two.
 
 | Offset | Size | Field | Type | Endian | Src | Meaning |
 | -----: | ---: | ----- | ---- | ------ | --- | ------- |
-| 0 | 4 | `count` | `u32` | big | spec | `count u32 BE, attr u16 BE, width u8 (2\|3\|4)` |
-| 4 | 2 | `attr` | `u16` | big | spec | attr u16 BE, width u8 (2\|3\|4) |
+| 0 | 4 | `count` | `u32` | big | spec | `count u32 BE`, `attr`, `width u8 (2\|3\|4)` |
+| 4 | 2 | `attr` | `u16` | big | spec | `attr`, `width u8 (2\|3\|4)` |
 | 6 | 1 | `width` | `u8` | big | spec | The spec admits `3`; the parser maps every non-`4` marker to stride 2, so a stored `3` is decoded as stride 2. Recorded as a discrepancy in the pull request; the table states the spec's value set. |
 
 ## `rolling_ball_blend_00_38`

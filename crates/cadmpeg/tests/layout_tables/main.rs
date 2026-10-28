@@ -1479,14 +1479,14 @@ fn generated_layout_code_matches_the_tables() {
                 continue;
             }
         };
-        if *format == "sldprt" {
+        if *format == "asm" {
             assert!(
-                rendered.contains("`chart_00_28`"),
-                "sldprt layout.rs must list the discrepant chart record as omitted"
+                rendered.contains("`coedge`"),
+                "asm layout.rs must list the discrepant coedge record as omitted"
             );
             assert!(
-                !rendered.contains("mod chart_00_28"),
-                "sldprt layout.rs must not emit constants for a discrepant record"
+                !rendered.contains("mod coedge"),
+                "asm layout.rs must not emit constants for a discrepant record"
             );
         }
         let target = root.join(relative);

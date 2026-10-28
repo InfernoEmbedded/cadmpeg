@@ -2042,9 +2042,10 @@ fn decode_graph(
                         else {
                             return Ok(None);
                         };
-                        let Ok(fit_tolerance) = cadmpeg_ir::geometry::FitTolerance::try_new(
-                            support_data.fit_tolerance_mm,
-                        ) else {
+                        let Some(Ok(fit_tolerance)) = support_data
+                            .fit_tolerance_mm
+                            .map(cadmpeg_ir::geometry::FitTolerance::try_new)
+                        else {
                             return Ok(None);
                         };
                         let id = PcurveId::compose(
@@ -4571,11 +4572,12 @@ fn intersection_support_pcurve(
         };
     }
     (|| -> Result<Option<(PcurveGeometry, [f64; 2], IntersectionPcurveSource)>, cadmpeg_core::CodecError> {
+        let fit_tolerance_mm = some_or_none!(support_data
+            .fit_tolerance_mm
+            .filter(|tolerance| tolerance.is_finite() && *tolerance > 0.0));
         if chart.degree() != 1
             || matches!(chart.pole_rows(), cadmpeg_ir::geometry::nurbs::NurbsPoles3::Rational { .. })
             || chart.periodic()
-            || !support_data.fit_tolerance_mm.is_finite()
-            || support_data.fit_tolerance_mm <= 0.0
         {
             return Ok(None);
         }
@@ -4639,7 +4641,7 @@ fn intersection_support_pcurve(
                             surface,
                             point.get(),
                             control_points.last().copied(),
-                            support_data.fit_tolerance_mm,
+                            fit_tolerance_mm,
                             sinks.solver_capped,
                         ) {
                             Ok(Some(parameters)) => parameters,
@@ -4779,7 +4781,7 @@ fn intersection_support_pcurve(
         }));
         if control_errors
             .iter()
-            .any(|error| !error.is_finite() || *error > support_data.fit_tolerance_mm)
+            .any(|error| !error.is_finite() || *error > fit_tolerance_mm)
         {
             return Ok(None);
         }
@@ -4797,12 +4799,12 @@ fn intersection_support_pcurve(
                         [chord[0].get(), chord[1].get()],
                         sinks.solver_capped,
                     )?;
-                    error.is_none_or(|error| error > support_data.fit_tolerance_mm)
+                    error.is_none_or(|error| error > fit_tolerance_mm)
                 }
                 _ => analytic_pcurve_chord_bound(surface, parameters[0], parameters[1]).is_none_or(
                     |curvature_error| {
                         curvature_error + endpoint_errors[0].max(endpoint_errors[1])
-                            > support_data.fit_tolerance_mm
+                            > fit_tolerance_mm
                     },
                 ),
             };
@@ -7263,7 +7265,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 1.0, 1.0], endpoints.to_vec(), None);
         let support_data = super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm: 0.2,
+            fit_tolerance_mm: Some(0.2),
             support_uv: Some([
                 vec![
                     cadmpeg_ir::math::Point2::new(0.0, 0.0029),
@@ -7363,7 +7365,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 1.0, 1.0], endpoints.to_vec(), None);
         let support_data = super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm: 0.2,
+            fit_tolerance_mm: Some(0.2),
             support_uv: Some([
                 vec![
                     cadmpeg_ir::math::Point2::new(0.0, 0.0029),
@@ -7415,7 +7417,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 0.5, 1.0, 1.0], model_points, None);
         let support_data = super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm: 0.011,
+            fit_tolerance_mm: Some(0.011),
             support_uv: None,
         };
 
@@ -7444,7 +7446,7 @@ mod tests {
         assert_eq!(source, super::IntersectionPcurveSource::AnalyticInverse);
 
         let under_toleranced = super::super::intersection::IntersectionSupportData {
-            fit_tolerance_mm: 0.009,
+            fit_tolerance_mm: Some(0.009),
             ..support_data
         };
         assert!(intersection_support_pcurve(
@@ -7488,7 +7490,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 0.5, 1.0, 1.0], model_points, None);
         let support_data = super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm: 0.08,
+            fit_tolerance_mm: Some(0.08),
             support_uv: None,
         };
 
@@ -7548,7 +7550,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 0.5, 1.0, 1.0], model_points, None);
         let support_data = super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm: 1.0e-9,
+            fit_tolerance_mm: Some(1.0e-9),
             support_uv: None,
         };
 
@@ -7598,7 +7600,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 1.0, 1.0], endpoints.to_vec(), None);
         let support_data = |fit_tolerance_mm| super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm,
+            fit_tolerance_mm: Some(fit_tolerance_mm),
             support_uv: None,
         };
 
