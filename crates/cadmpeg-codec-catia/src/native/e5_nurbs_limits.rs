@@ -139,10 +139,11 @@ pub(super) fn derive(
     ctx: &DecodeContext<'_>,
     bytes: &[u8],
 ) -> Result<Vec<CatiaE5NurbsLimitRecord>, CodecError> {
-    let Some(first) = records(bytes).next() else {
+    let mut source = records(bytes);
+    let Some(first) = source.next() else {
         return Ok(Vec::new());
     };
-    let count = records(bytes).count();
+    let count = source.count() + 1;
     if bounded_len(
         u64_from_index(count),
         header::LEN + CurveLimits::LEN,

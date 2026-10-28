@@ -382,10 +382,11 @@ pub(super) fn derive(
     bytes: &[u8],
     records: &[ConsolidatedRecord],
 ) -> Result<Vec<CatiaRollingBallContinuation>, CodecError> {
-    let Some((r, p, f)) = candidates(bytes, records).next() else {
+    let mut source = candidates(bytes, records);
+    let Some((r, p, f)) = source.next() else {
         return Ok(Vec::new());
     };
-    let count = candidates(bytes, records).count();
+    let count = source.count() + 1;
     ctx.charge_entities(
         u64_from_index(count),
         "admit CATIA rolling-ball continuations",
