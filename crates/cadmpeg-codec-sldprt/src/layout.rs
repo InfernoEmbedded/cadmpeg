@@ -1811,6 +1811,30 @@ pub(crate) mod extrusion_sparse_long_zero_operation_trailer {
     pub(crate) const FINAL_TOKEN: usize = 42;
 }
 
+/// Byte offsets for the `extrusion_boundary_operation_trailer` record.
+///
+/// Spec §2. Record length 24 B.
+pub(crate) mod extrusion_boundary_operation_trailer {
+    /// Record length in bytes. Spec §2.
+    pub(crate) const LEN: usize = 24;
+    /// Offset of `zero_prefix` (`bytes[6]`). Spec §2.
+    pub(crate) const ZERO_PREFIX: usize = 16;
+    /// Offset of `marker` (`u16`, little-endian). Spec §2.
+    pub(crate) const MARKER: usize = 22;
+}
+
+/// Byte offsets for the `extrusion_narrow_boundary_operation_trailer` record.
+///
+/// Spec §2. Record length 20 B.
+pub(crate) mod extrusion_narrow_boundary_operation_trailer {
+    /// Record length in bytes. Spec §2.
+    pub(crate) const LEN: usize = 20;
+    /// Offset of `zero_prefix` (`bytes[2]`). Spec §2.
+    pub(crate) const ZERO_PREFIX: usize = 16;
+    /// Offset of `marker` (`u16`, little-endian). Spec §2.
+    pub(crate) const MARKER: usize = 18;
+}
+
 /// Byte offsets for the `coordinate_system_component_point` record.
 ///
 /// Spec §2. Record length 151 B.
