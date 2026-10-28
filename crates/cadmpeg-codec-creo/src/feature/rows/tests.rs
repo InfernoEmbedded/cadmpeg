@@ -321,6 +321,39 @@ fn final_class_2017_entry_may_terminate_at_the_table_separator() {
 }
 
 #[test]
+fn class_212_entry_reads_head_and_tail_before_its_close() {
+    let payload = [
+        0x88, 0xd4, 0x80, 0xd4, 0x93, 0xe3, 0x93, 0xd7, 0xe3, 0x88, 0xd5, 0x80, 0xd4, 0x93, 0xf9,
+        0x93, 0xe8, 0xe3,
+    ];
+    let entries = read_entries(&payload, 0, 2).expect("two class-212 entries");
+
+    assert_eq!(entries[0].entity_id, 2260);
+    assert_eq!(entries[0].class_id(), 212);
+    assert_eq!(entries[0].loop_head_id(), Some(0x13e3));
+    assert_eq!(entries[0].loop_tail_id(), Some(0x13d7));
+    assert_eq!(entries[0].end_offset, 9);
+    assert_eq!(entries[1].entity_id, 2261);
+    assert_eq!(entries[1].loop_head_id(), Some(0x13f9));
+    assert_eq!(entries[1].loop_tail_id(), Some(0x13e8));
+}
+
+#[test]
+fn class_2006_entry_body_opens_with_its_class_212_identifier() {
+    let payload = [
+        0x8a, 0xec, 0x87, 0xd6, 0x8a, 0xe3, 0xf6, 0xe3, 0x8a, 0xfb, 0x80, 0xd4, 0x98, 0x3b, 0x98,
+        0x34, 0xe3,
+    ];
+    let entries = read_entries(&payload, 0, 2).expect("class-2006 and class-212 entries");
+
+    assert_eq!(entries[0].entity_id, 0xaec);
+    assert_eq!(entries[0].class_id(), 2006);
+    assert_eq!(entries[0].end_offset, 8);
+    assert_eq!(entries[1].entity_id, 0xafb);
+    assert_eq!(entries[1].loop_head_id(), Some(0x183b));
+}
+
+#[test]
 fn class_210_generated_entry_retains_its_nonvisible_entity_link() {
     let payload = [0x85, 0xb7, 0x80, 0xd2, 0x85, 0x59, 0, 0xe3];
     let entries = read_entries(&payload, 0, 1).expect("class-210 generated entry");

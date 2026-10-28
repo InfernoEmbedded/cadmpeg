@@ -859,7 +859,10 @@ resolve each of the three `lo_hist` operands for every subtype?
 and required loop type. Operand-only `e5` expands to two zeros; `e4` is one
 and `f6` is absent. Original physical tokens are retained independently of
 these logical values. The subtype and type do not make an arbitrary operand
-a surface, curve, or current loop identity.
+a surface, curve, or current loop identity. The subtype-767 first operand is
+a class-212 loop-history head that resolves the loop's boundary surface. The
+roles of the class-212 tail identifier and of the class-2006 body after its
+class-212 identifier are unknown.
 
 **Need.** Establish each subtype's complete owning production and independently
 joined target namespace before applying history. Preserve opaque operands,
@@ -880,14 +883,6 @@ Row-boundary tokens follow all six logical slots.
 **Need.** Bind type and subtype to their complete history production before
 traversal or restoration. Retaining the raw enum values does not prove a
 current-boundary selector, operand namespace, or face-side action.
-
-### TP-11. Loop-to-boundary-surface join
-
-**Question.** Which field joins a feature-local loop identifier to its boundary-surface curve network?
-
-**Known.** Loop-history identifiers and surface and curve identifiers occupy separate namespaces.
-
-**Need.** We must know the join to bind the restored loop to geometric edges.
 
 ### TP-12. Complete body-owned material rosters
 
