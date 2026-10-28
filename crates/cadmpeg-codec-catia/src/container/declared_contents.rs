@@ -81,7 +81,8 @@ impl DirectoryNames {
     }
 }
 
-fn content_name(data: &[u8], matches_descriptor: impl Fn(&str) -> bool) -> Option<String> {
+/// Type-2 record texts without their UTF-16BE NUL, in table order.
+fn text_records(data: &[u8]) -> Option<Vec<&[u8]>> {
     if index_from_u32(View::u32_be_at(data, header::TOTAL_SIZE)?) != data.len() {
         return None;
     }
@@ -91,12 +92,9 @@ fn content_name(data: &[u8], matches_descriptor: impl Fn(&str) -> bool) -> Optio
         record::LEN,
         data.len().checked_sub(header::LEN)?,
     )?;
-    if !matches!(count, 2 | 3) {
-        return None;
-    }
     let mut at = header::LEN;
-    let mut selected = None;
-    for index in 0..count {
+    let mut texts = Vec::with_capacity(count);
+    for _ in 0..count {
         let size = index_from_u32(View::u32_be_at(data, at + record::SIZE)?);
         let kind = View::u16_be_at(data, at + record::VALUE_TYPE)?;
         let width = index_from_u32(View::u32_be_at(data, at + record::VALUE_BYTES)?);
@@ -109,44 +107,56 @@ fn content_name(data: &[u8], matches_descriptor: impl Fn(&str) -> bool) -> Optio
         }
         let end = at.checked_add(size)?;
         let value = data.get(at + record::LEN..end)?;
-        if value.get(width - 2..) != Some(&[0, 0]) {
+        let (text, nul) = value.split_at(width - 2);
+        if nul != [0, 0] {
             return None;
         }
-        if index + 1 < count {
-            let expected = if index + 2 == count {
-                "CATStorageProperty"
-            } else {
-                "CATPropertySets"
-            };
-            let units = std::iter::once(3u16)
-                .chain(expected.encode_utf16())
-                .chain(std::iter::once(0));
-            if !value.iter().copied().eq(units.flat_map(u16::to_be_bytes)) {
-                return None;
-            }
-        } else {
-            if width > usize::from(u16::MAX) {
-                return None;
-            }
-            let text = &value[..width - 2];
-            if !text
-                .chunks_exact(2)
-                .all(|pair| pair[0] == 0 && pair[1].is_ascii_graphic())
-            {
-                return None;
-            }
-            let name: String = text
-                .chunks_exact(2)
-                .map(|pair| char::from(pair[1]))
-                .collect();
-            if name.is_empty() || !matches_descriptor(&name) {
-                return None;
-            }
-            selected = Some(name);
-        }
+        texts.push(text);
         at = end;
     }
-    (at == data.len()).then_some(selected).flatten()
+    (at == data.len()).then_some(texts)
+}
+
+fn is_property(text: &[u8], name: &str) -> bool {
+    let units = std::iter::once(3u16).chain(name.encode_utf16());
+    text.iter().copied().eq(units.flat_map(u16::to_be_bytes))
+}
+
+fn printable_name(text: &[u8]) -> Option<String> {
+    (!text.is_empty()
+        && text
+            .chunks_exact(2)
+            .all(|pair| pair[0] == 0 && pair[1].is_ascii_graphic()))
+    .then(|| {
+        text.chunks_exact(2)
+            .map(|pair| char::from(pair[1]))
+            .collect()
+    })
+}
+
+fn content_name(data: &[u8], matches_descriptor: impl Fn(&str) -> bool) -> Option<String> {
+    let texts = text_records(data)?;
+    let (target, properties) = texts.split_last()?;
+    let (storage, leading) = properties.split_last()?;
+    if !is_property(storage, "CATStorageProperty") {
+        return None;
+    }
+    if let Some((sets, leading)) = leading.split_last() {
+        if !is_property(sets, "CATPropertySets")
+            || !leading.iter().all(|text| {
+                printable_name(text)
+                    .and_then(|name| name.strip_prefix("Cont_").map(str::len))
+                    .is_some_and(|identifier| identifier > 0)
+            })
+        {
+            return None;
+        }
+    }
+    if target.len() + 2 > usize::from(u16::MAX) {
+        return None;
+    }
+    let name = printable_name(target)?;
+    matches_descriptor(&name).then_some(name)
 }
 
 pub(super) fn resolve(

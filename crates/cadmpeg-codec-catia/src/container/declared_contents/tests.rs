@@ -120,6 +120,67 @@ fn two_record_metadata_has_the_same_explicit_content_link() {
     );
 }
 
+fn text_record(units: impl IntoIterator<Item = u16>) -> Vec<u8> {
+    let value: Vec<u8> = units
+        .into_iter()
+        .chain(std::iter::once(0))
+        .flat_map(u16::to_be_bytes)
+        .collect();
+    let width = u32::try_from(value.len()).unwrap();
+    let mut record = (14 + width).to_be_bytes().to_vec();
+    record.extend_from_slice(&16u32.to_be_bytes());
+    record.extend_from_slice(&2u16.to_be_bytes());
+    record.extend_from_slice(&width.to_be_bytes());
+    record.extend(value);
+    record
+}
+
+fn table_with_leading(leading: &[Vec<u8>], properties: &[u8], count: u32) -> Vec<u8> {
+    let (data, outer, _) = source();
+    let range = contiguous_descriptor_range(&outer.descriptors[1], 0, data.len()).unwrap();
+    let mut table = data[range][..12].to_vec();
+    for record in leading {
+        table.extend_from_slice(record);
+    }
+    table.extend_from_slice(properties);
+    let size = u32::try_from(table.len()).unwrap();
+    table[..4].copy_from_slice(&size.to_be_bytes());
+    table[8..12].copy_from_slice(&count.to_be_bytes());
+    table
+}
+
+#[test]
+fn leading_container_names_select_no_content() {
+    let (data, outer, _) = source();
+    let range = contiguous_descriptor_range(&outer.descriptors[1], 0, data.len()).unwrap();
+    let original = &data[range];
+    let leading = text_record("Cont_0_51ac_66443b70_3eab9".encode_utf16());
+    let target = |name: &str| name == "Cont_4bbc295c_1048_62eb7b6f_1825";
+    for names in [
+        vec![leading.clone()],
+        vec![leading.clone(), leading.clone()],
+    ] {
+        let count = u32::try_from(names.len()).unwrap() + 3;
+        let table = table_with_leading(&names, &original[12..], count);
+        assert_eq!(
+            content_name(&table, target).as_deref(),
+            Some("Cont_4bbc295c_1048_62eb7b6f_1825")
+        );
+    }
+    let prefixed =
+        text_record(std::iter::once(3).chain("Cont_0_51ac_66443b70_3eab9".encode_utf16()));
+    for name in [
+        prefixed,
+        text_record("CATFeatCont".encode_utf16()),
+        text_record("Cont_".encode_utf16()),
+    ] {
+        let table = table_with_leading(&[name], &original[12..], 4);
+        assert!(content_name(&table, target).is_none());
+    }
+    let without_sets = table_with_leading(&[leading], &original[60..], 3);
+    assert!(content_name(&without_sets, target).is_none());
+}
+
 #[test]
 fn changing_uuid_word_zero_cannot_keep_the_old_owner() {
     let (mut data, outer, _) = source();

@@ -38,14 +38,6 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 **Note.** The 79-file reference population has no required legacy catalog opener and therefore no legacy role-selector population. The selector bytes in constructed framing tests remain unnamed; their following field codes do not supply a role mapping.
 
-### DI-03. Part-container object-graph ownership
-
-**Question.** Which other directory-name and metadata-table forms establish part-container graph ownership?
-
-**Known.** `catia.md` §3.1 "The outer logical stream named `Data`" defines concrete/base class declarations and their identifiers. `CATFeatCont` names a base class of `CATPrtCont`, directly or through `CATProdCont`. This class ancestry does not join object graphs. `catia.md` §7.3 "An object graph is preceded by" defines object-graph framing, entity identity, structural owner groups, and source-schema selection. Class names, structural owner groups, and physical stream ownership are distinct incidences. `catia.md` §3.1 defines the complete four-word identifier, length-owned metadata name, counted UTF-16BE content reference, and unique complete graph-extent containment. Numeric metadata identities do not assign graph ownership.
-
-**Need.** A complete name/table grammar and unique content-stream reference are required for other directory-name forms or fragmented metadata. No prefix removal, class ancestry, or first-graph fallback establishes that relation.
-
 ### DI-04. Opaque inline values and head-slot namespaces
 
 **Question.** What roles do the values in opaque childless `7C09` bodies have, and which complete productions establish the namespace of the second reference in compact lead-`12` and lead-`52` heads?
@@ -388,6 +380,14 @@ different, independently constrained orientation route.
 **Known.** `catia.md` §6.7 "`b5 03 5e` (edge node):" defines the common edge record and its topology incidences. The eight terminals have exact single-byte allocation-reference decompositions. Distinct edge objects with identical five ordered references can use different terminals, as specified in `catia.md` §6.7 "Distinct edge objects can have identical ordered curve".
 
 **Need.** We must determine the terminal's selection rule and the allocation context that selects its value and form. Equal edge geometry and endpoint incidences do not supply that rule. A fresh native writer needs evidence for the terminal; existing records retain their exact byte.
+
+### OS-16. Binary64 values in inline entity bodies
+
+**Question.** Which inline entity-body bytes are `E6 <bits:u64le>` binary64 fields, so that an `EA` among their value bytes is not an identity delimiter?
+
+**Known.** `catia.md` §7.3 "An object graph is preceded by" defines the entity-table run, its `DE` separator, and the unique strictly increasing identity path. Inside an inline body, only `32` five-byte atoms and `FE F6` fixed frames hide `EA` bytes from the path. In a NIST part, a complete 432-record run is followed by `DE`, a 432-record `7C08` graph, a `7C0B` value block, and its `7C02` catalog in the declared `CATPrtCont` content stream. The final inline record has two `EA` candidates above the previous identity: the identity at body offset 7 and an `EA` that is the eighth byte of `E6 5f 66 99 cb a9 13 ea bf`. The path is not unique, so the graph is not detected and the part has no modeling scope. When every inline `E6` begins a nine-byte field, four other complete graph runs lose identities, because some inline bodies have an `E6` byte that is not a binary64 tag before their identity.
+
+**Need.** We must know the inline-body production that starts a binary64 field. Without it, the identity path stays ambiguous and the graph remains outside the modeling scope.
 
 ## 6. E5 `0D 03`
 
