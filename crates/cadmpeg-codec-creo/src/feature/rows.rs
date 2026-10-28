@@ -334,6 +334,9 @@ pub(crate) enum FeatureLoopHistoryBoundary {
     ReferenceContinue(u32),
     /// `f2 f7 <reference> e3` terminator.
     ReferenceFinal(u32),
+    /// `f2 f7 <reference>` table separator directly before the next array
+    /// header bounds the final row.
+    TableSeparator(u32),
     /// The next named-record header bounds the final row.
     NamedRecord,
 }
@@ -1589,12 +1592,18 @@ fn loop_history_roster(
             let marker = body[cursor];
             (body.get(cursor + 1) == Some(&psb::token::ENTITY_REF)).then_some(())?;
             let (reference, after_reference) = psb::reference_id(body, cursor + 2).ok()?;
-            (body.get(after_reference) == Some(&0xe3)).then_some(())?;
-            cursor = after_reference + 1;
-            if marker == 0xf1 {
-                FeatureLoopHistoryBoundary::ReferenceContinue(reference)
+            if body.get(after_reference) == Some(&0xe3) {
+                cursor = after_reference + 1;
+                if marker == 0xf1 {
+                    FeatureLoopHistoryBoundary::ReferenceContinue(reference)
+                } else {
+                    FeatureLoopHistoryBoundary::ReferenceFinal(reference)
+                }
             } else {
-                FeatureLoopHistoryBoundary::ReferenceFinal(reference)
+                (marker == 0xf2 && index + 1 == count && array_header_at(body, after_reference))
+                    .then_some(())?;
+                cursor = after_reference;
+                FeatureLoopHistoryBoundary::TableSeparator(reference)
             }
         } else {
             (index + 1 == count).then_some(())?;
@@ -1615,6 +1624,21 @@ fn loop_history_roster(
         });
     }
     Some(Ok(entries))
+}
+
+/// Whether a complete `f8 <count> f7 <class> fb` array header starts at `cursor`.
+fn array_header_at(body: &[u8], cursor: usize) -> bool {
+    if body.get(cursor) != Some(&psb::token::ARRAY_OPEN) {
+        return false;
+    }
+    let Some((_, after_count)) = psb::complete_compact_int(body, cursor + 1) else {
+        return false;
+    };
+    if body.get(after_count) != Some(&psb::token::ENTITY_REF) {
+        return false;
+    }
+    psb::reference_id(body, after_count + 1)
+        .is_ok_and(|(_, after_class)| body.get(after_class) == Some(&psb::token::ARRAY_CLOSE))
 }
 
 struct ParsedLoopHistoryEntry {

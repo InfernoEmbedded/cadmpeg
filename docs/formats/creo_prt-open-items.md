@@ -73,20 +73,26 @@ surface, or pcurve transition semantics apply.
 
 ### SE-07. Additional model scalar-heap forms
 
-**Question.** Which additional bounded model-heap prefixes and bounding-field
-openers extend the defined `Model_L05P` and `Model_L05_PX` slot grammar, and
-which numeric images do the unresolved model-scale and bounding fields use?
+**Question.** Which numeric images do the unresolved model-scale and bounding
+fields of the `Model_L05P` and `Model_L05_PX` slot grammar use, and which width
+and role do the `b7`, `da`, and `e4` bounding-field forms have?
 
 **Known.** `creo_prt.md` §2.3 defines the owning model and unit-system heaps,
-logical counts, physical widths, two-value `e5` repetition, zero-slot model
-control, and following `string_xar` boundary. The model-scale image is one
-slot and is independent of a preceding repeat. A following named-record
-header is not a null entry. The unit-system heap has its own ten-scalar lane.
+logical counts, physical widths, the eight-byte and seven-byte bounding-field
+openers, two-value `e5` repetition, zero-slot model control, and following
+`string_xar` boundary. The model-scale image is one slot and is independent of
+a preceding repeat. A following named-record header is not a null entry. The
+unit-system heap has its own ten-scalar lane. A table that contains a `b7` or
+`da` field reaches its declared count at `string_xar` with a seven-byte or an
+eight-byte width for that opener, so this boundary does not select the width.
+A one-byte `e4` field also reaches the boundary, but the bounding lane does not
+define it as a literal one or as a one-copy repeat.
 
-**Need.** We must know the complete source extent, logical width, and numeric
-role of each additional form before extending the model grammar. An absent
-width rule must leave the table unresolved; generic scalar widths and values
-do not apply by prefix alone.
+**Need.** We must know the numeric reconstruction of each seven-byte and `41`
+bounding image and of the model-scale image, the widths of `b7` and `da`, and
+the role of `e4` before extending the model grammar. An absent width rule must
+leave the table unresolved; generic scalar widths and values do not apply by
+prefix alone.
 
 **Note.** The former SE-08 variable-length `e5` question is tracked here.
 The defined model-heap repetition rule does not settle additional heap forms
@@ -209,14 +215,6 @@ display name, or an API-enum cast.
 
 **Need.** We must know the other grammar to construct or reject the curve correctly.
 
-### GS-10. `fc 08` grammar
-
-**Question.** What is the complete body grammar for `fc 08`?
-
-**Known.** `creo_prt.md` §4.2 "An `fc` prefix is resolved by exact body grammar." identifies `fc 08` as a world-coordinate control-polyline family. Recognized coordinate tokens and opaque spans partition its retained body.
-
-**Need.** We must know the grammar to construct the control polyline.
-
 ### GS-11. `fc 13` scalar signs and model-space charts
 
 **Question.** How do the remaining undefined scalar images, signed coordinate branches, and native chart transforms define complete placed paths?
@@ -229,7 +227,7 @@ display name, or an API-enum cast.
 
 **Question.** Which remaining scalar and enclosing-row forms resolve a counted two-chart body when exact `4N` scalar consumption cannot be established?
 
-**Known.** `creo_prt.md` defines `fc <count>` with four finite chart scalars per sample and no trailer. Counts `4`, `7`, `9`, and `10` do not identify separate curve families. A unique complete counted body fixes a competing topology-suffix boundary without requiring the referenced face to be materialized.
+**Known.** `creo_prt.md` defines `fc <count>` with four finite chart scalars per sample and no trailer. Counts `4`, `7`, `8`, `9`, and `10` do not identify separate curve families. A unique complete counted body fixes a competing topology-suffix boundary without requiring the referenced face to be materialized.
 
 **Need.** Define the missing scalar and enclosing-row productions before assigning values or selecting a suffix from incomplete or conflicting body readings.
 
@@ -863,8 +861,9 @@ boundaries or restoration order.
 make the required final `lo_type` actionable?
 
 **Known.** The final type follows all three logical operands in every complete
-row, including the final row before a named header. It is not an optional
-trailing field. Row-boundary tokens follow all six logical slots.
+row, including the final row before a named header or before an
+`f2 f7 <reference>` table separator. It is not an optional trailing field.
+Row-boundary tokens follow all six logical slots.
 
 **Need.** Bind type and subtype to their complete history production before
 traversal or restoration. Retaining the raw enum values does not prove a
@@ -996,7 +995,8 @@ color fit cannot replace the native value without an independent row identity.
 `mtrack_record_ptr` action payload and its field ownership?
 
 **Known.** `MdlStatus.mod_track_data.rec_arr` is a modification audit trail.
-The timestamp's `tm_year` precedes `item_name`. Repeated same-ID event names do
+A positional `item_name` starts at the byte after the compact timestamp's
+`tm_year`. Repeated same-ID event names do
 not select a current native candidate; they project a common operation only when
 family, recipe, root schema class, and parent identifier agree.
 
@@ -1004,12 +1004,6 @@ family, recipe, root schema class, and parent identifier agree.
 payload and its references. Agreement among same-ID names projects a common
 operation, not a current candidate; a current candidate requires separate
 current-model ownership evidence.
-
-**Conflict.** The timestamp prototype declares `tm_year` ahead of `item_name`, so a
-printable final timestamp scalar belongs to the timestamp. The decoder instead
-reads an ASCII `o`, `x`, `y`, or `z` byte before an uppercase operation-family
-name as a stored-name prefix. A byte-exact witness that separates the two
-readings is missing.
 
 **Note.** The named prototype and compact six-scalar timestamp form do not
 define the complete heterogeneous event union.

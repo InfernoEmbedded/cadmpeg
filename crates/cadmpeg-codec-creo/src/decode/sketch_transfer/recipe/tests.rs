@@ -35,7 +35,6 @@ fn operation(
         display_state_conflict: false,
         depdb: schema.map(|schema| crate::feature::operations::DepdbPrefix { schema, parent: 0 }),
         offset: 0,
-        state_offset: 0,
     }
 }
 

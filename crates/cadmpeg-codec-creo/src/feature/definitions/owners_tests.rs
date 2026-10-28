@@ -456,7 +456,6 @@ fn operation(feature_id: u32, recipe: Option<FeatureRecipe>, offset: usize) -> F
         display_state_conflict: false,
         depdb: None,
         offset,
-        state_offset: offset,
     }
 }
 

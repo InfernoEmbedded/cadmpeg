@@ -69,7 +69,6 @@ fn admitted_recipe_selects_the_generic_material_family() {
             display_state_conflict: false,
             depdb: None,
             offset: 1,
-            state_offset: 1,
         });
         let named = crate::decode::with_service_context(|ctx| {
             named_feature_definition(ctx, &scan, &ir, &carriers, 824, kind)

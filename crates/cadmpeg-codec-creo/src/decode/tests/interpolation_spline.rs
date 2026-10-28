@@ -505,7 +505,6 @@ fn unresolved_display_state_family_blocks_schema_sweep_fallback() {
                 parent: 0,
             }),
             offset: 0,
-            state_offset: 0,
         });
 
     assert!(!feature_allows_linear_extrusion(&scan, 917));
@@ -524,7 +523,6 @@ fn class_942_linear_sweep_requires_a_numbered_extrude_reference() {
             name: crate::feature::operations::OperationName::Stored {
                 bytes: b"Surface id 942".to_vec(),
                 keyword: crate::feature::operations::IdKeyword::Id,
-                prefix: None,
             },
             recipe: crate::feature::operations::RecipeResolution::None,
             display_state_conflict: false,
@@ -533,7 +531,6 @@ fn class_942_linear_sweep_requires_a_numbered_extrude_reference() {
                 parent: 0,
             }),
             offset: 0,
-            state_offset: 0,
         });
     scan.features
         .reference_names
@@ -605,7 +602,6 @@ fn class_942_schema_state_precedes_surface_body_tree_fallback() {
             name: crate::feature::operations::OperationName::Stored {
                 bytes: b"Surface id 942".to_vec(),
                 keyword: crate::feature::operations::IdKeyword::Id,
-                prefix: None,
             },
             recipe: crate::feature::operations::RecipeResolution::None,
             display_state_conflict: false,
@@ -614,7 +610,6 @@ fn class_942_schema_state_precedes_surface_body_tree_fallback() {
                 parent: 0,
             }),
             offset: 0,
-            state_offset: 0,
         });
 
     assert!(matches!(
@@ -644,7 +639,6 @@ fn class_942_sheet_extrusion_uses_linear_cap_extent_evaluation() {
             name: crate::feature::operations::OperationName::Stored {
                 bytes: b"Surface id 942".to_vec(),
                 keyword: crate::feature::operations::IdKeyword::Id,
-                prefix: None,
             },
             recipe: crate::feature::operations::RecipeResolution::None,
             display_state_conflict: false,
@@ -653,7 +647,6 @@ fn class_942_sheet_extrusion_uses_linear_cap_extent_evaluation() {
                 parent: 0,
             }),
             offset: 0,
-            state_offset: 0,
         });
     scan.features
         .reference_names
@@ -1252,7 +1245,6 @@ fn named_linear_sweep_reuses_materialized_cap_extent() {
             display_state_conflict: false,
             depdb: None,
             offset: 0,
-            state_offset: 0,
         });
     let plane = |id, z| Surface {
         id: SurfaceId::mint(format!("creo:visibgeom:surface#{id}")).expect("identity grammar"),
@@ -1935,7 +1927,6 @@ fn current_feature_state_controls_recipe_and_parent_projection() {
                 parent: parent_feature_id,
             }),
             offset,
-            state_offset: offset,
         };
     let historical = operation(
         crate::feature::operations::FeatureRecipe::ProtrudeExtrude,

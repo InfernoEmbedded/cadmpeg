@@ -47,7 +47,6 @@ fn conflicting_creation_recipe_keeps_independent_parent_evidence() {
             parent: 3,
         }),
         offset: 0,
-        state_offset: 0,
     };
     scan.features.operations.push(audit.clone());
     scan.features.rows.push(FeatureRow {
@@ -240,7 +239,6 @@ fn regeneration_scan() -> crate::container::ContainerScan<'static> {
                 parent: 3,
             }),
             offset: 100,
-            state_offset: 100,
         });
     scan
 }

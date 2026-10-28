@@ -276,7 +276,8 @@ fn model_slots(
             };
             let width = match head {
                 0x2d | 0x41 | 0x46 => 8,
-                0x54 | 0x6d | 0x73 | 0x8c | 0x93 | 0x9a | 0x9c | 0xa3 | 0xbb | 0xdf => 7,
+                0x31 | 0x4a | 0x54 | 0x6d | 0x73 | 0x8a | 0x8b | 0x8c | 0x92 | 0x93 | 0x9a
+                | 0x9b | 0x9c | 0x9f | 0xa3 | 0xa5 | 0xa8 | 0xbb | 0xbf | 0xd2 | 0xdf => 7,
                 _ => return Ok(None),
             };
             let value = match head {
@@ -378,6 +379,8 @@ pub(crate) fn tables(
 
 #[cfg(test)]
 mod tests {
+    mod bounding_openers;
+
     use super::{DoubleXarSlot, STRINGS, TABLE, TYPES};
 
     fn framed(count: u8, body: &[u8]) -> Vec<u8> {

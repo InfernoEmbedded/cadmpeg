@@ -528,9 +528,10 @@ one logical slot. The following fixed control `e8 26 d6 95` supplies no slot.
 An optional `10` after the control supplies one further logical slot.
 
 Exactly six logical bounding fields follow this model prefix. Eight-byte
-openers `2d`, `41`, and `46` bound one field. Seven-byte openers `54`, `6d`,
-`73`, `8c`, `93`, `9a`, `9c`, `a3`, `bb`, and `df` bound one field. An
-unlisted opener leaves the table unresolved; seven bytes is not a default.
+openers `2d`, `41`, and `46` bound one field. Seven-byte openers `31`, `4a`,
+`54`, `6d`, `73`, `8a`, `8b`, `8c`, `92`, `93`, `9a`, `9b`, `9c`, `9f`, `a3`,
+`a5`, `a8`, `bb`, `bf`, `d2`, and `df` bound one field. An unlisted opener
+leaves the table unresolved; seven bytes is not a default.
 The `46` and `2d` fields reconstruct `40 <tail7>` and `c0 <tail7>`. Other
 bounded field images retain their numeric value as unresolved.
 
@@ -2521,12 +2522,11 @@ shift either chart's slots. A reference operand, undefined scalar, unread
 byte, truncated scalar, or nonunique complete parse prevents the counted
 production from supplying endpoints.
 
-| Subtype | Body family                              |
-| ------- | ---------------------------------------- |
-| `fc 02` | Short pcurve-style endpoint record       |
-| `fc 05` | Cap-circle arc record family             |
-| `fc 08` | World-coordinate control-polyline family |
-| `fc 13` | Four-role parameter and coordinate path  |
+| Subtype | Body family                             |
+| ------- | --------------------------------------- |
+| `fc 02` | Short pcurve-style endpoint record      |
+| `fc 05` | Cap-circle arc record family            |
+| `fc 13` | Four-role parameter and coordinate path |
 
 The complete short `fc 02` endpoint body has the form
 `fc 02 | u0 | v0 | 0 | 1 | u1 | v1 | 2 | T`, where each `u`/`v` slot is a
@@ -3683,18 +3683,20 @@ and typed action data.
 
 The timestamp prototype declares `tm_sec`, `tm_min`, `tm_hour`, `tm_mday`,
 `tm_mon`, and `tm_year`, followed by `item_name`. `tm_mon` is zero-based;
-the calendar year is `1900 + tm_year`. The prototype does not by itself decide
-whether a printable byte after the compact six-scalar timestamp form is a
-timestamp byte or a stored-name prefix; see the modification-audit open item.
+the calendar year is `1900 + tm_year`. The compact timestamp form is
+`e2 <tm_sec> <tm_min> <tm_hour> <tm_mday> <tm_mon> <tm_year>`: six compact
+integers, with `tm_sec` in `[0, 60]`, `tm_min` in `[0, 59]`, `tm_hour` in
+`[0, 23]`, `tm_mday` in `[1, 31]`, and `tm_mon` in `[0, 11]`. A positional
+`item_name` that follows this form starts at the byte after `tm_year`. The
+`tm_year` byte is a timestamp field also when it is a printable character; it
+is not part of the item name.
 
 Operation names end in ` id <N>` or ` ID <N>`; the stored case follows the
-name's localization. An ASCII `o`, `x`, `y`, or `z` byte immediately preceding
-an uppercase operation-family name is a stored-name prefix, not part of the
-family name. Multiple operation names with the same feature identifier are
-ordered stored-state candidates. No candidate is the current state without a
-state selector. State ordinals are local to one feature identifier and increase
-in byte order from zero. Each candidate retains the prefix-inclusive name
-bytes, the `id`/`ID` spelling, and the offset of the optional prefix. Same-ID
+name's localization. Multiple operation names with the same feature identifier
+are ordered stored-state candidates. No candidate is the current state without
+a state selector. State ordinals are local to one feature identifier and
+increase in byte order from zero. Each candidate retains the name bytes, the
+`id`/`ID` spelling, and the name offset. Same-ID
 candidates define a common operation only when their operation family, recipe,
 root schema class, and parent identifier agree. Agreement does not identify a
 current native candidate. A recipe-only state has no stored operation name.
@@ -4681,10 +4683,13 @@ separate from their expanded values.
 
 After all six slots, a record ends at `e3` or
 `f1|f2 f7 <reference> e3`. Only the final record may instead meet the next
-named-record header directly. The final type is never an optional trailing
-field, and the terminator is not one of the six logical slots. Record order
-is the loop roster order. Incomplete fields, extra tail fields, early closes,
-and nonfinal named boundaries define no complete loop roster. Subtype and type
+named-record header directly, or end at an `f2 f7 <reference>` table
+separator that meets the next array header `f8 <count> f7 <class> fb`
+directly. That array header is not part of the record. The final type is
+never an optional trailing field, and the terminator is not one of the six
+logical slots. Record order is the loop roster order. Incomplete fields, extra
+tail fields, early closes, and nonfinal named or table-separator boundaries
+define no complete loop roster. Subtype and type
 values do not by themselves resolve the three operands or a current boundary
 network.
 
