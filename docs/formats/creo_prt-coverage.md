@@ -856,9 +856,11 @@ until every cumulative gate through their level passes for a closed envelope.
   interpretations are withheld before Native and neutral construction. The
   gate requires unique row ownership, a resolved feature class, and complete
   body consumption; a short prefix alone does not select it. This does not
-  promote an axis, radius, chart direction, or face binding. Pcurve-derived
-  carriers and endpoint evidence that depend on a withheld visible chart stay
-  unresolved; an ordinary missing chart remains a separate case.
+  promote an axis, radius, chart direction, or face binding. Every curve whose
+  topology row references a withheld visible chart is excluded from pcurve
+  carrier and endpoint promotion, including its other chart. An ordinary
+  missing chart remains a separate case. Independent carrier recovery and
+  finite endpoint authority remain separate open questions in GS-17.
 
 Same-ID operation candidates project only when the family, recipe, root schema
 class, and parent identifier agree. Disagreement retains the native candidates

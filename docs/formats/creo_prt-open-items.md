@@ -269,6 +269,11 @@ initial control roles. The generic terminal-support frame does not establish
 those roles. Incomplete centers remain unresolved; an absent center cannot be
 replaced by an envelope midpoint. Raw body bytes retain the unsupported fields.
 
+A second, independently placed chart can define an infinite line even when
+the first chart remains opaque. Line agreement does not establish its finite
+endpoints or a trim interval. The current curve-wide veto suppresses both
+charts.
+
 The selector-corner interval family reconstructs its unique axis line, radius,
 and extent from two directrix parameters, two XYZ corners, and the selector
 pair. Its split-selector and one-placeholder variants use the same equation.
@@ -292,7 +297,11 @@ Class-913 generated round-edge replays carry a radius candidate in a bounded
 is used only with agreeing observed rolling-radius and placed-cylinder
 witnesses; it does not by itself define the remaining carrier equation.
 
-**Need.** We must know the equation to construct the cylinder carrier.
+**Need.** We must know the equation to construct the cylinder carrier. Separate
+independent carrier evidence from endpoint and topology authority before
+recovering a curve adjacent to a withheld cap chart. Prove the complete chart
+record, its owned coordinate lanes, and each promoted quantity. Do not restore
+finite vertices from agreement of infinite carriers.
 
 ### GS-19. Unresolved cone origin-coordinate images
 
