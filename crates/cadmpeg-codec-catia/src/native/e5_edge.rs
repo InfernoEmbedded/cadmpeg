@@ -45,7 +45,7 @@ pub(super) fn derive(
     let Some(first) = source.next() else {
         return Ok(Vec::new());
     };
-    let count = records(bytes).count();
+    let count = source.count() + 1;
     let minimum = header::LEN + 1 + 5 + 1;
     if bounded_len(u64_from_index(count), minimum, bytes.len()).is_none() {
         return Err(CodecError::malformed(
@@ -158,6 +158,34 @@ mod tests {
         let records = crate::test_support::with_service_context(|ctx| derive(ctx, &bytes))
             .expect("source retained by the container");
         assert!(records.is_empty());
+    }
+
+    #[test]
+    fn delayed_first_record_keeps_the_exact_entity_quota_and_order() {
+        let mut bytes = Vec::new();
+        append_e5_record(&mut bytes, 0xc0, 11, &[0; 64]);
+        let first_offset = bytes.len();
+        bytes.extend(frame(&[0x21], 7));
+        bytes.extend(frame(&[0x22], 9));
+        assert!(crate::test_support::with_entity_limit(1, |ctx| derive(ctx, &bytes)).is_err());
+        let admitted = crate::test_support::with_entity_limit(2, |ctx| derive(ctx, &bytes))
+            .expect("both stored records fit the entity quota");
+        assert_eq!(admitted.len(), 2);
+        assert_eq!(admitted[0].record_id, 7);
+        assert_eq!(admitted[1].record_id, 9);
+        assert_eq!(
+            admitted[0].byte_offset,
+            cadmpeg_core::decode::u64_from_index(first_offset)
+        );
+        assert_eq!(
+            admitted[1].byte_offset,
+            cadmpeg_core::decode::u64_from_index(first_offset + 20)
+        );
+        assert!(
+            crate::test_support::with_entity_limit(0, |ctx| derive(ctx, &[]))
+                .expect("no edge needs no entity quota")
+                .is_empty()
+        );
     }
 
     #[test]
