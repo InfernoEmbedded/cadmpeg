@@ -142,11 +142,16 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 **Known.** `sldprt.md` §3.1.1 defines the terminal node and the direct `ThirdPty/WELDMENT_STORAGE` length prefix. The chained wrapper section length bounds its concatenated frame outputs. Header-shaped signatures and terminal-shaped field bytes do not define an intrinsic boundary. The complete base-schema node cursor is separate from outer-extent and endpoint-wire checks.
 
-A later `PS\0\0` is a boundary only when the bytes from that position contain a complete stream header with a bounded description and schema token. An unframed signature in coordinate or string data remains part of the current stream.
+A complete candidate header establishes its local description and schema
+token. It does not establish an intrinsic endpoint of the preceding stream.
+An interior header in coordinate or string data remains part of that stream.
 
 **Need.** Complete selected base-schema field tables and Source-backed traversal of each effective field edit, fixed field, and variable count must establish the node cursor before intrinsic endpoints can be admitted without a carrier extent.
 
-**Conflict.** None.
+**Conflict.** The generic direct extractor ends an unframed stream at the next
+syntactically complete header. It does not check that the preceding stream's
+effective-schema node cursor reaches that position. A complete header-shaped
+image in field data can therefore be classified as a new stream.
 
 **Note.** Outer framing does not establish physical occurrence policy or permit salvage of an invalid CFB extent.
 
