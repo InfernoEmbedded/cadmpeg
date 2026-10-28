@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //! Typed SW Objects document metadata.
 
+pub(crate) mod configuration_manager;
 mod configuration_properties;
 pub(crate) mod default_properties;
 pub(crate) mod part;
@@ -51,7 +52,7 @@ pub(crate) fn attributes(
             annotations,
         )?;
         scan_part(section, &mut out, annotations, losses)?;
-        note_configuration_manager(section, losses);
+        configuration_manager::append(section, &mut out, annotations, losses)?;
         scan_transformed_reference_plane(section, &mut out, annotations)?;
         scan_units_xml(ctx, section, &mut out, annotations)?;
         scan_length_user_units(ctx, section, &mut out, annotations)?;
@@ -317,19 +318,6 @@ fn scan_part(
         }
     }
     Ok(())
-}
-
-fn note_configuration_manager(
-    section: Section<'_>,
-    losses: &mut Vec<cadmpeg_ir::report::loss::LossNote>,
-) {
-    if part::declaration(section.payload(), 0)
-        .is_some_and(|(_, name, _)| name == b"moConfigurationMgr_c")
-    {
-        losses.push(crate::loss::SldprtLossCode::MetadataConfigurationManagerOpaque.note(
-            "Configuration-manager fields and serializer bounds are unresolved; retained bytes are preserved without editable scalar metadata.",
-        ));
-    }
 }
 
 /// Source lengths in metres as a millimetre vector, or `None` when a value

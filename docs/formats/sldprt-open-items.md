@@ -597,7 +597,7 @@ resolve a seed feature?
 
 **Question.** What fields and relations occupy the unresolved bytes of each `SWObjects` metadata record?
 
-**Known.** The supported section-root Part scalar forms are four or twelve bytes with an exact class-specific continuation; a class string in opaque data does not establish a Part. Configuration-manager prefixes are versioned and own child graphs, so the former fixed offsets do not establish scalar meanings or a record end. The reader retains these manager bytes without editable fields, and both writer paths refuse the unsupported scalar attribute. Appearance tails remain versioned; public color APIs alone do not prove the serialized nonprimary color or material-field assignments.
+**Known.** The supported section-root Part scalar forms are four or twelve bytes with an exact class-specific continuation; a class string in opaque data does not establish a Part. Configuration-manager prefixes are versioned and own child graphs. The reader exposes the minor version, state count and UTC FILETIME only under the scalar-prefix bounds in §8; those fields do not establish a record end. Retained writes preserve an unchanged supported tuple; scalar edits and fresh generation remain refused. Appearance tails remain versioned; public color APIs alone do not prove the serialized nonprimary color or material-field assignments.
 
 **Need.** We must know what the undecoded bytes hold before the writer can edit a retained record or claim that a generated record is complete.
 ### EV-05. Leading word of a compound-file `ResolvedFeatures` stream

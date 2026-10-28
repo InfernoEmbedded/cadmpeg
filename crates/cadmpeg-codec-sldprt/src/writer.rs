@@ -6,6 +6,7 @@ use std::io::Write;
 use std::num::NonZeroU16;
 
 mod accounting;
+mod configuration_manager;
 mod default_properties;
 mod edge_direction;
 mod envelope;
@@ -264,6 +265,7 @@ pub(crate) fn write_semantic_with_records(
         }
         true
     };
+    configuration_manager::validate(ir, annotations, &retained_swobjects)?;
     let (objects, units) = metadata_payloads(ir, length_scale, replay_swobjects)?;
     if replay_swobjects {
         generated_partition_sections
@@ -1335,6 +1337,13 @@ fn patch_retained_swobjects_metadata(
             }
             Ok(())
         };
+        if attribute.name == "configuration_manager"
+            && attribute.target == cadmpeg_ir::attributes::AttributeTarget::Document
+            && crate::metadata::configuration_manager::values(payload, offset)
+                .is_some_and(|values| attribute.values == values.map(AttributeValue::Integer))
+        {
+            continue;
+        }
         match MetadataRecord::project(attribute, length_scale, retained)? {
             Some(MetadataRecord::BoundingEnvelope(values)) => {
                 let [AttributeValue::Vector(current)] = attribute.values.as_slice() else {
@@ -2097,6 +2106,9 @@ fn metadata_payloads(
             return Err(CodecError::NotImplemented(
                 "SLDPRT semantic writer does not support entity attributes".into(),
             ));
+        }
+        if retained_swobjects && attribute.name == "configuration_manager" {
+            continue;
         }
         match MetadataRecord::project(attribute, length_scale, |_| Ok(()))? {
             Some(MetadataRecord::BoundingEnvelope(values)) => {

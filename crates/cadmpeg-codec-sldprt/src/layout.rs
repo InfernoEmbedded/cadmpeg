@@ -3114,3 +3114,21 @@ pub(crate) mod draft_declared_neutral_frame {
     /// Offset of `zero_tail` (`bytes[16]`). Spec §2.
     pub(crate) const ZERO_TAIL: usize = 104;
 }
+
+/// Byte offsets for the `configuration_manager_scalar_prefix` record.
+///
+/// Spec §8. Record length 125 B.
+///
+/// ```text
+/// Read prefix only; it does not delimit the configuration graph.
+/// ```
+pub(crate) mod configuration_manager_scalar_prefix {
+    /// Record length in bytes. Spec §8.
+    pub(crate) const LEN: usize = 125;
+    /// Offset of `minor_version` (`u32`, little-endian). Spec §8.
+    pub(crate) const MINOR_VERSION: usize = 66;
+    /// Offset of `state_count` (`u8`). Spec §8.
+    pub(crate) const STATE_COUNT: usize = 107;
+    /// Offset of `filetime` (`u64`, little-endian). Spec §8.
+    pub(crate) const FILETIME: usize = 117;
+}

@@ -3693,6 +3693,27 @@ Unstated regions:
 
 - `0..64` (64 B): The sketch-marker head precedes the coordinate tag.
 
+## `configuration_manager_scalar_prefix`
+
+Spec §8 · layout: byte offsets · size: 125 B
+
+Read prefix only; it does not delimit the configuration graph.
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/metadata/configuration_manager.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 66 | 4 | `minor_version` | `u32` | little | spec | The minor version is u32 LE at `+66` |
+| 107 | 1 | `state_count` | `u8` | little | spec | the state count is u8 at `+107` |
+| 117 | 8 | `filetime` | `u64` | little | spec | the FILETIME is u64 LE at `+117` |
+
+Unstated regions:
+
+- `0..66` (66 B): Opaque prefix before minor version.
+- `70..107` (37 B): Opaque prefix between minor version and state count.
+- `108..117` (9 B): Opaque prefix before FILETIME.
+
 ## Not tabulated
 
 | Area | Spec | Reason |

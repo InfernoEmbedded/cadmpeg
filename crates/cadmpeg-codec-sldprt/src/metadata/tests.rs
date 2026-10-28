@@ -258,12 +258,21 @@ fn decode_extracts_document_envelope() {
         part.values,
         vec![AttributeValue::Integer(42), AttributeValue::Integer(2026)]
     );
-    assert!(!result
+    let manager = result
         .ir()
         .model
         .attributes
         .iter()
-        .any(|attribute| attribute.name == "configuration_manager"));
+        .find(|attribute| attribute.name == "configuration_manager")
+        .unwrap();
+    assert_eq!(
+        manager.values,
+        vec![
+            AttributeValue::Integer(17),
+            AttributeValue::Integer(3),
+            AttributeValue::Integer(132_537_600_000_000_000),
+        ]
+    );
     let units = result
         .ir()
         .model
@@ -627,7 +636,7 @@ fn retained_part_roots_preserve_scalar_form_and_all_other_owned_bytes() {
 }
 
 #[test]
-fn configuration_manager_roots_are_retained_without_invented_scalar_roles() {
+fn unsupported_configuration_manager_roots_retain_bytes_without_scalar_attributes() {
     for width in [113, 139] {
         let mut payload = vec![255, 255, 1, 0, 20, 0];
         payload.extend(b"moConfigurationMgr_c");

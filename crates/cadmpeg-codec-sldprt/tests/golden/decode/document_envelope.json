@@ -26,6 +26,27 @@
           ]
         },
         {
+          "id": "sldprt:metadata:configuration_manager#247:269",
+          "name": "configuration_manager",
+          "target": {
+            "kind": "document"
+          },
+          "values": [
+            {
+              "kind": "integer",
+              "value": 17
+            },
+            {
+              "kind": "integer",
+              "value": 3
+            },
+            {
+              "kind": "integer",
+              "value": 132537600000000000
+            }
+          ]
+        },
+        {
           "id": "sldprt:metadata:default_reference_plane#247:54",
           "name": "default_reference_plane",
           "target": {
@@ -310,6 +331,11 @@
           "offset": 0,
           "stream": "SWObjects",
           "tag": "moBBoxCenterData_c"
+        },
+        "sldprt:metadata:configuration_manager#247:269": {
+          "offset": 269,
+          "stream": "SWObjects",
+          "tag": "moConfigurationMgr_c"
         },
         "sldprt:metadata:default_reference_plane#247:54": {
           "offset": 54,

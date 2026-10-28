@@ -13811,3 +13811,49 @@ type = "bytes[4]"
 source = "spec"
 anchor = "then four bytes, then the handle cells"
 value = [0, 0, 0, 0]
+
+[[record]]
+name = "configuration_manager_scalar_prefix"
+parsed_by = "crates/cadmpeg-codec-sldprt/src/metadata/configuration_manager.rs"
+kind = "byte"
+section = "8"
+anchor = "The `moConfigurationMgr_c` scalar prefix uses offsets after its 20-byte ASCII class name"
+size = 125
+endianness = "little"
+note = "Read prefix only; it does not delimit the configuration graph."
+
+[[record.gap]]
+offset = 0
+size = 66
+note = "Opaque prefix before minor version."
+
+[[record.field]]
+name = "minor_version"
+offset = 66
+type = "u32"
+source = "spec"
+anchor = "The minor version is u32 LE at `+66`"
+
+[[record.gap]]
+offset = 70
+size = 37
+note = "Opaque prefix between minor version and state count."
+
+[[record.field]]
+name = "state_count"
+offset = 107
+type = "u8"
+source = "spec"
+anchor = "the state count is u8 at `+107`"
+
+[[record.gap]]
+offset = 108
+size = 9
+note = "Opaque prefix before FILETIME."
+
+[[record.field]]
+name = "filetime"
+offset = 117
+type = "u64"
+source = "spec"
+anchor = "the FILETIME is u64 LE at `+117`"

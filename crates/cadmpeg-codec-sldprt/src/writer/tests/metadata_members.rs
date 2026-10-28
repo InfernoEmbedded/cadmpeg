@@ -322,7 +322,7 @@ fn unsupported_manager_fields_cannot_patch_a_retained_member() {
         name: "configuration_manager".into(),
         values: vec![
             AttributeValue::Integer(17),
-            AttributeValue::Integer(3),
+            AttributeValue::Integer(4),
             AttributeValue::Integer(132_537_600_000_000_000),
         ],
     });

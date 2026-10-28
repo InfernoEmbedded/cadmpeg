@@ -154,7 +154,7 @@ fn inherited_writer_refuses_every_saved_property_edit() {
         }
         drop(ir);
         assert!(
-            matches!(write(&decoded), Err(CodecError::NotImplemented(message)) if message.contains("SLDPRT default")),
+            matches!(write(&decoded), Err(CodecError::NotImplemented(message)) if message == "SLDPRT saved-property edits require a retained property serializer"),
             "mutation {mutation}"
         );
     }
@@ -188,7 +188,7 @@ fn inherited_writer_refuses_changed_unit_mirrors_in_the_saved_carrier() {
     mirror.values = vec![AttributeValue::Integer(3)];
     drop(ir);
     assert!(
-        matches!(write(&decoded), Err(CodecError::NotImplemented(message)) if message.contains("SLDPRT default"))
+        matches!(write(&decoded), Err(CodecError::NotImplemented(message)) if message == "SLDPRT saved-property edits require a retained property serializer")
     );
 }
 #[test]
@@ -202,7 +202,7 @@ fn source_less_writer_refuses_saved_properties() {
     });
     let mut bytes = Vec::new();
     assert!(
-        matches!(crate::writer::write_semantic_with_records(&ir, &cadmpeg_ir::annotations::Annotations::default(), &[], &mut bytes), Err(CodecError::NotImplemented(message)) if message.contains("SLDPRT default"))
+        matches!(crate::writer::write_semantic_with_records(&ir, &cadmpeg_ir::annotations::Annotations::default(), &[], &mut bytes), Err(CodecError::NotImplemented(message)) if message == "SLDPRT saved properties require their retained source carrier")
     );
     assert!(bytes.is_empty());
 }
