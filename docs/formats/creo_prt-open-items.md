@@ -465,13 +465,20 @@ coordinates. Neither case permits an endpoint substitution or an invented point.
 
 **Need.** Define the complete owning field and variable-type contracts before numerically admitting an opaque full-width variable or assigning solver state to it.
 
-### SP-08. Multiple `local_sys` frames
+### SP-08. Other `local_sys` owners
 
-**Question.** What geometric role does each feature-definition `local_sys` frame have when one definition contains more than one frame?
+**Question.** What geometric role does a feature-definition `local_sys` frame
+have when it is neither the placement-record frame nor the section-location
+frame?
 
-**Known.** `creo_prt.md` §6 "Feature-definition `local_sys f9 04 03` and `transf f9 04 03` bodies use the" defines the twelve-slot feature frame and its complete rank-two form.
+**Known.** `creo_prt.md` §6 "Feature-definition `local_sys f9 04 03` and
+`transf f9 04 03` bodies use the" defines the twelve-slot feature frame, the
+placement-record frame, and the section-location frame. A frame that follows a
+saved section result and precedes `entities_to_hide` does not define the
+section plane.
 
-**Need.** We must know each role to select the feature placement.
+**Need.** Identify the enclosing record of each such frame before a consumer
+uses it.
 
 ### SP-09. Multiple `transf` frames
 

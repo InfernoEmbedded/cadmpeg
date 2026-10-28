@@ -4389,8 +4389,15 @@ When four slots precede `18 e5`, the token expands to `[0, 0, 1, 0, 0]`. This
 rank-two form completes the zero local-y triple and supplies the local-z unit
 direction.
 The four consecutive triples are the local x axis, local y axis, local z axis,
-and origin. When a definition contains exactly one complete `local_sys`, its
-local z axis and origin define the section-plane equation. A zero-length local
+and origin. A frame belongs to the record that encloses it. The
+`place_rec_ptr` placement record opens with its own `local_sys` field. The
+section-location `local_sys` of `gsec2d_ptr` follows the section's
+`p_saved_result` and immediately precedes its `rigid_data` record; it maps
+section coordinates into the model. When a definition contains exactly one
+complete section-location `local_sys`, its local z axis and origin define the
+section-plane equation. A placement-record frame or a frame of another owner
+does not define the section location, and it is not a substitute when the
+section-location frame is absent or incomplete. A zero-length local
 z axis does not define a plane. Perpendicular nonzero local-x and local-z axes
 also define the section's in-plane reference equation through the stored
 origin. This complete local frame supplies section orientation when the

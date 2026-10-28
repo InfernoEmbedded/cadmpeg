@@ -3927,7 +3927,7 @@ mod feature_definition_projection_tests {
     use super::feature_definition_records;
     use crate::feature::definitions::{
         DecodedField, DefinitionIdentity, FeatureDefinition, FeatureOutline, FeatureParameterFrame,
-        FeatureParameterFrameKind, OutlinePhase,
+        FeatureParameterFrameKind, FeatureParameterFrameOwner, OutlinePhase,
     };
 
     fn scan() -> crate::container::ContainerScan<'static> {
@@ -3948,6 +3948,7 @@ mod feature_definition_projection_tests {
             body: vec![0xe3],
             parameter_frames: vec![FeatureParameterFrame {
                 kind: FeatureParameterFrameKind::Transform,
+                owner: FeatureParameterFrameOwner::PlacementRecord,
                 body: vec![0xf9],
                 decoded_values: None,
                 offset: 4,
