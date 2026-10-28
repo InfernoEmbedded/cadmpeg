@@ -528,9 +528,10 @@ one logical slot. The following fixed control `e8 26 d6 95` supplies no slot.
 An optional `10` after the control supplies one further logical slot.
 
 Exactly six logical bounding fields follow this model prefix. Eight-byte
-openers `2d`, `41`, and `46` bound one field. Seven-byte openers `54`, `6d`,
-`73`, `8c`, `93`, `9a`, `9c`, `a3`, `bb`, and `df` bound one field. An
-unlisted opener leaves the table unresolved; seven bytes is not a default.
+openers `2d`, `41`, and `46` bound one field. Seven-byte openers `31`, `4a`,
+`54`, `6d`, `73`, `8a`, `8b`, `8c`, `92`, `93`, `9a`, `9b`, `9c`, `9f`, `a3`,
+`a5`, `a8`, `bb`, `bf`, `d2`, and `df` bound one field. An unlisted opener
+leaves the table unresolved; seven bytes is not a default.
 The `46` and `2d` fields reconstruct `40 <tail7>` and `c0 <tail7>`. Other
 bounded field images retain their numeric value as unresolved.
 

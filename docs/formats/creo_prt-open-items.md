@@ -73,20 +73,26 @@ surface, or pcurve transition semantics apply.
 
 ### SE-07. Additional model scalar-heap forms
 
-**Question.** Which additional bounded model-heap prefixes and bounding-field
-openers extend the defined `Model_L05P` and `Model_L05_PX` slot grammar, and
-which numeric images do the unresolved model-scale and bounding fields use?
+**Question.** Which numeric images do the unresolved model-scale and bounding
+fields of the `Model_L05P` and `Model_L05_PX` slot grammar use, and which width
+and role do the `b7`, `da`, and `e4` bounding-field forms have?
 
 **Known.** `creo_prt.md` §2.3 defines the owning model and unit-system heaps,
-logical counts, physical widths, two-value `e5` repetition, zero-slot model
-control, and following `string_xar` boundary. The model-scale image is one
-slot and is independent of a preceding repeat. A following named-record
-header is not a null entry. The unit-system heap has its own ten-scalar lane.
+logical counts, physical widths, the eight-byte and seven-byte bounding-field
+openers, two-value `e5` repetition, zero-slot model control, and following
+`string_xar` boundary. The model-scale image is one slot and is independent of
+a preceding repeat. A following named-record header is not a null entry. The
+unit-system heap has its own ten-scalar lane. A table that contains a `b7` or
+`da` field reaches its declared count at `string_xar` with a seven-byte or an
+eight-byte width for that opener, so this boundary does not select the width.
+A one-byte `e4` field also reaches the boundary, but the bounding lane does not
+define it as a literal one or as a one-copy repeat.
 
-**Need.** We must know the complete source extent, logical width, and numeric
-role of each additional form before extending the model grammar. An absent
-width rule must leave the table unresolved; generic scalar widths and values
-do not apply by prefix alone.
+**Need.** We must know the numeric reconstruction of each seven-byte and `41`
+bounding image and of the model-scale image, the widths of `b7` and `da`, and
+the role of `e4` before extending the model grammar. An absent width rule must
+leave the table unresolved; generic scalar widths and values do not apply by
+prefix alone.
 
 **Note.** The former SE-08 variable-length `e5` question is tracked here.
 The defined model-heap repetition rule does not settle additional heap forms
