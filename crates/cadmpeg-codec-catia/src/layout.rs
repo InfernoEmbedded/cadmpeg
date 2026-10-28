@@ -744,6 +744,16 @@ pub(crate) mod rolling_ball_tail_scalar_branch {
     pub(crate) const BRANCH_VALUE: [u8; 2] = [0x01, 0x01];
 }
 
+/// Byte offsets for the `e5_rolling_ball_tail` record.
+///
+/// Spec §9. Record length 63 B.
+pub(crate) mod e5_rolling_ball_tail {
+    /// Record length in bytes. Spec §9.
+    pub(crate) const LEN: usize = 63;
+    /// Stated value of `terminal` (`bytes[3]`). Spec §9.
+    pub(crate) const TERMINAL_VALUE: [u8; 3] = [0x01, 0x00, 0x00];
+}
+
 /// Byte offsets for the `b5_line_profile` record.
 ///
 /// Spec §6.7. Record length 73 B.

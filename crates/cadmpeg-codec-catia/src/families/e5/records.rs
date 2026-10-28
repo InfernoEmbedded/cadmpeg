@@ -8,6 +8,7 @@
 use cadmpeg_core::decode::u64_from_index;
 
 use crate::families::a5a8::records::rolling_ball_jet_derivative;
+use crate::layout::e5_rolling_ball_tail as d8_tail;
 use crate::math::distance;
 use cadmpeg_core::decode::View;
 use cadmpeg_core::CodecError;
@@ -142,7 +143,6 @@ const _: () = assert!(
 );
 
 const EPS_CURRENT_LIMIT_DOMAIN: f64 = 1.0e-9;
-const E5_D8_TAIL_BYTES: usize = 63;
 const E5_D8_ARC_TOLERANCE: f64 = 1e-8;
 const E5_D8_RADIUS_TOLERANCE: f64 = 1e-8;
 
@@ -413,7 +413,7 @@ fn parse_e5_rolling_ball_jet(data: &[u8], record: E5Record) -> Option<E5RollingB
         read_d8_channel_rows(&mut view, station_count_u64, &mut positions)?;
         read_d8_channel_rows(&mut view, station_count_u64, &mut first_derivatives)?;
         read_d8_channel_rows(&mut view, station_count_u64, &mut second_derivatives)?;
-        if view.remaining() != E5_D8_TAIL_BYTES {
+        if view.remaining() != d8_tail::LEN {
             return None;
         }
         let parameter_min = view.f64_le()?;
@@ -436,7 +436,7 @@ fn parse_e5_rolling_ball_jet(data: &[u8], record: E5Record) -> Option<E5RollingB
             || tail_radius0 <= 0.0
             || !relative_close(tail_radius0, tail_radius1, E5_D8_RADIUS_TOLERANCE)
             || !relative_close(tail_radius0, tail_radius2, E5_D8_RADIUS_TOLERANCE)
-            || view.array::<3>()? != [1, 0, 0]
+            || view.array::<3>()? != d8_tail::TERMINAL_VALUE
         {
             return None;
         }
