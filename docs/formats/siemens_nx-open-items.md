@@ -99,11 +99,11 @@ inverse or indistinguishable corrected branches remain unassigned.
 
 ### PS-13. Deltas type 90 `GROUP`
 
-**Question.** What change-state role does the final reference status of a status-framed type-90 GROUP carry?
+**Question.** What change-state role does the final reference status of a status-framed type-90 GROUP carry, and what semantic role does the integer in a type-91 MEMBER_OF_GROUP carry?
 
 **Known.** `siemens_nx.md` §4.2 defines the GROUP's five pointer roles, member-family enum 1 through 10, and separate primary and supported Deltas field framing. A primary GROUP ends after `first_member` without a status byte. Its source boundary follows the effective schema cursor.
 
-**Need.** Establish the reference-status semantics for section-owned GROUP instances. Determine whether a GROUP membership update addresses an XMT alone or a typed identity, and whether BODY revision boundaries limit its lifetime. Establish the change-state meaning of Deltas MEMBER_OF_GROUP reference statuses independently of its integer entity-label field and the primary grammar.
+**Need.** Establish the reference-status semantics for section-owned GROUP instances. Determine whether a GROUP membership update addresses an XMT alone or a typed identity, and whether BODY revision boundaries limit its lifetime. Establish the change-state meaning of Deltas MEMBER_OF_GROUP reference statuses independently of its four-byte integer field and the primary grammar. Establish whether that integer is a label, state, or another control; its storage width does not assign its role.
 
 **Conflict.** Primary GROUP and MEMBER_OF_GROUP records have schema-owned boundaries and distinct member and entity chains. Those primary relations do not establish a Deltas update's identity key or revision lifetime. All Deltas selection is unresolved. GROUP membership remains the primary relation; no numerical BODY scope or typed-key replay applies Deltas updates.
 
@@ -508,7 +508,7 @@ assigns control geometry, continuity, or terminal semantics.
 
 **Question.** Which logical fields assign authored construction roles and policy controls to the four scalars, counted column sequence, and independent state lane?
 
-**Known.** `siemens_nx.md` §7.1 "A bounded `SWP104` payload begins with one construction branch" defines one-based parameter and profile class indices. §7.1 "Member and successor references are non-null canonical payload object indices." defines the consecutive physical column sequence. Its block boundaries do not delimit logical fields. The witness count is independent of the member count.
+**Known.** `siemens_nx.md` §7.1 "A bounded `SWP104` payload begins with one construction branch" defines one-based parameter and profile class indices. §7.1 "Member and successor references are non-null canonical payload object indices." defines the consecutive physical column sequence. Its block boundaries do not delimit logical fields. The witness count is independent of the member count. The parameter classes distinguish revolved, swept, and cable constructions; the shared operation label does not select a sweep by itself.
 
 **Need.** Decode the logical rows across column boundaries and join their native endpoints to the profile, path, result mode, orientation, transition, transformation, tangent propagation, simplification, twist, and scale fields required for a neutral feature.
 

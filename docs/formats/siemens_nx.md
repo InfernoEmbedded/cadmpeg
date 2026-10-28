@@ -1199,8 +1199,8 @@ is non-null; the other four pointers permit null XMT 1.
 
 Type 91 is `MEMBER_OF_GROUP`, named `MEMBER_OF_FEATURE` in schemas 11004 and
 13006. Its fields are `dummy_node_id:u32 BE`, `owning_group`, `owner`, `next`,
-`previous`, `next_member`, and `previous_member`. The integer is an
-unrestricted unsigned 32-bit entity label, not a logical flag. The
+`previous`, `next_member`, and `previous_member`. The integer occupies four
+bytes and is separate from the six pointer fields. The
 `owning_group` and `owner` pointers are non-null; the four chain pointers
 permit null XMT 1. A primary record uses six plain biased pointers and ends
 immediately after `previous_member`.
@@ -2567,7 +2567,7 @@ An `EXTRACT_STRING` operation with four null operation-label object-index fields
 
 The `SKIN` and `THRU_CURVE` operation labels identify loft-family constructions.
 
-The `SWP104` operation label identifies a sweep-family construction. Its profile, path, result mode, orientation, transition, transformation, tangent propagation, simplification, twist, and scale remain unresolved until their serialized construction fields are assigned.
+The `SWP104` operation label is shared by revolved, swept, and cable constructions. The owning parameter-class declaration distinguishes these families. Its profile, path, result mode, orientation, transition, transformation, tangent propagation, simplification, twist, and scale remain unresolved until their serialized construction fields are assigned.
 
 A bounded `SWP104` payload begins with one construction branch: `parameter-class-index, 00 00 01 00, shifted-f64[4], optional-zero, profile-class-index, 01, declared-count, member-reference[declared-count - 1], count-witness?, state-lane, ff 01 02, successor-reference, 00`. Both class indices are one-based declaration indices in the owning OM section. The parameter class is `UGS::SWEEP_revolved_parms_mbf`, `UGS::SWEEP_swept_parms`, or `UGS::SWEEP_cable_parms`. The profile class is `UGS::CM_profile`. These class identities do not assign authored profile, path, orientation, twist, or scale values.
 
