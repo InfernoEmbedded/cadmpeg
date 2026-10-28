@@ -777,13 +777,17 @@ face-surface sense. Distinguish required current boundary uses from other
 stored incidence before applying a completeness requirement. Resolve repeated
 identities and unmatched chains with an independently mapped stored trim.
 
-**Conflict.** Other stored rows can name a face with a closed ring while
-remaining outside that ring. This alone establishes neither a complete face
-nor the invalidity of that face.
+**Conflict.** Other stored rows whose two face references are both live can
+name a face with a closed ring while remaining outside that ring. This alone
+establishes neither a complete face nor the invalidity of that face. Legacy
+rows beside a null face reference or a face without a visible surface row are
+not required uses, as specified in `creo_prt.md` §4 "In the legacy ASCII layout, `VisibGeom` retains
+curve rows of deleted faces".
 
-**Note.** The runtime all-incident-side admission guard remains conservative.
-Its coverage result must not be used as proof that a withheld face is invalid.
-The general current-boundary ownership rule remains unresolved.
+**Note.** The runtime admission guard requires every side whose other face is
+live and remains conservative. Its coverage result must not be used as proof
+that a withheld face is invalid. The general current-boundary ownership rule
+remains unresolved.
 
 ### TP-06. Shared-surface face partition
 

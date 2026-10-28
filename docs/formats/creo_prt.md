@@ -2309,6 +2309,13 @@ a per-side orientation-flag array, not a tangent vector. For pcurve endpoint
 pairs, `01` traverses endpoint A to endpoint B and `f6` traverses endpoint B to
 endpoint A. The two half-edge sides store complementary flags.
 
+In the legacy ASCII layout, `VisibGeom` retains curve rows of deleted faces.
+When one face reference of a row is null or names a face without a visible
+`srf_array` row, the row is not a required boundary use of the face that its
+other reference names. Face admission does not require that side to occur in a
+closed loop. In the ND and DEPDB layouts, every side that names a face is
+required.
+
 The two half-edge sides of one curve have opposite endpoint order. Their start
 vertices therefore define the curve's oriented endpoint pair when either
 side's closed loop supplies an end vertex. If both sides supply end vertices,

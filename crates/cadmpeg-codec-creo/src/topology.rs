@@ -169,23 +169,34 @@ impl FaceComponent {
     }
 }
 
-/// Faces whose closed loops cover every original incident side exactly once.
-/// A closed subset is insufficient, and repeated curve identities invalidate
-/// every face named by any occurrence. Native graph records stay unchanged.
-pub(crate) fn completely_covered_faces(rows: &[CurveTopologyRow], loops: &[Loop]) -> BTreeSet<u32> {
+/// Faces whose closed loops cover every required incident side exactly once
+/// and use no side outside the face's incident rows. `required` decides from
+/// the row's other face reference whether a side is required. A closed subset
+/// is insufficient, and repeated curve identities invalidate every face named
+/// by any occurrence. Native graph records stay unchanged.
+pub(crate) fn completely_covered_faces(
+    rows: &[CurveTopologyRow],
+    loops: &[Loop],
+    required: impl Fn(Option<u32>) -> bool,
+) -> BTreeSet<u32> {
     let mut counts = BTreeMap::<u32, usize>::new();
     for row in rows {
         *counts.entry(row.id).or_default() += 1;
     }
-    let mut expected = BTreeMap::<u32, BTreeSet<HalfEdgeId>>::new();
+    let mut incident = BTreeMap::<u32, BTreeSet<HalfEdgeId>>::new();
+    let mut needed = BTreeMap::<u32, BTreeSet<HalfEdgeId>>::new();
     let mut invalid = BTreeSet::new();
     for row in rows {
         for side in [Side::Zero, Side::One] {
             if let Some(face) = row.faces[side.index()] {
-                expected.entry(face.get()).or_default().insert(HalfEdgeId {
+                let half_edge = HalfEdgeId {
                     curve_id: row.id,
                     side,
-                });
+                };
+                incident.entry(face.get()).or_default().insert(half_edge);
+                if required(row.faces[side.flip().index()].map(std::num::NonZeroU32::get)) {
+                    needed.entry(face.get()).or_default().insert(half_edge);
+                }
                 if counts.get(&row.id) != Some(&1) {
                     invalid.insert(face.get());
                 }
@@ -202,10 +213,12 @@ pub(crate) fn completely_covered_faces(rows: &[CurveTopologyRow], loops: &[Loop]
             }
         }
     }
-    expected
+    incident
         .into_iter()
         .filter_map(|(face, sides)| {
-            (!invalid.contains(&face) && actual.get(&face) == Some(&sides)).then_some(face)
+            let used = actual.get(&face)?;
+            let covered = needed.get(&face).is_none_or(|sides| sides.is_subset(used));
+            (!invalid.contains(&face) && covered && used.is_subset(&sides)).then_some(face)
         })
         .collect()
 }

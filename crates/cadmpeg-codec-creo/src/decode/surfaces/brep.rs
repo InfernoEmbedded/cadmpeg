@@ -638,6 +638,23 @@ fn is_neutral_face_reference(
     ) || namespaces.is_visible(face_id)
 }
 
+/// Whether a face side is a required boundary use, given the face that the
+/// row's other side names. Legacy `VisibGeom` retains rows of deleted faces:
+/// their other reference is null or names a face without a visible surface row.
+fn required_boundary_side(
+    scan: &ContainerScan,
+    namespaces: &NativeSurfaceNamespaces,
+    partner: Option<u32>,
+) -> bool {
+    match partner {
+        Some(face_id) => is_neutral_face_reference(scan, namespaces, face_id),
+        None => !matches!(
+            scan.framing.layout,
+            crate::container::Layout::LegacyAscii(_)
+        ),
+    }
+}
+
 fn merge_body_components(components: Vec<NeutralShellSpec>) -> Vec<NeutralShellSpec> {
     let mut components = components.into_iter();
     let Some(mut first) = components.next() else {
@@ -1166,6 +1183,7 @@ impl<'a> BrepFaceCandidateIndexes<'a> {
         let complete_faces = crate::topology::completely_covered_faces(
             &scan.curves.topology_rows,
             &scan.topology.loops,
+            |partner| required_boundary_side(scan, namespaces, partner),
         );
         loops_by_face.retain(|face_id, _| complete_faces.contains(face_id));
         let mut topology_face_reference_ids = BTreeSet::new();
