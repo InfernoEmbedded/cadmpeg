@@ -306,3 +306,25 @@ fn semantic_writer_refuses_unrepresentable_compound_default_streams() {
     );
     assert!(super::validate_emitted(&scan, &[]).is_err());
 }
+
+#[test]
+fn legacy_compound_configuration_carrier_requires_retained_compound_writer() {
+    let bytes = outer_header();
+    let mut scan = scan(&bytes);
+    scan.compound_streams
+        .push(crate::container::CompoundStream {
+            path: cadmpeg_ir::StreamName::try_from("Config-7-Properties".to_owned()).unwrap(),
+            directory_id: 19,
+            start_sector: 0,
+            payload: b"retained compound property data".to_vec(),
+            decoded_payload: None,
+            ps_streams: Vec::new(),
+            ps_probe_capped: false,
+            ps_auxiliary_refusal: None,
+        });
+    assert!(requires_guard(&CadIr::empty(), Some(&scan)));
+    assert!(
+        matches!(super::validate_retention(&scan, &[], &cadmpeg_ir::Annotations::default()), Err(cadmpeg_core::CodecError::NotImplemented(message)) if message.contains("retained compound writer"))
+    );
+    assert!(super::validate_emitted(&scan, &[]).is_err());
+}

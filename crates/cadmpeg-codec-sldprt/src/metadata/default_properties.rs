@@ -34,22 +34,29 @@ pub(crate) fn is_owner(section: Section<'_>) -> bool {
 }
 
 #[derive(Clone)]
-struct SavedValue {
-    pid: u32,
-    value: Option<AttributeValue>,
-    source_type: &'static str,
+pub(super) struct SavedValue {
+    pub(super) pid: u32,
+    pub(super) value: Option<AttributeValue>,
+    pub(super) source_type: &'static str,
 }
 
 #[derive(Clone)]
-struct Alias {
-    name: String,
-    pid: u32,
+pub(super) struct Alias {
+    pub(super) name: String,
+    pub(super) pid: u32,
 }
 
 #[derive(Default)]
-struct Table {
-    values: Vec<SavedValue>,
-    aliases: Vec<Alias>,
+pub(super) struct Table {
+    pub(super) values: Vec<SavedValue>,
+    pub(super) aliases: Vec<Alias>,
+}
+
+pub(super) fn compound_configuration_table(
+    ctx: &DecodeContext<'_>,
+    payload: &[u8],
+) -> Result<Table, CodecError> {
+    oleps::configuration_table(ctx, payload)
 }
 
 pub(super) fn append(

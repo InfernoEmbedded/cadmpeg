@@ -34,13 +34,13 @@ fn decimal(text: &str) -> Option<u32> {
 }
 
 fn namespace_index(section: Section<'_>) -> Option<u32> {
-    if !matches!(section, Section::Block(_)) {
-        return None;
-    }
-    let index = section
-        .name()?
-        .strip_prefix("docProps/Config-")?
-        .strip_suffix("-Properties.xml")?;
+    let name = section.name()?;
+    let index = match section {
+        Section::Block(_) => name
+            .strip_prefix("docProps/Config-")?
+            .strip_suffix("-Properties.xml")?,
+        Section::Compound(_) => name.strip_prefix("Config-")?.strip_suffix("-Properties")?,
+    };
     decimal(index)
 }
 
@@ -79,7 +79,13 @@ pub(super) fn append(
             end += 1;
         }
         if end == cursor + 1 {
-            match project_owner(ctx, owner, index, out, annotations, losses) {
+            let projected = match owner {
+                Section::Block(_) => project_owner(ctx, owner, index, out, annotations, losses),
+                Section::Compound(_) => {
+                    project_compound_owner(ctx, owner, index, out, annotations, losses)
+                }
+            };
+            match projected {
                 Ok(()) => {}
                 Err(error @ CodecError::ResourceLimit(_)) => return Err(error),
                 Err(error) => losses.push(
@@ -299,6 +305,95 @@ fn project_owner(
             }
         }
     }
+    project_rows(ctx, owner, index, rows, out, annotations, losses)
+}
+
+fn project_compound_owner(
+    ctx: &DecodeContext<'_>,
+    owner: Section<'_>,
+    index: u32,
+    out: &mut Vec<SourceAttribute>,
+    annotations: &mut Annotations,
+    losses: &mut Vec<LossNote>,
+) -> Result<(), CodecError> {
+    const COMPANION_FLAG: u32 = 0x0100_0000;
+    let mut table = super::default_properties::compound_configuration_table(ctx, owner.payload())?;
+    table.values.sort_unstable_by_key(|row| row.pid);
+    table.aliases.sort_unstable_by_key(|row| row.pid);
+    if table
+        .values
+        .windows(2)
+        .any(|pair| pair[0].pid == pair[1].pid)
+        || table
+            .aliases
+            .windows(2)
+            .any(|pair| pair[0].pid == pair[1].pid)
+    {
+        return Err(CodecError::malformed(
+            "configuration-property PID has multiple records or aliases",
+        ));
+    }
+    table
+        .aliases
+        .sort_unstable_by(|left, right| left.name.cmp(&right.name));
+    if table
+        .aliases
+        .windows(2)
+        .any(|pair| pair[0].name == pair[1].name)
+    {
+        return Err(CodecError::malformed(
+            "configuration-property name has multiple records",
+        ));
+    }
+    let mut rows = ctx.alloc_filled(
+        table.aliases.len(),
+        Property::default(),
+        "allocate compound configuration-property rows",
+    )?;
+    for (row, alias) in rows.iter_mut().zip(&table.aliases) {
+        row.pid = alias.pid;
+        row.name = &alias.name;
+        if alias.pid < 2 || alias.pid >= COMPANION_FLAG {
+            continue;
+        }
+        let Ok(position) = table
+            .values
+            .binary_search_by_key(&alias.pid, |value| value.pid)
+        else {
+            continue;
+        };
+        let value = &table.values[position];
+        row.kind = value.source_type;
+        if table
+            .values
+            .binary_search_by_key(&(alias.pid | COMPANION_FLAG), |value| value.pid)
+            .is_ok()
+        {
+            continue;
+        }
+        match &value.value {
+            Some(AttributeValue::String(text))
+                if matches!(value.source_type, "lpstr" | "lpwstr") =>
+            {
+                row.value = Some(text);
+                row.supported = true;
+            }
+            None if matches!(value.source_type, "empty" | "null") => row.supported = true,
+            _ => {}
+        }
+    }
+    project_rows(ctx, owner, index, rows, out, annotations, losses)
+}
+
+fn project_rows(
+    ctx: &DecodeContext<'_>,
+    owner: Section<'_>,
+    index: u32,
+    rows: Vec<Property<'_>>,
+    out: &mut Vec<SourceAttribute>,
+    annotations: &mut Annotations,
+    losses: &mut Vec<LossNote>,
+) -> Result<(), CodecError> {
     for row in rows {
         if row.name.is_empty() {
             continue;

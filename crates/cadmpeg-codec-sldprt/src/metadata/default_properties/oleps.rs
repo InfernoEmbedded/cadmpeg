@@ -22,6 +22,16 @@ const DOCUMENT_SUMMARY: [u8; 16] = [
     0x02, 0xd5, 0xcd, 0xd5, 0x9c, 0x2e, 0x1b, 0x10, 0x93, 0x97, 0x08, 0x00, 0x2b, 0x2c, 0xf9, 0xae,
 ];
 
+pub(super) fn configuration_table(
+    ctx: &DecodeContext<'_>,
+    payload: &[u8],
+) -> Result<Table, CodecError> {
+    if u32_at(View::over_retained(payload), header::SECTION_COUNT)? != 2 {
+        return Err(unsupported("configuration-property two-section form"));
+    }
+    table(ctx, payload)
+}
+
 pub(super) fn table(ctx: &DecodeContext<'_>, payload: &[u8]) -> Result<Table, CodecError> {
     let root = View::over_retained(payload);
     field(root, 0, header::LEN)?;

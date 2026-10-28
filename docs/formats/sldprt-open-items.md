@@ -255,9 +255,11 @@ image in field data can therefore be classified as a new stream.
 
 **Need.** Independent legacy configuration-property dictionary/FMTID ownership inside the `Config-N-Properties` stream, complete operand binding, and strict retained-writer behavior for configuration-local property edits. A saved formula does not establish currentness or override carrier ownership.
 
-**Conflict.** The current configuration projection retains Keywords fields but does not incorporate the modern configuration-property namespace. The saved default-property reader has a separate document owner and does not resolve configured custom properties.
+**Conflict.** Read-only configuration-property carrier facts do not supply the complete model/configuration-name/property binding. The saved default-property reader has a separate document owner and does not resolve configured custom properties.
 
 **Note.** Read-only `saved_configuration_property` source attributes carry document-level carrier facts in the order `(member, namespace index, FMTID, PID, property name, VT type, optional literal)`. Literal `IsEquation="False"` string records and explicit empty/null records retain their distinct types; a blank string has a literal value, while empty/null has none. These facts do not bind a named configuration or evaluate a property reference. Other values and `FPVals` caches remain retained in the complete source carrier. Semantic writes require the recorded facts and carrier bytes to remain unchanged. Modern name/ID evidence does not establish property-cache freshness or complete evaluator execution.
+
+**Note.** The ordered two-set legacy `Config-N-Properties` form supplies physical carrier facts from its UserDefinedProperties dictionary and saved strings. The index `N` alone does not bind a named configuration. A named base PID with a same-section `0x01000000 | PID` companion is withheld from this supported subset; absence of a companion does not certify a nonformula or current value. Repeated PID/name records, multiple aliases for one PID, and unsupported scalar forms do not select a value in this subset. The complete carrier remains retained, and semantic compound-property writes require a retained compound writer.
 
 ### DI-05. Compact offset framing and complete operand ownership
 
