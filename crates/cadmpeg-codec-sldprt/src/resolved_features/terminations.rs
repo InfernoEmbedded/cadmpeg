@@ -1456,8 +1456,10 @@ fn compact_extrusion_dimension_child_at(payload: &[u8], child: usize) -> Option<
             .get(block + 20)
             .is_some_and(|byte| *byte == 1 || *byte == 3)
         && payload.get(block + 21..block + 25) == Some(&[0xff, 0xff, 0xff, 0xff])
-        && payload.get(block + 25..block + 31) == Some(&[0, 0, 0, 0, 0, 0])
-        && payload.get(block + 31..block + 33) == Some(&[0x80, 0xbf]))
+        && payload.get(block + 25..block + 29) == Some(&[0, 0, 0, 0])
+        && payload
+            .get(block + 29..block + 33)
+            .is_some_and(|value| value == (-1.0f32).to_le_bytes() || value == [0; 4]))
     .then_some(block + 33)
 }
 

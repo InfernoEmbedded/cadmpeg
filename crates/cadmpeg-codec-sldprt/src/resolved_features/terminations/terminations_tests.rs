@@ -5,13 +5,13 @@ use super::super::selections::{compact_surface_selections, selection_vector_tail
 use super::{
     compact_body_component_path_at, compact_body_path_at, compact_combine_operation_at,
     compact_extrusion_blind_at, compact_extrusion_blind_through_all_second_at,
-    compact_extrusion_mid_plane_at, compact_extrusion_offset_from_face_at,
-    compact_extrusion_through_all_at, compact_extrusion_through_all_both_at,
-    compact_extrusion_through_next_at, compact_extrusion_to_face_at,
-    compact_extrusion_to_vertex_at, compact_single_face_reference_path_at,
-    compact_single_face_reference_record_at, enrich_history_combine_selections,
-    enrich_history_extrusion_terminations, legacy_single_face_reference_path_at,
-    CompactPointReferenceKind,
+    compact_extrusion_dimension_child_at, compact_extrusion_mid_plane_at,
+    compact_extrusion_offset_from_face_at, compact_extrusion_through_all_at,
+    compact_extrusion_through_all_both_at, compact_extrusion_through_next_at,
+    compact_extrusion_to_face_at, compact_extrusion_to_vertex_at,
+    compact_single_face_reference_path_at, compact_single_face_reference_record_at,
+    enrich_history_combine_selections, enrich_history_extrusion_terminations,
+    legacy_single_face_reference_path_at, CompactPointReferenceKind,
 };
 use crate::records::FeatureSource;
 use crate::records::ObjectId;
@@ -1046,6 +1046,25 @@ fn compact_extrusion_mid_plane_requires_the_dimension_child() {
     payload.extend_from_slice(b"\xff\xff\x01\x00\x16\x00moDisplayDistanceDim_c");
     dimension_tail(&mut payload);
     assert!(compact_extrusion_mid_plane_at(&payload, 0));
+}
+
+#[test]
+fn compact_extrusion_dimension_child_accepts_both_stored_f32_values() {
+    let mut payload = vec![0x6a, 0x81];
+    payload.resize(18, 0);
+    payload.extend_from_slice(&[0xff, 0xff, 0, 0, 1]);
+    payload.extend_from_slice(&[0xff, 0xff, 0xff, 0xff]);
+    payload.extend_from_slice(&[0, 0, 0, 0]);
+    let value = payload.len();
+    for (stored, accepted) in [(-1.0f32, true), (0.0, true), (1.0, false), (-0.5, false)] {
+        payload.truncate(value);
+        payload.extend_from_slice(&stored.to_le_bytes());
+        assert_eq!(
+            compact_extrusion_dimension_child_at(&payload, 0),
+            accepted.then_some(payload.len()),
+            "{stored}"
+        );
+    }
 }
 
 #[test]
