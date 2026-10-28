@@ -1150,6 +1150,26 @@ fn owned_type26_radius_replay_preserves_generic_and_carrier_lanes() {
 }
 
 #[test]
+fn type26_radius_slot_reads_the_full_width_2d_form_as_positive() {
+    let cache = scalar::ScalarCache::default();
+    let major = [0x2d, 0x20, 0, 0, 0, 0, 0, 0x34];
+    let expected = f64::from_be_bytes([0x40, 0x20, 0, 0, 0, 0, 0, 0x34]);
+    assert_eq!(
+        scalar::decode_type26_radius_slot(&major, 0, &cache),
+        Some((expected, major.len()))
+    );
+    let mut frame = Vec::new();
+    for value in [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 4.0] {
+        push_inline_test_scalar(&mut frame, value);
+    }
+    let mut suffix = major.to_vec();
+    suffix.extend_from_slice(&[0x2f, 0x14, 0x00]);
+    let record = parameter_records(&local_system_suffix_row(0x26, &frame, &suffix)).remove(0);
+    assert_eq!(record.type26_replayed_minor_radius(5.0), Some(5.0));
+    assert_eq!(record.type26_replayed_minor_radius(4.0), None);
+}
+
+#[test]
 fn owned_type26_radius_requires_complete_owned_frame_and_suffix() {
     for body in [vec![0x0d], vec![0x0e, 0x0d], vec![0xe4, 0x0f, 0x0d]] {
         let record = parameter_records(&local_system_suffix_row(0x26, &body, &[])).remove(0);

@@ -183,6 +183,8 @@ display name, or an API-enum cast.
 
 **Need.** Define the remaining body grammar and a unique placement witness before constructing a torus or sphere carrier from those forms. An agreeing inline radius pair does not resolve conflicting origin or direction readings.
 
+**Conflict.** The decoder reads a type-26 radius slot with the `0d` and `2d` meanings only for the prototype-minor-radius replay. Its carrier path reads the generic suffix lane, so `0d` and `2d` rows get no torus carrier. With the radius-slot meanings, the CTC-04 rows with a `2d` major radius and the CTC-05 rows with a `0d` minor radius place tori that agree with the STEP siblings, but two rows place the origin with one coordinate of the wrong sign: CTC-04 surface 15784 reads origin `y` from `2d 77 dc a8 7a 1e 8f 83` as -381.79 (STEP +381.79), and headset-hook-holder surface 437 reads origin `z` from `0e` as -0.5 in (STEP +0.5 in). The same `2d` origin-`y` reading misplaces about thirty torus and cylinder carriers that the decoder already emits in NIST CTC-02, CTC-04, FTC-10, mic-clip, panel-lamp, resistor, and thyrister. Adding the positive `2d` reading as another origin candidate withholds correct carriers in heat-sink, mouse, and other parts, so the inline origin lane needs its own rule before the carrier path takes the radius-slot meanings.
+
 ### GS-06. Prototype-adjacent `tab_cyl` parameters
 
 **Question.** What does each parameter in a prototype-adjacent `tab_cyl` instance row control?

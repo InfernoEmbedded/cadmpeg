@@ -851,6 +851,22 @@ pub(crate) fn decode_inline_surface_suffix_scalar(
     }
 }
 
+/// Decode one type-26 `radius1` or `radius2` slot of an inline family suffix.
+///
+/// The slot extends the suffix lane with `0d` for one quarter and the
+/// eight-byte `2d <tail7>` form, which reconstructs `40 <tail7>`.
+pub(crate) fn decode_type26_radius_slot(
+    body: &[u8],
+    offset: usize,
+    cache: &ScalarCache,
+) -> Option<(f64, usize)> {
+    match body.get(offset)? {
+        0x0d => Some((0.25, offset + 1)),
+        0x2d => ieee8(body, offset, 0x40),
+        _ => decode_inline_surface_suffix_scalar(body, offset, cache),
+    }
+}
+
 /// The ordered axis pair a compact inline local-system image states: the frame
 /// axis and the reference coordinate.
 ///

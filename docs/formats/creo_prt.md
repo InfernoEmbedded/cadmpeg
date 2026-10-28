@@ -1330,7 +1330,8 @@ system has three direction triples followed
 by one origin triple and is closed by `e3`. A cylinder suffix is one radius, a
 cone suffix is one half-angle, and a type-26 suffix is `radius1 radius2`.
 The suffix lane uses exact `18` for zero, `0f` for one, and `0e` for one half.
-A type-26 radius slot also uses `0d` for one quarter. These radius-slot
+A type-26 radius slot also uses `0d` for one quarter, and its eight-byte
+`2d <tail7>` form reconstructs `40 <tail7>`. These radius-slot
 meanings do not apply to local-system coordinates or generic row scalars.
 For type 26, a finite non-negative `radius1` and positive `radius2` define a
 torus; exact `radius1 = 0` selects a sphere whose radius is `radius2`.
