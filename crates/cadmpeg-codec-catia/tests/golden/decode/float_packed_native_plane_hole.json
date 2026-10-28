@@ -1634,7 +1634,7 @@
           "scope": "namespaced",
           "strict_floor": "warning"
         },
-        "message": "The complete B5 reference graph retains carrier-relative face orientation for source-proved admitted carriers. Other face orientations and body kind use an inferred gauge. Outward-shell signs and source body dimension are not transferred. Gauged b5 03 5f face records, by object id (1): 500.",
+        "message": "B5 topology was transferred. Its carrier-relative face-sense choices and inferred body kind do not establish outward-shell orientation or source body dimension. Gauged b5 03 5f face records, by object id (1): 500.",
         "severity": "warning"
       }
     ],
