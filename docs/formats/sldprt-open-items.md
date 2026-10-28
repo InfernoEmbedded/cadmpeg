@@ -376,21 +376,17 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Need.** We must know the forms to project their selected geometry.
 
-### DI-17. Other second-direction termination codes
+### DI-17. Second-direction codes without a defined second side
 
-**Question.** What termination does each second-direction end-spec code other than `0` and `1` represent?
+**Question.** Does a nonzero second-direction code take effect when the direction count at anchor +4 is `1`? What second side does a second-direction code other than `0` or `1` define when anchor +4 is `0`, and what do first-direction codes `2` through `5` define with `0` at anchor +4?
 
-**Known.** `sldprt.md` §2 "A named feature-input object bound to a classless history `Sketch` record with a nonzero source" defines second-direction code `0` as absent and code `1` as through-all.
+**Known.** `sldprt.md` §2 "A compact extrusion end-spec child carries its class" defines the direction count at anchor +4, the blind first direction with an enabled second direction, and blind and through-all second sides. A blind or through-all child with `1` at +4 and second-direction code `1` has a through-all second side. `sldprt.md` §2 "Termination code `6` is mid-plane" defines a mid-plane child that ignores its second-direction word.
 
-**Need.** We must know the other codes to construct the second extrusion extent.
+**Need.** We must know whether the second-direction word has an effect in a one-direction end spec, and the remaining second sides, to construct both extrusion extents.
 
-### DI-18. Other first- and second-direction combinations
+**Conflict.** The SolidWorks API record of each feature with `1` at +4 gives one direction, also when the second-direction code is `1`; the decoder projects a through-all second side for those children. The STEP geometry of these parts does not decide, because each second direction exits the part and both extents give the same solid. The to-face rule in `sldprt.md` §2 "Termination code `4` is to-face" reads +22 as a Boolean reference-side flag, not as a second-direction code.
 
-**Question.** What semantics apply when a nonzero second-direction code occurs with a first-direction code other than `0`, `1`, or `9`?
-
-**Known.** `sldprt.md` §2 "A named feature-input object bound to a classless history `Sketch` record with a nonzero source" defines the supported one-direction and two-direction combinations.
-
-**Need.** We must know the combination semantics to construct both extrusion extents.
+**Note.** A blind second side without a `D2` dimension stays unresolved; the decoder does not use the first-direction depth for it.
 
 ### DI-19. Reference-bearing end-spec shapes
 

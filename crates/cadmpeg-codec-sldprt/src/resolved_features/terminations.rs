@@ -29,7 +29,12 @@ enum TerminationVote {
     Blind {
         depth_m: Option<f64>,
     },
-    /// Blind termination with a through-all second direction.
+    /// Blind first direction of an end spec whose second direction is enabled.
+    BlindTwoDirections {
+        depth_m: Option<f64>,
+        second: SecondDirection,
+    },
+    /// Blind one-direction end spec with a stored through-all second-direction code.
     BlindSecondThroughAll,
     Symmetric,
     ThroughAllBoth,
@@ -85,10 +90,48 @@ enum FaceCondition {
     ToFace,
 }
 
+/// Second-direction termination of a two-direction blind end spec.
+#[derive(Clone, Copy)]
+enum SecondDirection {
+    Blind { depth_m: Option<f64> },
+    ThroughAll,
+    Unresolved,
+}
+
+impl SecondDirection {
+    fn from_code(code: u32, depth_m: Option<f64>) -> Self {
+        match code {
+            0 => Self::Blind { depth_m },
+            1 => Self::ThroughAll,
+            _ => Self::Unresolved,
+        }
+    }
+
+    fn condition(self) -> &'static str {
+        match self {
+            Self::Blind { .. } => "Blind",
+            Self::ThroughAll => "ThroughAll",
+            Self::Unresolved => "Unresolved",
+        }
+    }
+
+    fn agrees_with(self, other: Self) -> bool {
+        match (self, other) {
+            (Self::Blind { depth_m: a }, Self::Blind { depth_m: b }) => {
+                a.map(f64::to_bits) == b.map(f64::to_bits)
+            }
+            (Self::ThroughAll, Self::ThroughAll) | (Self::Unresolved, Self::Unresolved) => true,
+            _ => false,
+        }
+    }
+}
+
 impl TerminationVote {
     fn condition(&self) -> &'static str {
         match self {
-            Self::Blind { .. } | Self::BlindSecondThroughAll => "Blind",
+            Self::Blind { .. } | Self::BlindTwoDirections { .. } | Self::BlindSecondThroughAll => {
+                "Blind"
+            }
             Self::Symmetric => "Symmetric",
             Self::ThroughAllBoth => "ThroughAllBoth",
             Self::ThroughAll => "ThroughAll",
@@ -118,6 +161,16 @@ impl TerminationVote {
             (Self::Blind { depth_m: a }, Self::Blind { depth_m: b }) => {
                 a.map(f64::to_bits) == b.map(f64::to_bits)
             }
+            (
+                Self::BlindTwoDirections {
+                    depth_m: a,
+                    second: a_second,
+                },
+                Self::BlindTwoDirections {
+                    depth_m: b,
+                    second: b_second,
+                },
+            ) => a.map(f64::to_bits) == b.map(f64::to_bits) && a_second.agrees_with(*b_second),
             (Self::BlindSecondThroughAll, Self::BlindSecondThroughAll)
             | (Self::Symmetric, Self::Symmetric)
             | (Self::ThroughAllBoth, Self::ThroughAllBoth)
@@ -267,28 +320,40 @@ pub(crate) fn enrich_history_extrusion_terminations(
                 {
                     continue;
                 }
+                let owned_depth = |names: &[&str]| {
+                    lane.scalars
+                        .iter()
+                        .filter(|scalar| {
+                            scalar.offset > u64_from_index(offset)
+                                && scalar.offset < u64_from_index(end)
+                        })
+                        .filter_map(|scalar| {
+                            let name = names_by_id.get(scalar.name.as_str())?;
+                            names
+                                .contains(&name.value.as_str())
+                                .then_some((scalar, *name))
+                        })
+                        .filter(|(scalar, name)| {
+                            value_only_scalar_offset(&lane.native_payload, name)
+                                == usize::try_from(scalar.offset).ok()
+                        })
+                        .min_by_key(|(scalar, _)| scalar.offset)
+                        .map(|(scalar, _)| scalar.value.get())
+                };
                 let candidate =
                     (|| -> Result<Option<TerminationVote>, cadmpeg_core::CodecError> {
                         if compact_extrusion_blind_at(&lane.native_payload, offset) {
-                            let depth_m = lane
-                                .scalars
-                                .iter()
-                                .filter(|scalar| {
-                                    scalar.offset > u64_from_index(offset)
-                                        && scalar.offset < u64_from_index(end)
-                                })
-                                .filter_map(|scalar| {
-                                    let name = names_by_id.get(scalar.name.as_str())?;
-                                    matches!(name.value.as_str(), "D1" | "Depth")
-                                        .then_some((scalar, *name))
-                                })
-                                .filter(|(scalar, name)| {
-                                    value_only_scalar_offset(&lane.native_payload, name)
-                                        == usize::try_from(scalar.offset).ok()
-                                })
-                                .min_by_key(|(scalar, _)| scalar.offset)
-                                .map(|(scalar, _)| scalar.value.get());
+                            let depth_m = owned_depth(&["D1", "Depth"]);
                             return Ok(Some(TerminationVote::Blind { depth_m }));
+                        }
+                        if let Some(code) =
+                            compact_extrusion_two_direction_blind_at(&lane.native_payload, offset)
+                        {
+                            let second = SecondDirection::from_code(code, owned_depth(&["D2"]));
+                            return Ok(Some(TerminationVote::BlindTwoDirections {
+                                depth_m: owned_depth(&["D1", "Depth"]),
+                                second,
+                            }));
                         }
                         if compact_extrusion_mid_plane_at(&lane.native_payload, offset) {
                             return Ok(Some(TerminationVote::Symmetric));
@@ -407,24 +472,42 @@ pub(crate) fn enrich_history_extrusion_terminations(
                     insert_termination_field(&mut feature.properties, "Face", reference)?;
                 }
             }
+            TerminationVote::BlindTwoDirections { depth_m, second } => {
+                let value = second.condition().to_owned();
+                insert_termination_field(&mut feature.properties, "EndCondition2", value)?;
+                insert_missing_depth(&mut feature.parameters, ["D1", "Depth"], depth_m)?;
+                if let SecondDirection::Blind { depth_m } = second {
+                    insert_missing_depth(&mut feature.parameters, ["D2", "Depth2"], depth_m)?;
+                }
+            }
             TerminationVote::BlindSecondThroughAll => {
                 let value = ("ThroughAll").to_owned();
                 insert_termination_field(&mut feature.properties, "EndCondition2", value)?;
             }
-            TerminationVote::Blind {
-                depth_m: Some(depth_m),
-            } if !feature.parameters.contains_key("D1")
-                && !feature.parameters.contains_key("Depth") =>
-            {
-                if let Some(depth) = cadmpeg_ir::scalar::Length::new(depth_m * 1000.0) {
-                    let value = format!("{}", crate::history::literals::LengthLiteral(depth));
-                    insert_termination_field(&mut feature.parameters, "D1", value)?;
-                }
+            TerminationVote::Blind { depth_m } => {
+                insert_missing_depth(&mut feature.parameters, ["D1", "Depth"], depth_m)?;
             }
             _ => {}
         }
     }
     Ok(())
+}
+
+/// Inserts a lane depth under the first name when the feature has none of the names.
+fn insert_missing_depth(
+    parameters: &mut std::collections::BTreeMap<cadmpeg_core::text::NonBlankString, String>,
+    names: [&'static str; 2],
+    depth_m: Option<f64>,
+) -> Result<(), cadmpeg_core::CodecError> {
+    if names.iter().any(|name| parameters.contains_key(*name)) {
+        return Ok(());
+    }
+    let Some(depth) = depth_m.and_then(|depth_m| cadmpeg_ir::scalar::Length::new(depth_m * 1000.0))
+    else {
+        return Ok(());
+    };
+    let value = format!("{}", crate::history::literals::LengthLiteral(depth));
+    insert_termination_field(parameters, names[0], value)
 }
 
 fn insert_termination_field(
@@ -1359,9 +1442,9 @@ fn compact_extrusion_through_all_both_at(payload: &[u8], offset: usize) -> bool 
             && compact_extrusion_dimension_child_at(payload, offset + 26).is_some())
 }
 
-/// Blind first direction with a through-all second direction: a code `0`
-/// header whose second-direction word is `1`, owning the blind dimension
-/// child.
+/// Blind one-direction header whose stored second-direction word is `1` and
+/// that owns the blind dimension child. This form projects a through-all
+/// second direction.
 fn compact_extrusion_blind_through_all_second_at(payload: &[u8], offset: usize) -> bool {
     compact_end_spec_identity_at(payload, offset)
         && payload.get(offset + 2..offset + 12) == Some(&[0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
@@ -1425,10 +1508,27 @@ fn compact_extrusion_traversal_follow_on_at(payload: &[u8], offset: usize) -> bo
         && compact_extrusion_dimension_child_at(payload, offset + 6).is_some()
 }
 
+/// Blind first direction with the second direction enabled. Returns the
+/// second-direction termination code.
+fn compact_extrusion_two_direction_blind_at(payload: &[u8], offset: usize) -> Option<u32> {
+    if compact_extrusion_end_spec_directions(payload, offset, 0)? != EndSpecDirections::Two
+        || compact_extrusion_dimension_child_at(payload, offset + 26).is_none()
+    {
+        return None;
+    }
+    compact_extrusion_second_direction_code(payload, offset)
+}
+
+/// Mid-plane is one symmetric extent in either direction count; the stored
+/// second-direction code has no effect.
 fn compact_extrusion_mid_plane_at(payload: &[u8], offset: usize) -> bool {
-    compact_extrusion_end_spec_header(payload, offset, 6)
-        && payload.get(offset + 22..offset + 26) == Some(&[0, 0, 0, 0])
+    compact_extrusion_end_spec_directions(payload, offset, 6).is_some()
+        && compact_extrusion_second_direction_code(payload, offset).is_some()
         && compact_extrusion_dimension_child_at(payload, offset + 26).is_some()
+}
+
+fn compact_extrusion_second_direction_code(payload: &[u8], offset: usize) -> Option<u32> {
+    View::u32_le_at(payload, offset + 22).filter(|code| matches!(code, 0..=6 | 9))
 }
 
 /// Validate the owned dimension child at `child` and return the offset just
@@ -1772,14 +1872,38 @@ fn compact_end_spec_identity_at(payload: &[u8], offset: usize) -> bool {
             == Some(b"\xff\xff\x01\x00\x0b\x00moEndSpec_c".as_slice())
 }
 
+/// Direction count at anchor `+4`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EndSpecDirections {
+    /// `1`: the extrusion travels in the first direction only.
+    One,
+    /// `0`: the second direction is enabled.
+    Two,
+}
+
 fn compact_extrusion_end_spec_header(payload: &[u8], offset: usize, code: u32) -> bool {
-    compact_end_spec_identity_at(payload, offset)
+    compact_extrusion_end_spec_directions(payload, offset, code) == Some(EndSpecDirections::One)
+}
+
+fn compact_extrusion_end_spec_directions(
+    payload: &[u8],
+    offset: usize,
+    code: u32,
+) -> Option<EndSpecDirections> {
+    let header = compact_end_spec_identity_at(payload, offset)
         && payload.get(offset + 2..offset + 4) == Some(&[0, 0])
-        && payload.get(offset + 4..offset + 8) == Some(&1u32.to_le_bytes())
         && View::u32_le_at(payload, offset + 8).is_some_and(|word| word <= 1)
         && View::u32_le_at(payload, offset + 12).is_some_and(|flag| flag <= 1)
         && payload.get(offset + 16..offset + 18) == Some(&[0, 0])
-        && payload.get(offset + 18..offset + 22) == Some(code.to_le_bytes().as_slice())
+        && payload.get(offset + 18..offset + 22) == Some(code.to_le_bytes().as_slice());
+    if !header {
+        return None;
+    }
+    match View::u32_le_at(payload, offset + 4)? {
+        0 => Some(EndSpecDirections::Two),
+        1 => Some(EndSpecDirections::One),
+        _ => None,
+    }
 }
 
 fn compact_single_face_reference_path_at(

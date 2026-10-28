@@ -76,9 +76,14 @@ pub(super) fn project_extrude(
             .get(name)
             .and_then(|value| parse_positive_length_mm(value))
             .or_else(|| {
-                (name == "Depth")
-                    .then(|| feature.parameters.get("D1"))
-                    .flatten()
+                let native = match name {
+                    "Depth" => "D1",
+                    "Depth2" => "D2",
+                    _ => return None,
+                };
+                feature
+                    .parameters
+                    .get(native)
                     .and_then(|value| parse_positive_dimension_length_mm(value))
             })
     };
@@ -181,6 +186,7 @@ pub(super) fn project_extrude(
     let extent = explicit_second_termination(
         extent,
         feature.properties.get("EndCondition2").map(String::as_str),
+        length("Depth2"),
     )?;
     let direction = match feature.properties.get("Direction") {
         Some(value) => {
@@ -759,18 +765,36 @@ pub(crate) fn is_hole_profile_construction(feature: &Feature) -> Result<bool, Co
     Ok(hole_sketch_construction(feature)?.is_some())
 }
 
+/// Adds the second side of an enabled second direction. A blind second side
+/// without its own depth stays unresolved.
 fn explicit_second_termination(
     extent: ExtrudeExtent,
     second_condition: Option<&str>,
+    second_length: Option<PositiveLength>,
 ) -> Option<ExtrudeExtent> {
+    let second = |termination| ExtrudeSide {
+        termination,
+        draft: None,
+    };
     match (second_condition, extent) {
         (None, extent) => Some(extent),
         (Some("ThroughAll"), ExtrudeExtent::OneSided { side }) => Some(ExtrudeExtent::TwoSided {
             first: side,
-            second: ExtrudeSide {
-                termination: LinearTermination::ThroughAll {},
-                draft: None,
-            },
+            second: second(LinearTermination::ThroughAll {}),
+        }),
+        (Some("Blind"), ExtrudeExtent::OneSided { side }) => Some(ExtrudeExtent::TwoSided {
+            first: side,
+            second: second(
+                second_length.map_or(LinearTermination::Unresolved {}, |length| {
+                    LinearTermination::Blind {
+                        length: NonZeroLength::from(length),
+                    }
+                }),
+            ),
+        }),
+        (Some("Unresolved"), ExtrudeExtent::OneSided { side }) => Some(ExtrudeExtent::TwoSided {
+            first: side,
+            second: second(LinearTermination::Unresolved {}),
         }),
         (
             Some("ThroughAll"),
@@ -846,11 +870,56 @@ mod tests {
 
     #[test]
     fn explicit_unsupported_second_does_not_fall_back_to_one_sided() {
-        for second in ["Unknown", "ToFace", "Blind", ""] {
+        for second in ["Unknown", "ToFace", ""] {
             assert!(
                 project_extrude(&feature(Some(second)), &HashMap::new(), &HashMap::new()).is_none()
             );
         }
+    }
+
+    fn two_sided(feature: &Feature) -> (ExtrudeSide, ExtrudeSide) {
+        let Some(FeatureDefinition::Operation(FeatureOperation::Extrude {
+            extent: ExtrudeExtent::TwoSided { first, second },
+            ..
+        })) = project_extrude(feature, &HashMap::new(), &HashMap::new())
+        else {
+            panic!("two-sided extent");
+        };
+        (first, second)
+    }
+
+    #[test]
+    fn blind_second_direction_takes_its_own_depth() {
+        let mut native = feature(Some("Blind"));
+        native.parameters.clear();
+        for (name, value) in [("D1", "0.5mm"), ("D2", "0.75mm")] {
+            native.parameters.insert(
+                cadmpeg_core::text::NonBlankString::new(name.to_owned()).unwrap(),
+                value.to_owned(),
+            );
+        }
+        let (first, second) = two_sided(&native);
+        let blind = |mm| LinearTermination::Blind {
+            length: NonZeroLength::from(PositiveLength::new(mm).unwrap()),
+        };
+        assert_eq!(first.termination, blind(0.5));
+        assert_eq!(second.termination, blind(0.75));
+    }
+
+    #[test]
+    fn blind_second_direction_without_its_depth_stays_unresolved() {
+        let (first, second) = two_sided(&feature(Some("Blind")));
+        assert!(matches!(first.termination, LinearTermination::Blind { .. }));
+        assert!(first.draft.is_some());
+        assert!(matches!(
+            second.termination,
+            LinearTermination::Unresolved {}
+        ));
+        let (_, second) = two_sided(&feature(Some("Unresolved")));
+        assert!(matches!(
+            second.termination,
+            LinearTermination::Unresolved {}
+        ));
     }
 
     #[test]
@@ -864,14 +933,15 @@ mod tests {
             second: first.clone(),
         };
         assert_eq!(
-            explicit_second_termination(both.clone(), Some("ThroughAll")),
+            explicit_second_termination(both.clone(), Some("ThroughAll"), None),
             Some(both)
         );
         assert!(explicit_second_termination(
             ExtrudeExtent::Symmetric {
                 side: first.clone()
             },
-            Some("ThroughAll")
+            Some("ThroughAll"),
+            None
         )
         .is_none());
         let blind = ExtrudeSide {
@@ -885,7 +955,8 @@ mod tests {
                 first,
                 second: blind
             },
-            Some("ThroughAll")
+            Some("ThroughAll"),
+            None
         )
         .is_none());
     }
