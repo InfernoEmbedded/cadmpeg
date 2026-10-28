@@ -37,6 +37,11 @@ pub(crate) fn section_namespace(name: &str) -> Option<IdentityNamespace> {
             "NeuPrtSld",
             "section"
         )),
+        "MdlRefInfo" => Some(cadmpeg_ir::identity_namespace!(
+            "creo",
+            "MdlRefInfo",
+            "section"
+        )),
         "THMB_IMG_MAIN" => Some(cadmpeg_ir::identity_namespace!(
             "creo",
             "THMB_IMG_MAIN",

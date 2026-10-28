@@ -419,6 +419,7 @@ pub(crate) struct PrimitiveScan {
 
 /// Model-space reference entities decoded from `MdlRefInfo`.
 pub(crate) struct ReferenceScan {
+    pub(crate) unresolved_conic_sections: BTreeSet<usize>,
     /// Complete model-space line entities from `MdlRefInfo`.
     pub(crate) lines: Vec<ReferenceLine>,
     /// Complete model-Z circular entities from `MdlRefInfo` rows.
@@ -2538,10 +2539,14 @@ fn legacy_geom_depend_value(persistence: &legacy::Persistence, field_name: &str)
     values.all(|other| other == value).then_some(value)
 }
 
-fn reference_scan(sections: &[ScannedSection<'_>]) -> Result<ReferenceScan, CodecError> {
+fn reference_scan(
+    sections: &[ScannedSection<'_>],
+    losses: &mut Vec<cadmpeg_ir::report::loss::LossNote>,
+) -> Result<ReferenceScan, CodecError> {
     let mut lines = Vec::new();
     let mut circles = Vec::new();
     let mut conics = Vec::new();
+    let mut unresolved_conic_sections = BTreeSet::new();
     for section in sections
         .iter()
         .filter(|section| section.section.name() == "MdlRefInfo")
@@ -2558,9 +2563,18 @@ fn reference_scan(sections: &[ScannedSection<'_>]) -> Result<ReferenceScan, Code
             circle.offset += section.section.offset();
             circles.push(circle);
         }
+        let mut unresolved_flip_prefix = false;
+        let positional = reference::positional_conics(payload, &mut unresolved_flip_prefix)?;
+        if unresolved_flip_prefix {
+            unresolved_conic_sections.insert(section.section.offset());
+            losses.push(crate::loss::CreoLossCode::ReferenceConicPrefixUnresolved.note(format!(
+                "MdlRefInfo section at offset {} has an unresolved positional ellipse flip prefix; complete source section retained opaque",
+                section.section.offset(),
+            )));
+        }
         for mut conic in reference::named_conics(payload)
             .into_iter()
-            .chain(reference::positional_conics(payload)?)
+            .chain(positional)
         {
             conic.offset += section.section.offset();
             conics.push(conic);
@@ -2568,6 +2582,7 @@ fn reference_scan(sections: &[ScannedSection<'_>]) -> Result<ReferenceScan, Code
     }
     let ellipses = reference::ellipse_carriers(&conics);
     Ok(ReferenceScan {
+        unresolved_conic_sections,
         lines,
         circles,
         conics,
@@ -2692,7 +2707,7 @@ pub(crate) fn scan_bytes<'a>(
         readable_sections.as_slice()
     };
     let primitives = scan_primitives(ctx, &expanded_sections)?;
-    let references = reference_scan(sections)?;
+    let references = reference_scan(sections, &mut local_work_cap_losses)?;
     let layout = identify_layout(&data, &all_sections, legacy_ascii);
     if model_name.is_none() && !matches!(layout, Layout::LegacyAscii(_)) {
         if let Some((name, offset)) = native_model_name(sections) {

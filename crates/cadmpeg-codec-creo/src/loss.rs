@@ -47,6 +47,8 @@ pub(crate) enum CreoLossCode {
     CompressedSectionUnexpanded,
     /// Geometry-looking bytes in a physical section have no visible-namespace ownership.
     PhysicalGeometryOwnerUnresolved,
+    /// A positional ellipse flip is not a complete compact integer.
+    ReferenceConicPrefixUnresolved,
     /// No persistence-layout discriminant matched, so no layout-specific
     /// decode strategy was applied.
     SourceDialectUnverified,
@@ -221,6 +223,7 @@ impl CreoLossCode {
             Self::ContainerCensus => "container.census",
             Self::CompressedSectionUnexpanded => "container.compressed-section-unexpanded",
             Self::PhysicalGeometryOwnerUnresolved => "container.physical-geometry-owner-unresolved",
+            Self::ReferenceConicPrefixUnresolved => "reference.conic-prefix-unresolved",
             Self::SourceDialectUnverified => "source.dialect-unverified",
             Self::LegacyRealValueUnresolved => "legacy.real-value-unresolved",
             Self::LegacyIntegerValueUnresolved => "legacy.integer-value-unresolved",
@@ -340,6 +343,7 @@ impl CreoLossCode {
             Self::SectionSplineUnresolved
             | Self::CompressedSectionUnexpanded
             | Self::PhysicalGeometryOwnerUnresolved
+            | Self::ReferenceConicPrefixUnresolved
             | Self::SurfacePrototypeFieldRetained
             | Self::SourceDialectUnverified
             | Self::LegacyRealValueUnresolved
@@ -421,6 +425,7 @@ impl CreoLossCode {
             Self::LegacyRealValueUnresolved
             | Self::CompressedSectionUnexpanded
             | Self::PhysicalGeometryOwnerUnresolved
+            | Self::ReferenceConicPrefixUnresolved
             | Self::TocScanCapped
             | Self::LegacyIntegerValueUnresolved
             | Self::LegacyContinuationFormUndefined
@@ -522,6 +527,7 @@ mod tests {
                 "container.census",
                 "container.compressed-section-unexpanded",
                 "container.physical-geometry-owner-unresolved",
+                "reference.conic-prefix-unresolved",
                 "source.dialect-unverified",
                 "legacy.real-value-unresolved",
                 "legacy.integer-value-unresolved",

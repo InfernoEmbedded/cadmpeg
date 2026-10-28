@@ -34,6 +34,10 @@ pub(super) fn preserve_passthrough_sections(
         section.role() == SectionRole::PsbGeometry
             || section.role() == SectionRole::Thumbnail
             || section.name() == "NeuPrtSld"
+            || scan
+                .references
+                .unresolved_conic_sections
+                .contains(&section.offset())
             || (section.name() == "DEPDB_DATA"
                 && scan
                     .framing
@@ -86,7 +90,12 @@ pub(super) fn preserve_passthrough_sections(
                 "unowned_physical_geometry_section",
                 Exactness::ByteExact,
             )
-        } else if section.name() == "NeuPrtSld" {
+        } else if section.name() == "NeuPrtSld"
+            || scan
+                .references
+                .unresolved_conic_sections
+                .contains(&section.offset())
+        {
             (
                 section_bytes,
                 section.offset(),
