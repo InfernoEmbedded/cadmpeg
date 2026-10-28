@@ -257,7 +257,7 @@ image in field data can therefore be classified as a new stream.
 
 **Conflict.** The current configuration projection retains Keywords fields but does not incorporate the modern configuration-property namespace. The saved default-property reader has a separate document owner and does not resolve configured custom properties.
 
-**Note.** Modern name/ID evidence does not establish property-cache freshness or complete evaluator execution.
+**Note.** Read-only `saved_configuration_property` source attributes carry document-level carrier facts in the order `(member, namespace index, FMTID, PID, property name, VT type, optional literal)`. Literal `IsEquation="False"` string records and explicit empty/null records retain their distinct types; a blank string has a literal value, while empty/null has none. These facts do not bind a named configuration or evaluate a property reference. Other values and `FPVals` caches remain retained in the complete source carrier. Semantic writes require the recorded facts and carrier bytes to remain unchanged. Modern name/ID evidence does not establish property-cache freshness or complete evaluator execution.
 
 ### DI-05. Compact offset framing and complete operand ownership
 

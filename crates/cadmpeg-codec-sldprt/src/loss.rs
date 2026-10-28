@@ -36,6 +36,12 @@ pub(crate) enum SldprtLossCode {
     MetadataDefaultAliasAmbiguous,
     /// Saved property has no represented usable scalar value.
     MetadataDefaultValueUnsupported,
+    /// Configuration-property namespace has multiple physical owners.
+    MetadataConfigurationPropertyOwnerAmbiguous,
+    /// Configuration-property XML has no complete unambiguous reading.
+    MetadataConfigurationPropertyCarrierUnsupported,
+    /// Configuration-property record has no supported literal scalar fact.
+    MetadataConfigurationPropertyValueUnsupported,
 
     /// Active configuration identity does not resolve to exactly one record.
     ConfigActiveIdentityUnresolved,
@@ -218,6 +224,9 @@ impl SldprtLossCode {
         Self::MetadataDefaultOwnerAmbiguous,
         Self::MetadataDefaultAliasAmbiguous,
         Self::MetadataDefaultValueUnsupported,
+        Self::MetadataConfigurationPropertyOwnerAmbiguous,
+        Self::MetadataConfigurationPropertyCarrierUnsupported,
+        Self::MetadataConfigurationPropertyValueUnsupported,
         Self::ConfigActiveIdentityUnresolved,
         Self::ConfigActivePartitionMismatch,
         Self::ConfigInferredWithoutNative,
@@ -386,6 +395,15 @@ impl SldprtLossCode {
             Self::MetadataDefaultOwnerAmbiguous => "metadata.default-owner-ambiguous",
             Self::MetadataDefaultAliasAmbiguous => "metadata.default-alias-ambiguous",
             Self::MetadataDefaultValueUnsupported => "metadata.default-value-unsupported",
+            Self::MetadataConfigurationPropertyOwnerAmbiguous => {
+                "metadata.configuration-property-owner-ambiguous"
+            }
+            Self::MetadataConfigurationPropertyCarrierUnsupported => {
+                "metadata.configuration-property-carrier-unsupported"
+            }
+            Self::MetadataConfigurationPropertyValueUnsupported => {
+                "metadata.configuration-property-value-unsupported"
+            }
         }
     }
 
@@ -475,6 +493,9 @@ impl SldprtLossCode {
             | Self::MetadataDefaultCarrierUnsupported
             | Self::MetadataDefaultOwnerAmbiguous
             | Self::MetadataDefaultAliasAmbiguous
+            | Self::MetadataConfigurationPropertyOwnerAmbiguous
+            | Self::MetadataConfigurationPropertyCarrierUnsupported
+            | Self::MetadataConfigurationPropertyValueUnsupported
             | Self::MetadataDefaultValueUnsupported => Severity::Warning,
         }
     }
@@ -502,6 +523,9 @@ impl SldprtLossCode {
             | Self::MetadataDefaultCarrierUnsupported
             | Self::MetadataDefaultOwnerAmbiguous
             | Self::MetadataDefaultAliasAmbiguous
+            | Self::MetadataConfigurationPropertyOwnerAmbiguous
+            | Self::MetadataConfigurationPropertyCarrierUnsupported
+            | Self::MetadataConfigurationPropertyValueUnsupported
             | Self::MetadataDefaultValueUnsupported => LossTaxonomy::AttributesNotTransferred,
             Self::TopologyBodyHierarchyDerived | Self::TopologyFaceSenseConflict => {
                 LossTaxonomy::TopologyGaugeSubstituted
@@ -714,6 +738,9 @@ mod tests {
                 "metadata.default-owner-ambiguous",
                 "metadata.default-alias-ambiguous",
                 "metadata.default-value-unsupported",
+                "metadata.configuration-property-owner-ambiguous",
+                "metadata.configuration-property-carrier-unsupported",
+                "metadata.configuration-property-value-unsupported",
                 "config.active-identity-unresolved",
                 "config.active-partition-mismatch",
                 "config.inferred-without-native",

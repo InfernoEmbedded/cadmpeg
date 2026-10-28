@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //! Typed SW Objects document metadata.
 
+mod configuration_properties;
 pub(crate) mod default_properties;
 pub(crate) mod part;
 
@@ -56,7 +57,16 @@ pub(crate) fn attributes(
         scan_length_user_units(ctx, section, &mut out, annotations)?;
     }
     default_properties::append(ctx, scan, &mut out, annotations, losses)?;
+    configuration_properties::append(ctx, scan, &mut out, annotations, losses)?;
     Ok(out)
+}
+
+pub(crate) fn is_saved_property_attribute(attribute: &SourceAttribute) -> bool {
+    default_properties::is_attribute(attribute) || configuration_properties::is_attribute(attribute)
+}
+
+pub(crate) fn is_saved_property_owner(owner: Section<'_>) -> bool {
+    default_properties::is_owner(owner) || configuration_properties::is_owner(owner)
 }
 
 fn scan_transformed_reference_plane(

@@ -19,6 +19,34 @@ use crate::test_support::parasolid::triangle_body;
 use crate::SldprtCodec;
 
 #[test]
+fn configuration_property_carrier_facts_do_not_create_swobjects_semantics() {
+    let mut source = outer_header();
+    source.extend(make_block(
+        0x43,
+        "docProps/Config-3-Properties.xml",
+        br#"<ConfigProperties xmlns="http://www.solidworks.com/config-properties" xmlns:v="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><propertySection xmlns="" fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}"><property name="Designer" pid="3" IsEquation="False"><v:lpstr>Merlin</v:lpstr></property></propertySection></ConfigProperties>"#,
+    ));
+    let decoded = SldprtCodec
+        .decode(&mut Cursor::new(source), &DecodeOptions::default())
+        .unwrap();
+    assert_eq!(
+        decoded
+            .ir()
+            .model
+            .attributes
+            .iter()
+            .filter(|attribute| crate::metadata::is_saved_property_attribute(attribute))
+            .count(),
+        1
+    );
+    let source = decoded.ir().source.as_ref().unwrap();
+    assert!(!source
+        .attributes
+        .keys()
+        .any(|key| key.as_str().starts_with("sldprt_swobjects_")));
+}
+
+#[test]
 fn decode_preserves_unresolved_active_configuration() {
     let mut source = sldprt_with_body(&triangle_body());
     source.extend(make_block(

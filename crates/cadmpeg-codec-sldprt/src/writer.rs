@@ -129,13 +129,13 @@ pub(crate) fn write_semantic_with_records(
     if default_properties::requires_guard(&normalized, source_scan.as_ref()) {
         let scan = source_scan.as_ref().ok_or_else(|| {
             CodecError::NotImplemented(
-                "SLDPRT default properties require their retained source carrier".into(),
+                "SLDPRT saved properties require their retained source carrier".into(),
             )
         })?;
         let baseline = retained_source_baseline(&mut source_baseline, source_context.as_ref())?
             .ok_or_else(|| {
                 CodecError::NotImplemented(
-                    "SLDPRT default properties require their retained source document".into(),
+                    "SLDPRT saved properties require their retained source document".into(),
                 )
             })?;
         default_properties::validate(&normalized, &baseline.ir, scan)?;
@@ -2070,7 +2070,7 @@ fn metadata_attributes(ir: &CadIr) -> Vec<&cadmpeg_ir::attributes::SourceAttribu
     let mut positioned = Vec::new();
     for attribute in &ir.model.attributes {
         if attribute.id.as_str().starts_with("sldprt:")
-            && !crate::metadata::default_properties::is_attribute(attribute)
+            && !crate::metadata::is_saved_property_attribute(attribute)
         {
             let position = metadata_source_position(attribute.id.as_str());
             positioned.push(((position.is_none(), position), attribute));

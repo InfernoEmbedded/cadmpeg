@@ -7,7 +7,9 @@ use cadmpeg_ir::document::CadIr;
 
 use crate::container::{ContainerScan, Section};
 
-use crate::metadata::default_properties::{is_attribute as is_property, is_owner};
+use crate::metadata::{
+    is_saved_property_attribute as is_property, is_saved_property_owner as is_owner,
+};
 
 const UNIT_PREFIX: &str = "sldprt:metadata:source_linear_unit_code#";
 
@@ -23,7 +25,7 @@ pub(super) fn validate(
 ) -> Result<(), CodecError> {
     let owners = scan
         .sections()
-        .filter(|section| is_owner(*section))
+        .filter(|section| crate::metadata::default_properties::is_owner(*section))
         .map(Section::ordinal)
         .collect::<HashSet<_>>();
     let owned = |attribute: &&SourceAttribute| {
@@ -56,7 +58,7 @@ pub(super) fn validate(
             .all(|(left, right)| same_attribute(left, right))
     {
         return Err(CodecError::NotImplemented(
-            "SLDPRT default-property edits require a retained property serializer".into(),
+            "SLDPRT saved-property edits require a retained property serializer".into(),
         ));
     }
     Ok(())
@@ -70,7 +72,7 @@ pub(super) fn validate_retention(
     for owner in scan.sections().filter(|section| is_owner(*section)) {
         if matches!(owner, Section::Compound(_)) {
             return Err(CodecError::NotImplemented(
-                "SLDPRT default properties in compound streams require a retained compound writer"
+                "SLDPRT saved properties in compound streams require a retained compound writer"
                     .into(),
             ));
         }
@@ -78,7 +80,7 @@ pub(super) fn validate_retention(
         let mut retained = records.iter().filter(|record| record.id == id);
         let record = retained.next().ok_or_else(|| {
             CodecError::NotImplemented(
-                "SLDPRT default-property carrier has no retained source record".into(),
+                "SLDPRT saved-property carrier has no retained source record".into(),
             )
         })?;
         if retained.next().is_some()
@@ -89,7 +91,7 @@ pub(super) fn validate_retention(
                 .is_none_or(|provenance| provenance.stream() != owner.source_stream().as_str())
         {
             return Err(CodecError::NotImplemented(
-                "SLDPRT default-property carrier differs from its complete source owner".into(),
+                "SLDPRT saved-property carrier differs from its complete source owner".into(),
             ));
         }
     }
@@ -110,7 +112,7 @@ pub(super) fn validate_emitted(
                 .is_none_or(|(_, payload)| payload != owner.payload())
             || emitted.next().is_some()
         {
-            return Err(CodecError::NotImplemented("SLDPRT default-property carrier must be emitted unchanged under its source namespace".into()));
+            return Err(CodecError::NotImplemented("SLDPRT saved-property carrier must be emitted unchanged under its source namespace".into()));
         }
     }
     Ok(())

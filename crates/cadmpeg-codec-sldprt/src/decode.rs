@@ -5203,7 +5203,7 @@ fn stamp_local_digests(ctx: &DecodeContext<'_>, ir: &mut CadIr) -> Result<(), Co
     }
     let has_swobjects_semantics = ir.model.attributes.iter().any(|attribute| {
         attribute.id.as_str().starts_with("sldprt:metadata:")
-            && !crate::metadata::default_properties::is_attribute(attribute)
+            && !crate::metadata::is_saved_property_attribute(attribute)
     }) || ir
         .model
         .appearances

@@ -17,6 +17,66 @@ fn property(id: &str, name: &str, value: AttributeValue) -> SourceAttribute {
 }
 
 #[test]
+fn configuration_carrier_facts_are_guarded_even_when_removed_or_forged() {
+    let mut bytes = outer_header();
+    bytes.extend(make_block(
+        0x43,
+        "docProps/Config-3-Properties.xml",
+        b"opaque",
+    ));
+    let source_scan = scan(&bytes);
+    let mut original = CadIr::empty();
+    assert!(requires_guard(&original, Some(&source_scan)));
+    let row = property(
+        "sldprt:metadata:configuration_property#8:3",
+        "saved_configuration_property",
+        AttributeValue::String("stored".into()),
+    );
+    let mut forged = original.clone();
+    forged.model.attributes.push(row.clone());
+    assert!(requires_guard(&forged, None));
+    assert!(validate(&forged, &original, &source_scan).is_err());
+    original.model.attributes.push(row);
+    assert!(validate(&original, &original, &source_scan).is_ok());
+    let mut removed = original.clone();
+    removed.model.attributes.clear();
+    assert!(validate(&removed, &original, &source_scan).is_err());
+    let mut changed = original.clone();
+    changed.model.attributes[0].values.clear();
+    assert!(validate(&changed, &original, &source_scan).is_err());
+}
+
+#[test]
+fn emitted_configuration_property_owner_stays_under_its_exact_name_and_bytes() {
+    let mut bytes = outer_header();
+    bytes.extend(make_block(
+        0x43,
+        "docProps/Config-3-Properties.xml",
+        b"literal",
+    ));
+    let source_scan = scan(&bytes);
+    let same = vec![(
+        "docProps/Config-3-Properties.xml".into(),
+        b"literal".to_vec(),
+    )];
+    assert!(super::validate_emitted(&source_scan, &same).is_ok());
+    for sections in [
+        Vec::new(),
+        vec![(
+            "docProps/Config-4-Properties.xml".into(),
+            b"literal".to_vec(),
+        )],
+        vec![(
+            "docProps/Config-3-Properties.xml".into(),
+            b"edited".to_vec(),
+        )],
+        vec![same[0].clone(), same[0].clone()],
+    ] {
+        assert!(super::validate_emitted(&source_scan, &sections).is_err());
+    }
+}
+
+#[test]
 fn owned_properties_keep_names_values_and_exact_float_bits() {
     let mut original = property(
         "sldprt:metadata:default_property#8:5:SW-Short%20Date",
@@ -128,7 +188,10 @@ fn only_exact_default_carrier_owns_the_unit_mirror_guard() {
             "source_linear_unit_code",
             AttributeValue::Integer(0),
         ));
-        assert_eq!(requires_guard(&original, Some(&source_scan)), owned);
+        assert_eq!(
+            requires_guard(&original, Some(&source_scan)),
+            owned || name == "docProps/Config-0-Properties.xml"
+        );
         let mut current = original.clone();
         current.model.attributes[0].values = vec![AttributeValue::Integer(3)];
         assert_eq!(validate(&current, &original, &source_scan).is_err(), owned);
