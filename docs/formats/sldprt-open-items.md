@@ -405,6 +405,10 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Need.** We must know the mapping to bind the Boolean target and tool bodies.
 
+**Conflict.** The count-based component-path reader can accept a prefix whose last local identifier also has the form of a following typed-entry tag. It does not check the returned end for this continuation. This prefix does not establish the complete path or its dependency roster.
+
+**Note.** Retaining dependencies independently of generated-body admission requires a proven complete vector boundary and unique history-feature ownership. A rejected terminal does not authorize an earlier component as a replacement body producer.
+
 ### DI-24. Delete-body reconciliation
 
 **Question.** How does an `moDeleteBody_c` regeneration-input-local body identity map to a body in the final B-rep?
