@@ -1811,6 +1811,68 @@ pub(crate) mod extrusion_sparse_long_zero_operation_trailer {
     pub(crate) const FINAL_TOKEN: usize = 42;
 }
 
+/// Byte offsets for the `component_source_two_handle_record` record.
+///
+/// Spec §2. Record length 48 B.
+pub(crate) mod component_source_two_handle_record {
+    /// Offset of `feature_id` (`u32`, little-endian). Spec §2.
+    pub(crate) const FEATURE_ID: usize = 0;
+    /// Offset of `stamp` (`u32`, little-endian). Spec §2.
+    pub(crate) const STAMP: usize = 4;
+    /// Offset of `zero_after_stamp_word` (`u32`, little-endian). Spec §2.
+    pub(crate) const ZERO_AFTER_STAMP_WORD: usize = 12;
+    /// Offset of `zero_after_kind` (`u32`, little-endian). Spec §2.
+    pub(crate) const ZERO_AFTER_KIND: usize = 20;
+    /// Offset of `reference_word` (`u32`, little-endian). Spec §2.
+    pub(crate) const REFERENCE_WORD: usize = 24;
+    /// Offset of `zero_after_reference` (`u32`, little-endian). Spec §2.
+    pub(crate) const ZERO_AFTER_REFERENCE: usize = 28;
+    /// Offset of `first_handle` (`u32`, little-endian). Spec §2.
+    pub(crate) const FIRST_HANDLE: usize = 32;
+    /// Offset of `second_handle` (`u32`, little-endian). Spec §2.
+    pub(crate) const SECOND_HANDLE: usize = 36;
+    /// Offset of `handle_end` (`u32`, little-endian). Spec §2.
+    pub(crate) const HANDLE_END: usize = 40;
+    /// Offset of `version` (`u32`, little-endian). Spec §2.
+    pub(crate) const VERSION: usize = 44;
+}
+
+/// Byte offsets for the `component_source_three_handle_record` record.
+///
+/// Spec §2. Record length 52 B.
+pub(crate) mod component_source_three_handle_record {
+    /// Offset of `third_handle` (`u32`, little-endian). Spec §2.
+    pub(crate) const THIRD_HANDLE: usize = 40;
+    /// Offset of `handle_end` (`u32`, little-endian). Spec §2.
+    pub(crate) const HANDLE_END: usize = 44;
+    /// Offset of `version` (`u32`, little-endian). Spec §2.
+    pub(crate) const VERSION: usize = 48;
+}
+
+/// Byte offsets for the `extrusion_boundary_operation_trailer` record.
+///
+/// Spec §2. Record length 24 B.
+pub(crate) mod extrusion_boundary_operation_trailer {
+    /// Record length in bytes. Spec §2.
+    pub(crate) const LEN: usize = 24;
+    /// Offset of `zero_prefix` (`bytes[6]`). Spec §2.
+    pub(crate) const ZERO_PREFIX: usize = 16;
+    /// Offset of `marker` (`u16`, little-endian). Spec §2.
+    pub(crate) const MARKER: usize = 22;
+}
+
+/// Byte offsets for the `extrusion_narrow_boundary_operation_trailer` record.
+///
+/// Spec §2. Record length 20 B.
+pub(crate) mod extrusion_narrow_boundary_operation_trailer {
+    /// Record length in bytes. Spec §2.
+    pub(crate) const LEN: usize = 20;
+    /// Offset of `zero_prefix` (`bytes[2]`). Spec §2.
+    pub(crate) const ZERO_PREFIX: usize = 16;
+    /// Offset of `marker` (`u16`, little-endian). Spec §2.
+    pub(crate) const MARKER: usize = 18;
+}
+
 /// Byte offsets for the `coordinate_system_component_point` record.
 ///
 /// Spec §2. Record length 151 B.

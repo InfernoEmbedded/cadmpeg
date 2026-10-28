@@ -431,13 +431,13 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 ### DI-28. Sweep reference child versions
 
-**Question.** Which complete class and version grammar selects the shorter component-profile source record, and which source-less forms establish an operand owner?
+**Question.** Which placement grammar selects a component source record that follows a u32 version word, and which source-less forms establish an operand owner?
 
-**Known.** A general-curve reference identifies the sweep cross-section. A component-reference curve identifies its path. The supported complete source records identify a feature independently of neighboring feature order. An unresolved reference does not establish a sketch or a final B-rep curve.
+**Known.** `sldprt.md` §2 defines the ten-byte child prefix, the source-record placements at prefix +45, +69, and +81, and the two-handle and three-handle source records. A general-curve reference identifies the sweep cross-section. A component-reference curve identifies its path. An unresolved reference does not establish a sketch or a final B-rep curve. In a further form, prefix +45 through +60 is `ff` and prefix +81 stores a u32 equal to the version word of a complete three-handle record at prefix +85. A component profile of this form names a planar sketch, and a component-reference curve of this form names a composite curve.
 
 **Need.** We must identify each version before reading its source field and prove the reference namespace before selecting geometry.
 
-**Conflict.** A neighboring sketch does not replace an explicit reference whose child form is unsupported.
+**Conflict.** In the version-word form, the named sketch has no decoded profile, and its decoded plane differs from the plane of the three-edge compressed-body profile in the same feature-input lane that otherwise binds as the cross-section. A neighboring sketch does not replace an explicit reference whose child form is unsupported.
 
 ### DI-29. Composite sweep path identity
 

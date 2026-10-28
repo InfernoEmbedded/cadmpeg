@@ -2270,6 +2270,93 @@ Parsed by:
 | 30 | 12 | `zero_before_final_token` | `bytes[12]` | little | spec | twelve zero bytes at +30 |
 | 42 | 2 | `final_token` | `u16` | little | spec | a nonzero final token at +42 |
 
+## `component_source_two_handle_record`
+
+Spec §2 · layout: byte offsets · size: 48 B
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/resolved_features/selections.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `feature_id` | `u32` | little | spec | nonzero u32 source ID at source +0 |
+| 4 | 4 | `stamp` | `u32` | little | spec | a nonzero u32 stamp at source +4 |
+| 12 | 4 | `zero_after_stamp_word` | `u32` | little | spec | Source +12, +20, and +28 are zero u32 values |
+| 20 | 4 | `zero_after_kind` | `u32` | little | spec | Source +12, +20, and +28 are zero u32 values |
+| 24 | 4 | `reference_word` | `u32` | little | spec | source +24 is zero or `ff ff ff ff` |
+| 28 | 4 | `zero_after_reference` | `u32` | little | spec | Source +12, +20, and +28 are zero u32 values |
+| 32 | 4 | `first_handle` | `u32` | little | spec | source +32 and +36 are `c7 cf ff ff` |
+| 36 | 4 | `second_handle` | `u32` | little | spec | source +32 and +36 are `c7 cf ff ff` |
+| 40 | 4 | `handle_end` | `u32` | little | spec | The two-handle record stores zero at source +40 |
+| 44 | 4 | `version` | `u32` | little | spec | a u32 version word at source +44 |
+
+Unstated regions:
+
+- `8..12` (4 B): The specification assigns no meaning to source +8.
+- `16..20` (4 B): The specification assigns no meaning to source +16.
+
+## `component_source_three_handle_record`
+
+Spec §2 · layout: byte offsets · size: 52 B
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/resolved_features/selections.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `feature_id` | `u32` | little | spec | nonzero u32 source ID at source +0 |
+| 4 | 4 | `stamp` | `u32` | little | spec | a nonzero u32 stamp at source +4 |
+| 12 | 4 | `zero_after_stamp_word` | `u32` | little | spec | Source +12, +20, and +28 are zero u32 values |
+| 20 | 4 | `zero_after_kind` | `u32` | little | spec | Source +12, +20, and +28 are zero u32 values |
+| 24 | 4 | `reference_word` | `u32` | little | spec | source +24 is zero or `ff ff ff ff` |
+| 28 | 4 | `zero_after_reference` | `u32` | little | spec | Source +12, +20, and +28 are zero u32 values |
+| 32 | 4 | `first_handle` | `u32` | little | spec | source +32 and +36 are `c7 cf ff ff` |
+| 36 | 4 | `second_handle` | `u32` | little | spec | source +32 and +36 are `c7 cf ff ff` |
+| 40 | 4 | `third_handle` | `u32` | little | spec | The three-handle record stores `c7 cf ff ff` at source +40 |
+| 44 | 4 | `handle_end` | `u32` | little | spec | zero at source +44 |
+| 48 | 4 | `version` | `u32` | little | spec | the u32 version word at source +48 |
+
+Unstated regions:
+
+- `8..12` (4 B): The specification assigns no meaning to source +8.
+- `16..20` (4 B): The specification assigns no meaning to source +16.
+
+## `extrusion_boundary_operation_trailer`
+
+Spec §2 · layout: byte offsets · size: 24 B
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/resolved_features/operations.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `zero_header` | `u32` | little | spec | followed by four zero bytes |
+| 4 | 2 | `family` | `u16` | little | spec | The family word establishes the operation family independently of a shared class token |
+| 6 | 1 | `operation` | `u8` | little | spec | a one-byte Boolean operation |
+| 7 | 1 | `schema` | `u8` | little | spec | one schema byte |
+| 8 | 4 | `object_id` | `u32` | little | spec | the repeated little-endian u32 object identifier |
+| 12 | 4 | `zero_after_object` | `u32` | little | spec | and four zero bytes |
+| 16 | 6 | `zero_prefix` | `bytes[6]` | little | spec | The 24-byte boundary form stores six zero bytes at trailer +16 |
+| 22 | 2 | `marker` | `u16` | little | spec | and u16 `1` at +22 |
+
+## `extrusion_narrow_boundary_operation_trailer`
+
+Spec §2 · layout: byte offsets · size: 20 B
+
+Parsed by:
+- `crates/cadmpeg-codec-sldprt/src/resolved_features/operations.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `zero_header` | `u32` | little | spec | followed by four zero bytes |
+| 4 | 2 | `family` | `u16` | little | spec | The family word establishes the operation family independently of a shared class token |
+| 6 | 1 | `operation` | `u8` | little | spec | a one-byte Boolean operation |
+| 7 | 1 | `schema` | `u8` | little | spec | one schema byte |
+| 8 | 4 | `object_id` | `u32` | little | spec | the repeated little-endian u32 object identifier |
+| 12 | 4 | `zero_after_object` | `u32` | little | spec | and four zero bytes |
+| 16 | 2 | `zero_prefix` | `bytes[2]` | little | spec | The 20-byte boundary form stores two zero bytes at trailer +16 |
+| 18 | 2 | `marker` | `u16` | little | spec | and u16 `1` at +18 |
+
 ## `coordinate_system_component_point`
 
 Spec §2 · layout: byte offsets · size: 151 B

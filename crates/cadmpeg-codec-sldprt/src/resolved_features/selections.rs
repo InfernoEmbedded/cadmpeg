@@ -41,6 +41,7 @@ use crate::layout::{
     component_face_compact_reference_prefix as compact_face,
     component_face_flagged_operation_prefix as flagged_face,
     component_face_nested_reference_prefix as nested_face,
+    component_source_three_handle_record as three, component_source_two_handle_record as two,
     cosmetic_thread_component_edge_wrapper_prefix as component_edge,
     cosmetic_thread_repeated_edge_ref_prefix as repeated_edge_ref,
 };
@@ -3402,6 +3403,12 @@ pub(super) fn compact_profile_general_curve_ref_at(payload: &[u8], offset: usize
         && payload.get(offset + 6..offset + 16) == Some(&[0x2b, 0x80, 0x02, 0, 0, 0, 0, 0, 0, 0])
 }
 
+/// The ten-byte child prefix after a component-source class declaration.
+fn component_child_prefix_at(payload: &[u8], prefix: usize) -> bool {
+    View::u16_le_at(payload, prefix).is_some_and(is_class_token)
+        && payload.get(prefix + 2..prefix + 10) == Some(&[0x02, 0, 0, 0, 0, 0, 0, 0])
+}
+
 pub(super) fn declared_general_curve_profile_prefix(
     payload: &[u8],
     offset: usize,
@@ -3412,43 +3419,45 @@ pub(super) fn declared_general_curve_profile_prefix(
         .windows(COMPONENT_PROFILE.len())
         .position(|bytes| bytes == COMPONENT_PROFILE)?;
     let prefix = offset.checked_add(name + COMPONENT_PROFILE.len())?;
-    (payload.get(prefix..prefix + 10) == Some(&[0x2b, 0x80, 0x02, 0, 0, 0, 0, 0, 0, 0]))
-        .then_some(prefix)
+    component_child_prefix_at(payload, prefix).then_some(prefix)
+}
+
+fn component_source_record_at(payload: &[u8], source: usize) -> Option<u32> {
+    const HANDLE: &[u8] = &[0xc7, 0xcf, 0xff, 0xff];
+    let id = View::u32_le_at(payload, source + two::FEATURE_ID)?;
+    let stamp = View::u32_le_at(payload, source + two::STAMP)?;
+    let reference = View::u32_le_at(payload, source + two::REFERENCE_WORD)?;
+    let zero_at = |offset: usize| View::u32_le_at(payload, source + offset) == Some(0);
+    let handle_at =
+        |offset: usize| payload.get(source + offset..source + offset + 4) == Some(HANDLE);
+    let header = id != 0
+        && stamp != 0
+        && zero_at(two::ZERO_AFTER_STAMP_WORD)
+        && zero_at(two::ZERO_AFTER_KIND)
+        && matches!(reference, 0 | u32::MAX)
+        && zero_at(two::ZERO_AFTER_REFERENCE)
+        && handle_at(two::FIRST_HANDLE)
+        && handle_at(two::SECOND_HANDLE);
+    let two_handles =
+        zero_at(two::HANDLE_END) && View::u32_le_at(payload, source + two::VERSION).is_some();
+    let three_handles = handle_at(three::THIRD_HANDLE)
+        && zero_at(three::HANDLE_END)
+        && View::u32_le_at(payload, source + three::VERSION).is_some();
+    (header && (two_handles || three_handles)).then_some(id)
 }
 
 pub(super) fn component_profile_source_at(payload: &[u8], prefix: usize) -> Option<u32> {
-    const PREFIX: &[u8] = &[0x2b, 0x80, 0x02, 0, 0, 0, 0, 0, 0, 0];
-    const HANDLE: &[u8] = &[0xc7, 0xcf, 0xff, 0xff];
-    const RECORD_END: &[u8] = &[0xf8, 0x2a, 0, 0];
-    if payload.get(prefix..prefix + PREFIX.len()) != Some(PREFIX)
-        || payload.get(prefix + 45..prefix + 61) != Some(&[0xff; 16])
-    {
+    if !component_child_prefix_at(payload, prefix) {
         return None;
     }
-    let mut sources = [prefix + 69, prefix + 81].into_iter().filter_map(|source| {
-        let id = View::u32_le_at(payload, source)?;
-        let stamp = View::u32_le_at(payload, source + 4)?;
-        if id == 0 || stamp == 0 {
-            return None;
-        }
-        let older = payload.get(source + 12..source + 16) == Some(&[0; 4])
-            && payload.get(source + 20..source + 32) == Some(&[0; 12])
-            && payload.get(source + 32..source + 36) == Some(HANDLE)
-            && payload.get(source + 36..source + 40) == Some(HANDLE)
-            && payload.get(source + 40..source + 44) == Some(&[0; 4])
-            && payload.get(source + 44..source + 48) == Some(RECORD_END);
-        let newer = payload.get(source + 8..source + 16) == Some(&[0; 8])
-            && payload.get(source + 16..source + 20) == Some(&0x65u32.to_le_bytes())
-            && payload.get(source + 20..source + 24) == Some(&[0; 4])
-            && payload.get(source + 24..source + 28) == Some(&[0xff; 4])
-            && payload.get(source + 28..source + 32) == Some(&[0; 4])
-            && payload.get(source + 32..source + 36) == Some(HANDLE)
-            && payload.get(source + 36..source + 40) == Some(HANDLE)
-            && payload.get(source + 40..source + 44) == Some(HANDLE)
-            && payload.get(source + 44..source + 48) == Some(&[0; 4])
-            && payload.get(source + 48..source + 52) == Some(RECORD_END);
-        (older || newer).then_some(id)
-    });
+    let placements: &[usize] = if payload.get(prefix + 45..prefix + 61) == Some(&[0xff; 16]) {
+        &[69, 81]
+    } else {
+        &[45]
+    };
+    let mut sources = placements
+        .iter()
+        .filter_map(|placement| component_source_record_at(payload, prefix + placement));
     let source = sources.next()?;
     sources.next().is_none().then_some(source)
 }

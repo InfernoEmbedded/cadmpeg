@@ -14,7 +14,7 @@ use cadmpeg_ir::{
 };
 use std::collections::HashMap;
 
-use crate::history::classify::extrude_feature_op;
+use crate::history::classify::{extrude_feature_op, is_legacy_history_extrusion, source_depth};
 use crate::history::literals::{
     parse_angle_rad, parse_boolean_op, parse_bounded_angle_rad, parse_dimension_display_length,
     parse_point3_mm, parse_positive_dimension_length_mm, parse_positive_length_mm, parse_vector3,
@@ -26,16 +26,8 @@ pub(super) fn project_extrude(
     native_by_source: &HashMap<String, &str>,
     features_by_source: &HashMap<crate::records::FeatureSource, &Feature>,
 ) -> Option<FeatureDefinition> {
-    let mut source_dimensions = feature.content.iter().filter_map(|content| match content {
-        FeatureContent::Dimension(name) => Some(name.as_str()),
-        FeatureContent::Feature(_) | FeatureContent::Text(_) => None,
-    });
-    let source_depth = source_dimensions
-        .next()
-        .filter(|first| source_dimensions.all(|name| name == *first));
-    let legacy_history_extrusion = feature.input_class.is_none()
-        && feature.xml_tag.eq_ignore_ascii_case("Extrusion")
-        && source_depth.is_some();
+    let source_depth = source_depth(feature);
+    let legacy_history_extrusion = is_legacy_history_extrusion(feature);
     let implicit_modern_blind =
         feature.input_class.as_deref() == Some("moExtrusion_c") && source_depth.is_some();
     let legacy_history_join = legacy_history_extrusion

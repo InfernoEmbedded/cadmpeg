@@ -25,6 +25,7 @@ use crate::resolved_features::selections::compact_surface_selection_at;
 use crate::resolved_features::selections::component_profile_source_at;
 use crate::resolved_features::selections::component_reference_curve_path_at;
 use crate::resolved_features::selections::coordinate_marker_local_links;
+use crate::resolved_features::selections::declared_general_curve_profile_prefix;
 use crate::resolved_features::selections::fillet_edge_roster_end;
 use crate::resolved_features::selections::is_component_vector_selector;
 use crate::resolved_features::selections::marker_local_links;
@@ -126,6 +127,98 @@ fn general_curve_component_profile_requires_a_complete_reference_record() {
     assert_eq!(component_profile_source_at(&payload, prefix), Some(134));
     payload[source + 40] ^= 1;
     assert_eq!(component_profile_source_at(&payload, prefix), None);
+}
+
+fn short_component_source(token: u16) -> (Vec<u8>, usize) {
+    let mut payload = vec![0; 160];
+    let prefix = 24;
+    payload[prefix..prefix + 2].copy_from_slice(&token.to_le_bytes());
+    payload[prefix + 2] = 0x02;
+    let source = prefix + 45;
+    payload[source..source + 4].copy_from_slice(&166u32.to_le_bytes());
+    payload[source + 4..source + 8].copy_from_slice(&0x52f8_dda9u32.to_le_bytes());
+    payload[source + 16..source + 20].copy_from_slice(&0x65u32.to_le_bytes());
+    payload[source + 24..source + 28].fill(0xff);
+    for at in [source + 32, source + 36] {
+        payload[at..at + 4].copy_from_slice(&[0xc7, 0xcf, 0xff, 0xff]);
+    }
+    payload[source + 44..source + 48].copy_from_slice(&4400u32.to_le_bytes());
+    (payload, prefix)
+}
+
+#[test]
+fn component_source_without_ff_run_starts_at_prefix_45() {
+    let (payload, prefix) = short_component_source(0x80f7);
+    assert_eq!(component_profile_source_at(&payload, prefix), Some(166));
+
+    let source = prefix + 45;
+    for (at, value) in [
+        (source + 8, 1u32),
+        (source + 16, 836),
+        (source + 24, 0),
+        (source + 44, 0),
+    ] {
+        let mut variant = payload.clone();
+        variant[at..at + 4].copy_from_slice(&value.to_le_bytes());
+        assert_eq!(component_profile_source_at(&variant, prefix), Some(166));
+    }
+
+    let mut low_token = payload.clone();
+    low_token[prefix + 1] = 0x00;
+    let mut sentinel_token = payload.clone();
+    sentinel_token[prefix..prefix + 2].fill(0xff);
+    let mut child_byte = payload.clone();
+    child_byte[prefix + 2] = 0x03;
+    let mut reference_word = payload.clone();
+    reference_word[source + 24] = 0x01;
+    let mut nonzero_handle_end = payload.clone();
+    nonzero_handle_end[source + 40] = 0x01;
+    let mut zero_stamp = payload.clone();
+    zero_stamp[source + 4..source + 8].fill(0);
+    for bad in [
+        low_token,
+        sentinel_token,
+        child_byte,
+        reference_word,
+        nonzero_handle_end,
+        zero_stamp,
+    ] {
+        assert_eq!(component_profile_source_at(&bad, prefix), None);
+    }
+}
+
+#[test]
+fn component_source_after_ff_run_does_not_pin_the_version_word() {
+    let mut payload = vec![0; 200];
+    let prefix = 24;
+    payload[prefix..prefix + 10].copy_from_slice(&[0x2b, 0x80, 0x02, 0, 0, 0, 0, 0, 0, 0]);
+    payload[prefix + 45..prefix + 61].fill(0xff);
+    let write = |payload: &mut [u8], source: usize, id: u32, version: u32| {
+        payload[source..source + 4].copy_from_slice(&id.to_le_bytes());
+        payload[source + 4..source + 8].copy_from_slice(&0x5f90_fa15u32.to_le_bytes());
+        payload[source + 8..source + 12].copy_from_slice(&1u32.to_le_bytes());
+        for at in [source + 32, source + 36] {
+            payload[at..at + 4].copy_from_slice(&[0xc7, 0xcf, 0xff, 0xff]);
+        }
+        payload[source + 44..source + 48].copy_from_slice(&version.to_le_bytes());
+    };
+    write(&mut payload, prefix + 69, 552, 6000);
+    assert_eq!(component_profile_source_at(&payload, prefix), Some(552));
+
+    let mut short_only = payload.clone();
+    short_only[prefix + 45..prefix + 61].fill(0);
+    assert_eq!(component_profile_source_at(&short_only, prefix), None);
+}
+
+#[test]
+fn declared_component_profile_prefix_accepts_a_lane_local_token() {
+    let mut payload = vec![0; 64];
+    payload[4..19].copy_from_slice(b"moCompProfile_c");
+    payload[19..21].copy_from_slice(&0x816bu16.to_le_bytes());
+    payload[21] = 0x02;
+    assert_eq!(declared_general_curve_profile_prefix(&payload, 0), Some(19));
+    payload[20] = 0x01;
+    assert_eq!(declared_general_curve_profile_prefix(&payload, 0), None);
 }
 
 #[test]
