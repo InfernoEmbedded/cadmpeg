@@ -184,6 +184,29 @@ fn two_chart_sample_rows_require_exact_counted_consumption() {
 }
 
 #[test]
+fn fc08_body_is_an_eight_sample_two_chart_count() {
+    let points = [
+        [0x0f, 0xe4, 0x0d, 0x18],
+        [0xe4, 0x0f, 0x18, 0x0d],
+        [0x0d, 0x18, 0xe4, 0x0f],
+    ];
+    let mut payload = b"topol_ref_data\0".to_vec();
+    payload.extend_from_slice(&[7, 0, 4, 1, 0xf6, 0xfc, 8]);
+    for point in points.iter().cycle().take(8) {
+        payload.extend_from_slice(point);
+    }
+    payload.extend_from_slice(&[10, 11, 7, 7, 0, 0, 0xe3, 0xe1, 0xe3]);
+
+    let decoded = two_chart_pcurve_samples(&payload, Some(&BTreeSet::from([10, 11])));
+    let [record] = decoded.as_slice() else {
+        panic!("one counted fc 08 body");
+    };
+    assert_eq!(record.samples.len(), 8);
+    assert_eq!(record.samples[0], [[0.0, 1.0], [-1.0, 0.0]]);
+    assert_eq!(record.samples[7], [[1.0, 0.0], [0.0, -1.0]]);
+}
+
+#[test]
 fn two_chart_sample_rows_do_not_claim_fc05_circle_bodies() {
     let mut payload = b"topol_ref_data\0".to_vec();
     payload.extend_from_slice(&[7, 0, 4, 1, 0xf6, 0xfc, 5]);

@@ -215,14 +215,6 @@ display name, or an API-enum cast.
 
 **Need.** We must know the other grammar to construct or reject the curve correctly.
 
-### GS-10. `fc 08` grammar
-
-**Question.** What is the complete body grammar for `fc 08`?
-
-**Known.** `creo_prt.md` §4.2 "An `fc` prefix is resolved by exact body grammar." identifies `fc 08` as a world-coordinate control-polyline family. Recognized coordinate tokens and opaque spans partition its retained body.
-
-**Need.** We must know the grammar to construct the control polyline.
-
 ### GS-11. `fc 13` scalar signs and model-space charts
 
 **Question.** How do the remaining undefined scalar images, signed coordinate branches, and native chart transforms define complete placed paths?
@@ -235,7 +227,7 @@ display name, or an API-enum cast.
 
 **Question.** Which remaining scalar and enclosing-row forms resolve a counted two-chart body when exact `4N` scalar consumption cannot be established?
 
-**Known.** `creo_prt.md` defines `fc <count>` with four finite chart scalars per sample and no trailer. Counts `4`, `7`, `9`, and `10` do not identify separate curve families. A unique complete counted body fixes a competing topology-suffix boundary without requiring the referenced face to be materialized.
+**Known.** `creo_prt.md` defines `fc <count>` with four finite chart scalars per sample and no trailer. Counts `4`, `7`, `8`, `9`, and `10` do not identify separate curve families. A unique complete counted body fixes a competing topology-suffix boundary without requiring the referenced face to be materialized.
 
 **Need.** Define the missing scalar and enclosing-row productions before assigning values or selecting a suffix from incomplete or conflicting body readings.
 

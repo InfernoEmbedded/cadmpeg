@@ -2515,12 +2515,11 @@ shift either chart's slots. A reference operand, undefined scalar, unread
 byte, truncated scalar, or nonunique complete parse prevents the counted
 production from supplying endpoints.
 
-| Subtype | Body family                              |
-| ------- | ---------------------------------------- |
-| `fc 02` | Short pcurve-style endpoint record       |
-| `fc 05` | Cap-circle arc record family             |
-| `fc 08` | World-coordinate control-polyline family |
-| `fc 13` | Four-role parameter and coordinate path  |
+| Subtype | Body family                             |
+| ------- | --------------------------------------- |
+| `fc 02` | Short pcurve-style endpoint record      |
+| `fc 05` | Cap-circle arc record family            |
+| `fc 13` | Four-role parameter and coordinate path |
 
 The complete short `fc 02` endpoint body has the form
 `fc 02 | u0 | v0 | 0 | 1 | u1 | v1 | 2 | T`, where each `u`/`v` slot is a
