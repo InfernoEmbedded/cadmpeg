@@ -180,11 +180,11 @@ display name, or an API-enum cast.
 
 ### GS-01. Cone half-angle overrides
 
-**Question.** What grammar and value rule apply to a per-instance cone half-angle that is not the terminal positive-DICT form?
+**Question.** What complete grammar, scalar roles, and placement apply to per-instance cone bodies outside the terminal positive-DICT, complete support-apex, and complete planar-envelope productions?
 
-**Known.** `creo_prt.md` §3.2 defines the terminal positive-DICT half-angle form and the support-frame construction.
+**Known.** `creo_prt.md` §3.2 defines the terminal positive-DICT half-angle, the complete support-apex operand whose angle need not terminate the row, and the planar-envelope distance/radial-bound construction. A lexical angle followed by `e3` does not select the support-apex form without its complete preceding fields.
 
-**Need.** We must know the override to construct the cone carrier.
+**Need.** Establish each remaining body's complete boundaries, scalar roles, and unique carrier construction before deriving its angle or placement. Resolve the support-apex three-byte field before assigning it a geometric role. Agreement on an angle alone does not establish ownership or a frame.
 
 ### GS-02. Torus and sphere radius overrides
 

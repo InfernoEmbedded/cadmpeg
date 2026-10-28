@@ -1317,6 +1317,16 @@ complete admitted construction. An unresolved origin image does not select
 model zero or a point on a principal axis. Multiple distinct complete
 constructions do not define one carrier.
 
+A support-apex cone operand stores nine support scalar slots, one signed
+axis-coordinate scalar, one complete model-reference image, three opaque
+bytes, one seven-byte positive-DICT half-angle in radians, and `e3`, in that
+order. The half-angle terminates this operand, not necessarily the surface
+row. Scalar and reference images own any `e3` within their payloads. A scalar
+immediately before `e3` does not select this production without all preceding
+operand fields. The complete support and apex construction must define one
+placed carrier. Distinct complete readings must agree on that carrier; angle
+agreement alone does not establish it.
+
 A planar-envelope positional cone has an axis parallel to model Y and a
 reference direction along positive model X. It stores positive outer and inner
 apex distances, symmetric negative and positive radial bounds, and the paired
