@@ -233,6 +233,8 @@ display name, or an API-enum cast.
 
 **Need.** Define the missing scalar and enclosing-row productions before assigning values or selecting a suffix from incomplete or conflicting body readings.
 
+**Conflict.** In counted bodies of three or more samples, column continuity and DICT neighbours indicate that `2d <tail7>` reconstructs `40 <tail7>` and `46 <tail7>` reconstructs `c0 <tail7>` in both coordinates, and that the first coordinate takes the tabulated-cylinder positive-DICT lattice for `4b`, `66..68`, `77`, and `82..8f`. The decoder reads the opposite signs. Changing only these readings adds correct vertices on some parts, but mirrors the decoded resistor model against its STEP sibling. A consumer that depends on the current signs must change in the same step.
+
 ### GS-16. Model-reference entity types and conic framing
 
 **Question.** Which complete entity grammars own the unresolved positional
