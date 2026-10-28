@@ -1371,7 +1371,9 @@ fn read_extent_fields(dirbuf: &[u8], o: usize, index: usize) -> Option<(Extent, 
 /// The descriptor tail is a two-byte UTF-16LE terminator followed by one zero
 /// padding byte. The name is the complete run of printable ASCII code units
 /// immediately before that tail. This end anchor keeps unrelated UTF-16 text
-/// elsewhere in the descriptor from becoming the stream name.
+/// elsewhere in the descriptor from becoming the stream name. A `u16le` length
+/// cell counting the name and its terminator can precede the name; a cell
+/// whose value is itself a printable code unit is not part of the name.
 fn descriptor_name(dirbuf: &[u8], ds: usize) -> String {
     struct Utf16Ascii<'a>(&'a [u8]);
     impl std::fmt::Display for Utf16Ascii<'_> {
@@ -1392,6 +1394,12 @@ fn descriptor_name(dirbuf: &[u8], ds: usize) -> String {
                 } else {
                     break;
                 }
+            }
+            if name_start < tail_start
+                && View::u16_le_at(dirbuf, name_start)
+                    .is_some_and(|cell| usize::from(cell) == tail_start - name_start)
+            {
+                name_start += 2;
             }
             let name_bytes = &dirbuf[name_start..tail_start];
             if name_bytes.len() >= 6 {

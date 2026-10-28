@@ -482,6 +482,21 @@ fn descriptor_name_is_anchored_to_the_descriptor_tail() {
 }
 
 #[test]
+fn descriptor_name_excludes_a_printable_length_cell() {
+    for name in ["4bbc295c_1048_62eb7b6f_1825", "MainDataStream"] {
+        let mut directory = vec![0u8; 0x80];
+        let ds = 0x60;
+        let name_start = ds - 3 - name.len() * 2;
+        let cell = u16::try_from(name.len() * 2 + 2).unwrap();
+        directory[name_start - 2..name_start].copy_from_slice(&cell.to_le_bytes());
+        for (index, byte) in name.bytes().enumerate() {
+            directory[name_start + index * 2] = byte;
+        }
+        assert_eq!(super::descriptor_name(&directory, ds), name);
+    }
+}
+
+#[test]
 fn descriptor_name_ignores_unrelated_utf16_runs_and_requires_the_tail() {
     let mut directory = vec![0u8; 0x80];
     for (index, byte) in b"UNRELATED_LONGER_RUN".iter().enumerate() {

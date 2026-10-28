@@ -17,14 +17,14 @@ fn full_uuid_metadata_names_a_separate_content_stream() {
     assert_eq!(declarations[0].class_name, "CATPrtCont");
     assert_eq!(
         declarations[0].stream_name,
-        "BCont_4bbc295c_1048_62eb7b6f_1825"
+        "Cont_4bbc295c_1048_62eb7b6f_1825"
     );
     assert!(outer_container_for_extent(&outer, &declarations, graph, 5).is_some());
     assert!(outer_container_for_extent(&outer, &declarations, graph - 1, 6).is_none());
     let metadata = outer
         .descriptors
         .iter()
-        .find(|d| d.name == "84bbc295c_1048_62eb7b6f_1825")
+        .find(|d| d.name == "4bbc295c_1048_62eb7b6f_1825")
         .unwrap();
     assert!(outer_container_for_extent(
         &outer,
