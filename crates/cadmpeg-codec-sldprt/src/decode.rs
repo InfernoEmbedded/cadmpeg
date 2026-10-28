@@ -4660,9 +4660,12 @@ fn assign_configuration_bodies(
             continue;
         };
         if source_counts.get(&source_index) == Some(&1) {
-            configuration.bodies = Some(cadmpeg_ir::features::DistinctMembers::try_from(
-                partition_map.remove(&source_index).unwrap_or_default(),
-            )?);
+            // A native record without a decoded partition keeps its body
+            // membership unresolved instead of resolving to an empty set.
+            if let Some(bodies) = partition_map.remove(&source_index) {
+                configuration.bodies =
+                    Some(cadmpeg_ir::features::DistinctMembers::try_from(bodies)?);
+            }
         }
     }
     if let Some((active_index, position)) = bind_active_configuration_partition(ir) {
