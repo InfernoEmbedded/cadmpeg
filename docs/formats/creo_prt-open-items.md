@@ -274,6 +274,19 @@ the first chart remains opaque. Line agreement does not establish its finite
 endpoints or a trim interval. The current curve-wide veto suppresses both
 charts.
 
+In the FTC-08 and STC-08 pocket feature, the cap-adjacent rulings are
+two-sample two-chart rows on the end cylinders. Their errors do not depend on
+the cap chart. A ruling has the correct line when its end cylinder has the
+correct placement. The two mirrored end cylinders also displace rulings that
+have no cap face. A ruling endpoint has the correct position when its
+end-cylinder coordinate is the literal `18`. The image `4f 47 ae 14 7a e1 48`
+reads as 0.1584375, but the pocket depth is 0.135. The same image puts the
+pocket floor too deep on rows that have no cap face. The image
+`41 c1 47 ae 14 7a e1 48` reads as 0.135 on the end cylinders whose decoded
+axis is +z, but the endpoint is 0.135 below the top face. No property of a
+cap-adjacent row separates its correct carriers and endpoints from its
+incorrect ones.
+
 The selector-corner interval family reconstructs its unique axis line, radius,
 and extent from two directrix parameters, two XYZ corners, and the selector
 pair. Its split-selector and one-placeholder variants use the same equation.
@@ -301,7 +314,10 @@ witnesses; it does not by itself define the remaining carrier equation.
 independent carrier evidence from endpoint and topology authority before
 recovering a curve adjacent to a withheld cap chart. Prove the complete chart
 record, its owned coordinate lanes, and each promoted quantity. Do not restore
-finite vertices from agreement of infinite carriers.
+finite vertices from agreement of infinite carriers. Resolve the `4f <tail6>`
+and `41 <tail7>` second-coordinate images in pcurve chart slots, the
+end-cylinder axis sign, and the mirrored end-cylinder placement before the
+veto is narrowed.
 
 ### GS-19. Unresolved cone origin-coordinate images
 
