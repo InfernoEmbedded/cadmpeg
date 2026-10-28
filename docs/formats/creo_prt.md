@@ -3676,18 +3676,20 @@ and typed action data.
 
 The timestamp prototype declares `tm_sec`, `tm_min`, `tm_hour`, `tm_mday`,
 `tm_mon`, and `tm_year`, followed by `item_name`. `tm_mon` is zero-based;
-the calendar year is `1900 + tm_year`. The prototype does not by itself decide
-whether a printable byte after the compact six-scalar timestamp form is a
-timestamp byte or a stored-name prefix; see the modification-audit open item.
+the calendar year is `1900 + tm_year`. The compact timestamp form is
+`e2 <tm_sec> <tm_min> <tm_hour> <tm_mday> <tm_mon> <tm_year>`: six compact
+integers, with `tm_sec` in `[0, 60]`, `tm_min` in `[0, 59]`, `tm_hour` in
+`[0, 23]`, `tm_mday` in `[1, 31]`, and `tm_mon` in `[0, 11]`. A positional
+`item_name` that follows this form starts at the byte after `tm_year`. The
+`tm_year` byte is a timestamp field also when it is a printable character; it
+is not part of the item name.
 
 Operation names end in ` id <N>` or ` ID <N>`; the stored case follows the
-name's localization. An ASCII `o`, `x`, `y`, or `z` byte immediately preceding
-an uppercase operation-family name is a stored-name prefix, not part of the
-family name. Multiple operation names with the same feature identifier are
-ordered stored-state candidates. No candidate is the current state without a
-state selector. State ordinals are local to one feature identifier and increase
-in byte order from zero. Each candidate retains the prefix-inclusive name
-bytes, the `id`/`ID` spelling, and the offset of the optional prefix. Same-ID
+name's localization. Multiple operation names with the same feature identifier
+are ordered stored-state candidates. No candidate is the current state without
+a state selector. State ordinals are local to one feature identifier and
+increase in byte order from zero. Each candidate retains the name bytes, the
+`id`/`ID` spelling, and the name offset. Same-ID
 candidates define a common operation only when their operation family, recipe,
 root schema class, and parent identifier agree. Agreement does not identify a
 current native candidate. A recipe-only state has no stored operation name.

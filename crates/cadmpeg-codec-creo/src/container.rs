@@ -2438,7 +2438,6 @@ fn feature_operation_states(
         |bytes| Ok(feature::operations::operation_states(bytes)),
         |record, base| {
             record.offset += base;
-            record.state_offset += base;
         },
         |record| record.offset,
     )
@@ -3436,13 +3435,11 @@ mod feature_row_definition_tests {
             name: crate::feature::operations::OperationName::Stored {
                 bytes: b"Round id 42".to_vec(),
                 keyword: crate::feature::operations::IdKeyword::Id,
-                prefix: None,
             },
             recipe: crate::feature::operations::RecipeResolution::None,
             display_state_conflict: false,
             depdb: None,
             offset: 0,
-            state_offset: 0,
         };
         let reference = FeatureReferenceName {
             feature_id: 73,
@@ -3548,7 +3545,6 @@ mod feature_row_definition_tests {
             display_state_conflict: false,
             depdb: None,
             offset,
-            state_offset: offset,
         };
 
         assert_eq!(definitions.len(), 1);

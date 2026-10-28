@@ -251,15 +251,6 @@ pub(super) fn emit_model_features(
         let outputs = feature_output_bodies(ctx, scan, ir, operation.feature_id)?;
         let mut source_properties =
             feature_source_properties_with(scan, &schema_classes, operation.feature_id);
-        if let Some(prefix) = current_operation
-            .and_then(crate::feature::operations::FeatureOperation::stored_name_prefix)
-        {
-            insert_feature_source_property(
-                &mut source_properties,
-                "mdl_stored_name_prefix",
-                char::from(prefix),
-            );
-        }
         let mut parameters = feature_parameters(scan, operation.feature_id);
         let schema_class = schema_classes.get(operation.feature_id);
         let definition = schema_class.map_or_else(
@@ -341,23 +332,8 @@ pub(super) fn emit_model_features(
             .map_or("MdlStatus", |section| section.name());
         let name = current_operation
             .filter(|operation| operation.display_name_stored())
-            .and_then(|operation| {
-                operation
-                    .name
-                    .stored_name_bytes()
-                    .map(|bytes| (operation, bytes))
-            })
-            .map(|(operation, bytes)| {
-                let mut prefix_bytes = [0u8; 4];
-                let stripped = operation
-                    .stored_name_prefix()
-                    .and_then(|prefix| {
-                        let prefix = char::from(prefix).encode_utf8(&mut prefix_bytes);
-                        bytes.strip_prefix(prefix.as_bytes())
-                    })
-                    .unwrap_or(bytes);
-                String::from_utf8_lossy(stripped).into_owned()
-            });
+            .and_then(|operation| operation.name.stored_name_bytes())
+            .map(|bytes| String::from_utf8_lossy(bytes).into_owned());
         let source_tag = admitted_feature_recipe(scan, operation.feature_id)
             .map(|recipe| recipe.name().to_owned());
         let native_ref = owning_feature_definition_ref(scan, operation.feature_id);

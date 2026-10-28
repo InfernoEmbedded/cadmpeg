@@ -2997,10 +2997,6 @@ pub(super) fn feature_operation_state_records<'a>(
                 .map(|bytes| String::from_utf8_lossy(bytes).into_owned()),
             stored_name_bytes: state.name.stored_name_bytes().map(NativeBytes::from),
             identifier_keyword: state.name.identifier_keyword(),
-            stored_name_prefix: state
-                .name
-                .stored_name_prefix()
-                .map(|prefix| format!("{}", char::from(prefix))),
         };
         let id = format!(
             "creo:mdlstatus:feature_state#{}:{state_ordinal}",
@@ -3022,7 +3018,6 @@ pub(super) fn feature_operation_state_records<'a>(
             root_schema_class: state.root_schema_class().map(SchemaClass::code),
             parent_feature_id: state.parent_feature_id(),
             offset: state.offset,
-            state_offset: state.state_offset,
         });
     }
     for record in &mut records {
@@ -4058,7 +4053,6 @@ mod tests {
             display_state_conflict: false,
             depdb: None,
             offset: 0,
-            state_offset: 0,
         });
         scan.features.operation_states.push(FeatureOperation {
             feature_id: 40,
@@ -4066,13 +4060,11 @@ mod tests {
             name: OperationName::Stored {
                 bytes: b"A\xff".to_vec(),
                 keyword: IdKeyword::Id,
-                prefix: Some(b'~'),
             },
             recipe: RecipeState::None,
             display_state_conflict: false,
             depdb: None,
             offset: 0,
-            state_offset: 0,
         });
         scan
     }
@@ -4096,7 +4088,6 @@ mod tests {
             crate::test_support::native_bytes(&records[0]["stored_name_bytes"]),
             [65, 255]
         );
-        assert_eq!(records[0]["stored_name_prefix"], "~");
         assert_eq!(records[0]["identifier_keyword"], "id");
         assert_eq!(records[0]["family"], "Native Feature");
         assert_eq!(records[0]["current"], true);

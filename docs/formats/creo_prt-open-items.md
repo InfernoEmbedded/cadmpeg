@@ -990,7 +990,8 @@ color fit cannot replace the native value without an independent row identity.
 `mtrack_record_ptr` action payload and its field ownership?
 
 **Known.** `MdlStatus.mod_track_data.rec_arr` is a modification audit trail.
-The timestamp's `tm_year` precedes `item_name`. Repeated same-ID event names do
+A positional `item_name` starts at the byte after the compact timestamp's
+`tm_year`. Repeated same-ID event names do
 not select a current native candidate; they project a common operation only when
 family, recipe, root schema class, and parent identifier agree.
 
@@ -998,12 +999,6 @@ family, recipe, root schema class, and parent identifier agree.
 payload and its references. Agreement among same-ID names projects a common
 operation, not a current candidate; a current candidate requires separate
 current-model ownership evidence.
-
-**Conflict.** The timestamp prototype declares `tm_year` ahead of `item_name`, so a
-printable final timestamp scalar belongs to the timestamp. The decoder instead
-reads an ASCII `o`, `x`, `y`, or `z` byte before an uppercase operation-family
-name as a stored-name prefix. A byte-exact witness that separates the two
-readings is missing.
 
 **Note.** The named prototype and compact six-scalar timestamp form do not
 define the complete heterogeneous event union.
