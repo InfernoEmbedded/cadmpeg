@@ -3495,7 +3495,7 @@ Spec §2 · layout: byte offsets · size: 120 B
 | 16 | 8 | `prefix_zero` | `bytes[8]` | little | spec | eight zero bytes at +16 |
 | 24 | 32 | `bounds` | `f64[4]` | little | spec | four f64 bounds `[-1,+1,+1,-1]` at +24 |
 | 56 | 24 | `origin` | `f64[3]` | little | spec | finite plane origin in metres at +56 |
-| 80 | 24 | `pull_direction` | `f64[3]` | little | spec | signed unit pull vector at +80 |
+| 80 | 24 | `pull_direction` | `f64[3]` | little | spec | signed unit plane normal at +80 |
 | 104 | 16 | `zero_tail` | `bytes[16]` | little | spec | sixteen zero bytes at +104 |
 
 ## `compact_line_reference_terminated_eight`

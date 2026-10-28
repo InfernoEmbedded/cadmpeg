@@ -13132,7 +13132,7 @@ name = "pull_direction"
 offset = 80
 type = "f64[3]"
 source = "spec"
-anchor = "signed unit pull vector at +80"
+anchor = "signed unit plane normal at +80"
 [[record.field]]
 name = "zero_tail"
 offset = 104

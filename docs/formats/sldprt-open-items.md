@@ -448,13 +448,13 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Need.** Bind the complete Merge carrier to its owning feature with independent true and false controls. Retain unresolved operations when the carrier is unavailable.
 
-### DI-31. Native neutral-plane Draft outward flag
+### DI-31. Native neutral-plane Draft direction reversal and outward flag
 
-**Question.** Which native field identifies the outward flag of a neutral-plane Draft when Keywords omits it?
+**Question.** Which native fields identify direction reversal and an independent outward flag of a neutral-plane Draft when Keywords omits them?
 
 **Known.** `sldprt.md` §2 "A Draft feature-input interval uses the lane-scoped `moPlaneRef_w` token" defines neutral-plane Draft operands. `sldprt.md` §2 "A compact parting-line Draft uses direct duplicated component-vector records" defines the parting-line form, which has no outward operand. Keywords independently retains an explicit `Outward` Boolean for a neutral-plane Draft.
 
-**Need.** We must recover the native outward flag of a neutral-plane Draft when Keywords omits it. The signed declared pull vector does not establish an unflipped neutral-plane orientation or the outward Boolean. Compact parting-line frame direction semantics require separate Source controls; they do not share the declared +80 field.
+**Need.** We must recover the native outward flag of a neutral-plane Draft when Keywords omits it. The signed plane normal does not establish an independent pull reversal, an unflipped neutral-plane orientation, or the outward Boolean. Establish reversal with independent unflipped-plane and reversed-operation controls. Compact parting-line frame direction semantics require separate Source controls; they do not share the declared +80 field.
 
 ### DI-32. Other compact line-reference widths and owned pattern units
 
