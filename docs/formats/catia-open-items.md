@@ -389,16 +389,6 @@ different, independently constrained orientation route.
 
 **Need.** We must determine the terminal's selection rule and the allocation context that selects its value and form. Equal edge geometry and endpoint incidences do not supply that rule. A fresh native writer needs evidence for the terminal; existing records retain their exact byte.
 
-## 5. Zero-entity `a9 03`
-
-### ZE-05. Zero-entity ownership-root selection
-
-**Question.** How does a zero-entity stream select its ownership root when more than one face-roster/shell/body triple is structurally valid?
-
-**Known.** `zero_entity_ownership_roots` recognizes every contiguous `[0x6142, 0x6006, 0x6508]` triple with checked fields and retains the candidates in source order. The neutral zero-entity route binds ownership only when exactly one candidate exists. Multiple candidates remain native and do not select a body or shell.
-
-**Need.** We must know the terminal/root identity rule or reject multiple valid ownership triples before transferring body and shell ownership.
-
 ## 6. E5 `0D 03`
 
 ### E5-05. Higher-topology root signs
