@@ -99,6 +99,8 @@ pub(crate) struct Brep {
     /// Per-face producing-feature identities resolved from Parasolid attributes.
     pub(crate) face_atoms: Vec<attrib::FaceAtom>,
     pub(crate) native_face_identities: Vec<attrib::NativeIdentity<FaceId>>,
+    /// Per-face `DisplayLists` table keys resolved from Parasolid attributes.
+    pub(crate) face_keys: Vec<(FaceId, u32)>,
     pub(crate) native_body_identities: Vec<attrib::NativeIdentity<BodyId>>,
     /// Source-local sequence-to-attribute links carried by face bridge
     /// records. The decode boundary retains this map only for the active
@@ -353,6 +355,9 @@ impl Brep {
         for identity in &mut self.native_face_identities {
             identity.target = qualified(&identity.target, &tail)?;
         }
+        for (face, _) in &mut self.face_keys {
+            *face = qualified(face, &tail)?;
+        }
         for identity in &mut self.native_body_identities {
             identity.target = qualified(&identity.target, &tail)?;
         }
@@ -479,6 +484,8 @@ pub(crate) struct Stats {
     pub(crate) unresolved_topology_vertices: usize,
     /// Canonical faces that no explicit body record claims.
     pub(crate) unclaimed_faces: usize,
+    /// Framed FACE records without a closed loop ring, so no decoded face carries them.
+    pub(crate) unread_face_records: usize,
     /// Faces on a support surface this codec does not type; emitted with an
     /// unknown-geometry carrier.
     pub(crate) unknown_surface_faces: usize,
@@ -486,6 +493,8 @@ pub(crate) struct Stats {
     pub(crate) unknown_procedural_supports: usize,
     /// Edges whose support curve is an untyped carrier (emitted with no curve).
     pub(crate) unknown_curve_edges: usize,
+    /// Tolerant edges emitted with no curve, because their fin geometry is not read.
+    pub(crate) tolerant_edges_without_curve: usize,
     /// Pcurves withheld because geometric inverse selection was ambiguous.
     pub(crate) ambiguous_pcurve_parameters: usize,
     /// NURBS edge carriers whose vertex range is off their bound surface.
@@ -1230,6 +1239,7 @@ fn append_entity_facts(target: &mut entity::Facts, mut source: entity::Facts) {
     target.face_atoms.append(&mut source.face_atoms);
     target.face_payloads.append(&mut source.face_payloads);
     target.body_payloads.append(&mut source.body_payloads);
+    target.face_keys.append(&mut source.face_keys);
     target.body_modifiers.append(&mut source.body_modifiers);
     target.entity_count += source.entity_count;
     target.unresolved_face_colors += source.unresolved_face_colors;
@@ -1684,6 +1694,7 @@ fn decode_graph(
     let mut kept_points: HashSet<u16> = HashSet::new();
     // Edge attr -> (canonical start vuse, canonical end vuse, curve carrier attr).
     let mut edge_ends: HashMap<u16, (u16, u16, u16)> = HashMap::new();
+    let mut tolerant_edges: HashSet<EdgeId> = HashSet::new();
 
     let mut unresolved_points = HashSet::new();
     for (edge_attr, incidences) in edge_incidence {
@@ -1699,9 +1710,12 @@ fn decode_graph(
             continue;
         };
         let end_vuse = edge_end_vuse(canonical, *ring_end_vuse, t.coedges());
-        let curve_attr = t
-            .edge_uses()
-            .get(&edge_attr)
+        let edge_use = t.edge_uses().get(&edge_attr);
+        if edge_use.is_some_and(|edge_use| edge_use.references.tolerant()) {
+            tolerant_edges.insert(id_edge(edge_attr));
+        }
+        let curve_attr = edge_use
+            .filter(|edge_use| !edge_use.references.tolerant())
             .map_or(0, |edge_use| edge_use.references.curve());
         edge_ends.insert(edge_attr, (*start_vuse, end_vuse, curve_attr));
         for vuse in [*start_vuse, end_vuse] {
@@ -2042,9 +2056,10 @@ fn decode_graph(
                         else {
                             return Ok(None);
                         };
-                        let Ok(fit_tolerance) = cadmpeg_ir::geometry::FitTolerance::try_new(
-                            support_data.fit_tolerance_mm,
-                        ) else {
+                        let Some(Ok(fit_tolerance)) = support_data
+                            .fit_tolerance_mm
+                            .map(cadmpeg_ir::geometry::FitTolerance::try_new)
+                        else {
                             return Ok(None);
                         };
                         let id = PcurveId::compose(
@@ -2222,6 +2237,7 @@ fn decode_graph(
             }
         }
         if loops.is_empty() {
+            out.stats.unread_face_records += 1;
             continue;
         }
         // Support surface: a decoded surface carrier, else an opaque carrier.
@@ -2528,6 +2544,14 @@ fn decode_graph(
             });
         }
     }
+    for (owner, values) in attrib::unique_payloads(entity_facts.face_keys) {
+        if let (Some(face), [key]) = (
+            emitted_faces.get(id_face(owner).as_str()),
+            values.as_slice(),
+        ) {
+            out.face_keys.push(((*face).clone(), *key));
+        }
+    }
     let mut bound_faces = HashSet::new();
     for atom in entity_facts.face_atoms {
         let Some(identity) = atom.identity else {
@@ -2552,6 +2576,11 @@ fn decode_graph(
     derive_spherical_pcurves(ctx, &mut out, &mut annotations, &source_stream)?;
     derive_nurbs_isoparametric_pcurves(ctx, &mut out, &mut annotations, &source_stream)?;
     prune_rejected_topology(&mut out);
+    out.stats.tolerant_edges_without_curve = out
+        .edges
+        .iter()
+        .filter(|edge| edge.curve().is_none() && tolerant_edges.contains(&edge.id))
+        .count();
 
     if out.faces.is_empty() {
         return Ok(Brep {
@@ -4571,11 +4600,12 @@ fn intersection_support_pcurve(
         };
     }
     (|| -> Result<Option<(PcurveGeometry, [f64; 2], IntersectionPcurveSource)>, cadmpeg_core::CodecError> {
+        let fit_tolerance_mm = some_or_none!(support_data
+            .fit_tolerance_mm
+            .filter(|tolerance| tolerance.is_finite() && *tolerance > 0.0));
         if chart.degree() != 1
             || matches!(chart.pole_rows(), cadmpeg_ir::geometry::nurbs::NurbsPoles3::Rational { .. })
             || chart.periodic()
-            || !support_data.fit_tolerance_mm.is_finite()
-            || support_data.fit_tolerance_mm <= 0.0
         {
             return Ok(None);
         }
@@ -4639,7 +4669,7 @@ fn intersection_support_pcurve(
                             surface,
                             point.get(),
                             control_points.last().copied(),
-                            support_data.fit_tolerance_mm,
+                            fit_tolerance_mm,
                             sinks.solver_capped,
                         ) {
                             Ok(Some(parameters)) => parameters,
@@ -4779,7 +4809,7 @@ fn intersection_support_pcurve(
         }));
         if control_errors
             .iter()
-            .any(|error| !error.is_finite() || *error > support_data.fit_tolerance_mm)
+            .any(|error| !error.is_finite() || *error > fit_tolerance_mm)
         {
             return Ok(None);
         }
@@ -4797,12 +4827,12 @@ fn intersection_support_pcurve(
                         [chord[0].get(), chord[1].get()],
                         sinks.solver_capped,
                     )?;
-                    error.is_none_or(|error| error > support_data.fit_tolerance_mm)
+                    error.is_none_or(|error| error > fit_tolerance_mm)
                 }
                 _ => analytic_pcurve_chord_bound(surface, parameters[0], parameters[1]).is_none_or(
                     |curvature_error| {
                         curvature_error + endpoint_errors[0].max(endpoint_errors[1])
-                            > support_data.fit_tolerance_mm
+                            > fit_tolerance_mm
                     },
                 ),
             };
@@ -7263,7 +7293,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 1.0, 1.0], endpoints.to_vec(), None);
         let support_data = super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm: 0.2,
+            fit_tolerance_mm: Some(0.2),
             support_uv: Some([
                 vec![
                     cadmpeg_ir::math::Point2::new(0.0, 0.0029),
@@ -7363,7 +7393,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 1.0, 1.0], endpoints.to_vec(), None);
         let support_data = super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm: 0.2,
+            fit_tolerance_mm: Some(0.2),
             support_uv: Some([
                 vec![
                     cadmpeg_ir::math::Point2::new(0.0, 0.0029),
@@ -7415,7 +7445,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 0.5, 1.0, 1.0], model_points, None);
         let support_data = super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm: 0.011,
+            fit_tolerance_mm: Some(0.011),
             support_uv: None,
         };
 
@@ -7444,7 +7474,7 @@ mod tests {
         assert_eq!(source, super::IntersectionPcurveSource::AnalyticInverse);
 
         let under_toleranced = super::super::intersection::IntersectionSupportData {
-            fit_tolerance_mm: 0.009,
+            fit_tolerance_mm: Some(0.009),
             ..support_data
         };
         assert!(intersection_support_pcurve(
@@ -7488,7 +7518,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 0.5, 1.0, 1.0], model_points, None);
         let support_data = super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm: 0.08,
+            fit_tolerance_mm: Some(0.08),
             support_uv: None,
         };
 
@@ -7548,7 +7578,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 0.5, 1.0, 1.0], model_points, None);
         let support_data = super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm: 1.0e-9,
+            fit_tolerance_mm: Some(1.0e-9),
             support_uv: None,
         };
 
@@ -7598,7 +7628,7 @@ mod tests {
         let chart = test_nurbs_curve(1, vec![0.0, 0.0, 1.0, 1.0], endpoints.to_vec(), None);
         let support_data = |fit_tolerance_mm| super::super::intersection::IntersectionSupportData {
             supports: [10, 11],
-            fit_tolerance_mm,
+            fit_tolerance_mm: Some(fit_tolerance_mm),
             support_uv: None,
         };
 

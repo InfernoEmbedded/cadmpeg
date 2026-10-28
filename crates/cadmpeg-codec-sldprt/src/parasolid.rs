@@ -532,6 +532,7 @@ pub(crate) fn is_body_stream(header: &StreamHeader) -> bool {
 }
 
 pub(crate) mod control_vertices;
+pub(crate) mod xt_integer;
 
 #[cfg(test)]
 mod tests;

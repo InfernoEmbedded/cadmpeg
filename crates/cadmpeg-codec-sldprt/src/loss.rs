@@ -117,6 +117,8 @@ pub(crate) enum SldprtLossCode {
     GeometryOffsetValidityUnresolved,
     /// Edge references an untyped support curve carried opaque.
     GeometryEdgeSupportCurveUntyped,
+    /// Tolerant edge has no curve because its fin geometry is not read.
+    GeometryTolerantEdgeCurveUnread,
     /// Referenced POINT records have conflicting complete frames.
     GeometryPointRecordAmbiguous,
     /// A derived pcurve parameter has multiple geometric candidates.
@@ -142,6 +144,8 @@ pub(crate) enum SldprtLossCode {
     TopologyFaceSenseConflict,
     /// A canonical face has no explicit body relation.
     TopologyFaceUnclaimed,
+    /// Framed FACE records that no decoded face carries.
+    TopologyFaceRecordsUnread,
     /// Referenced FIN records have conflicting complete frames.
     TopologyFinRecordAmbiguous,
     /// Referenced LOOP records have conflicting complete frames.
@@ -250,6 +254,7 @@ impl SldprtLossCode {
         Self::GeometrySurfaceCarrierAmbiguous,
         Self::GeometryOffsetValidityUnresolved,
         Self::GeometryEdgeSupportCurveUntyped,
+        Self::GeometryTolerantEdgeCurveUnread,
         Self::GeometryPointRecordAmbiguous,
         Self::GeometryPcurveAmbiguous,
         Self::GeometrySurfaceSolverWorkCapped,
@@ -262,6 +267,7 @@ impl SldprtLossCode {
         Self::TopologyBodyHierarchyDerived,
         Self::TopologyFaceSenseConflict,
         Self::TopologyFaceUnclaimed,
+        Self::TopologyFaceRecordsUnread,
         Self::TopologyFinRecordAmbiguous,
         Self::TopologyLoopRecordAmbiguous,
         Self::TopologyVertexRecordUnresolved,
@@ -330,6 +336,7 @@ impl SldprtLossCode {
             Self::GeometrySurfaceCarrierAmbiguous => "geometry.surface-carrier-ambiguous",
             Self::GeometryOffsetValidityUnresolved => "geometry.offset-validity-unresolved",
             Self::GeometryEdgeSupportCurveUntyped => "geometry.edge-support-curve-untyped",
+            Self::GeometryTolerantEdgeCurveUnread => "geometry.tolerant-edge-curve-unread",
             Self::GeometryPointRecordAmbiguous => "geometry.point-record-ambiguous",
             Self::GeometryPcurveAmbiguous => "geometry.pcurve-ambiguous",
             Self::GeometrySurfaceSolverWorkCapped => "geometry.surface-solver-work-capped",
@@ -342,6 +349,7 @@ impl SldprtLossCode {
             Self::TopologyBodyHierarchyDerived => "topology.body-hierarchy-derived",
             Self::TopologyFaceSenseConflict => "topology.face-sense-conflict",
             Self::TopologyFaceUnclaimed => "topology.face-unclaimed",
+            Self::TopologyFaceRecordsUnread => "topology.face-records-unread",
             Self::TopologyFinRecordAmbiguous => "topology.fin-record-ambiguous",
             Self::TopologyLoopRecordAmbiguous => "topology.loop-record-ambiguous",
             Self::TopologyVertexRecordUnresolved => "topology.vertex-record-unresolved",
@@ -431,6 +439,7 @@ impl SldprtLossCode {
             | Self::GeometrySurfaceCarrierAmbiguous
             | Self::GeometryOffsetValidityUnresolved
             | Self::GeometryEdgeSupportCurveUntyped
+            | Self::GeometryTolerantEdgeCurveUnread
             | Self::GeometryPointRecordAmbiguous
             | Self::GeometryPcurveAmbiguous
             | Self::GeometrySurfaceSolverWorkCapped
@@ -443,6 +452,7 @@ impl SldprtLossCode {
             | Self::TopologyBodyHierarchyDerived
             | Self::TopologyFaceSenseConflict
             | Self::TopologyFaceUnclaimed
+            | Self::TopologyFaceRecordsUnread
             | Self::TopologyFinRecordAmbiguous
             | Self::TopologyLoopRecordAmbiguous
             | Self::TopologyVertexRecordUnresolved
@@ -492,6 +502,7 @@ impl SldprtLossCode {
                 LossTaxonomy::TopologyGaugeSubstituted
             }
             Self::TopologyFaceUnclaimed
+            | Self::TopologyFaceRecordsUnread
             | Self::TopologyFinRecordAmbiguous
             | Self::TopologyLoopRecordAmbiguous
             | Self::TopologyVertexRecordUnresolved => LossTaxonomy::TopologyNotTransferred,
@@ -501,6 +512,7 @@ impl SldprtLossCode {
             | Self::GeometrySurfaceCarrierAmbiguous
             | Self::GeometryOffsetValidityUnresolved
             | Self::GeometryEdgeSupportCurveUntyped
+            | Self::GeometryTolerantEdgeCurveUnread
             | Self::GeometryPointRecordAmbiguous
             | Self::GeometrySplineLanesUnpaired
             | Self::GeometryParasolidNotTransferred
@@ -735,6 +747,7 @@ mod tests {
                 "geometry.surface-carrier-ambiguous",
                 "geometry.offset-validity-unresolved",
                 "geometry.edge-support-curve-untyped",
+                "geometry.tolerant-edge-curve-unread",
                 "geometry.point-record-ambiguous",
                 "geometry.pcurve-ambiguous",
                 "geometry.surface-solver-work-capped",
@@ -747,6 +760,7 @@ mod tests {
                 "topology.body-hierarchy-derived",
                 "topology.face-sense-conflict",
                 "topology.face-unclaimed",
+                "topology.face-records-unread",
                 "topology.fin-record-ambiguous",
                 "topology.loop-record-ambiguous",
                 "topology.vertex-record-unresolved",

@@ -2330,6 +2330,7 @@ fn merge_brep(target: &mut Brep, mut source: Brep) -> Result<(), CodecError> {
     target
         .native_face_identities
         .append(&mut source.native_face_identities);
+    target.face_keys.append(&mut source.face_keys);
     target
         .native_body_identities
         .append(&mut source.native_body_identities);
@@ -2338,6 +2339,7 @@ fn merge_brep(target: &mut Brep, mut source: Brep) -> Result<(), CodecError> {
     target.stats.unknown_surface_faces += source.stats.unknown_surface_faces;
     target.stats.unknown_procedural_supports += source.stats.unknown_procedural_supports;
     target.stats.unknown_curve_edges += source.stats.unknown_curve_edges;
+    target.stats.tolerant_edges_without_curve += source.stats.tolerant_edges_without_curve;
     target.stats.ambiguous_pcurve_parameters += source.stats.ambiguous_pcurve_parameters;
     target.stats.off_surface_nurbs_pcurves += source.stats.off_surface_nurbs_pcurves;
     target
@@ -2351,6 +2353,7 @@ fn merge_brep(target: &mut Brep, mut source: Brep) -> Result<(), CodecError> {
     target.stats.unresolved_topology_fins += source.stats.unresolved_topology_fins;
     target.stats.unresolved_topology_vertices += source.stats.unresolved_topology_vertices;
     target.stats.unclaimed_faces += source.stats.unclaimed_faces;
+    target.stats.unread_face_records += source.stats.unread_face_records;
     target.stats.synthetic_body_grouping |= source.stats.synthetic_body_grouping;
     Ok(())
 }
@@ -3049,6 +3052,7 @@ fn build_geometry_ir(
     let mut matched_feature_sources = native_appearance_plan.feature_sources.clone();
     let mut conflicting_display_references = Vec::new();
     let mut persistent_face_bindings = Vec::new();
+    let mut face_key_bindings = Vec::new();
     let mut display_appearance_ranks = BTreeMap::new();
     for (display, display_faces) in display_sections {
         if display_faces.is_empty() {
@@ -3080,12 +3084,25 @@ fn build_geometry_ir(
             matched_feature_sources.insert(source);
         }
         let mut display_links = Vec::new();
-        for (table_index, display_face) in display_faces.into_iter().enumerate() {
+        let face_keys = (0..display_faces.len())
+            .map(|index| {
+                crate::tessellation::display_face_key(display.payload(), &display_faces, index)
+            })
+            .collect::<Vec<_>>();
+        for ((table_index, display_face), face_key) in
+            display_faces.into_iter().enumerate().zip(face_keys)
+        {
             let id = format!(
                 "sldprt:displaylist:record#{}:{}",
                 display.ordinal(),
                 table_index
             );
+            if let Some(key) = face_key {
+                face_key_bindings.push(crate::tessellation::FaceKeyBinding {
+                    tessellation: id.clone(),
+                    key,
+                });
+            }
             if let Some(identity) = display_face.persistent_surface_identity() {
                 persistent_face_bindings.push(crate::tessellation::PersistentFaceBinding {
                     tessellation: id.clone(),
@@ -3170,11 +3187,16 @@ fn build_geometry_ir(
     ) {
         pmi_losses.push(SldprtLossCode::AppearanceAssignmentUnresolved.note(message));
     }
-    let mut assigned_tessellations = crate::tessellation::assign_persistent_owners(
+    let mut assigned_tessellations = crate::tessellation::assign_face_key_owners(
+        &mut ir.model,
+        &brep.face_keys,
+        &face_key_bindings,
+    );
+    assigned_tessellations.extend(crate::tessellation::assign_persistent_owners(
         &mut ir.model,
         &face_identities,
         &persistent_face_bindings,
-    );
+    ));
     let remaining_assignments =
         crate::tessellation::assign_unique_surface_owners(ctx, &mut ir.model, &mut pmi_losses)?;
     assigned_tessellations.extend(remaining_assignments);
@@ -3575,6 +3597,12 @@ fn append_topology_record_losses(
             stats.unresolved_topology_vertices,
         )));
     }
+    if stats.unread_face_records > 0 {
+        losses.push(SldprtLossCode::TopologyFaceRecordsUnread.note(format!(
+            "{} framed FACE record(s) have no closed loop ring that the decoder reads, so no decoded face carries them.",
+            stats.unread_face_records
+        )));
+    }
     for (count, code, family) in [
         (
             stats.unresolved_topology_points,
@@ -3637,6 +3665,15 @@ fn build_geometry_report(
                 "{} edge(s) reference an untyped support curve; topology references an opaque \
                  curve carrier linked to the retained partition.",
                 s.unknown_curve_edges
+            )),
+        );
+    }
+    if s.tolerant_edges_without_curve > 0 {
+        losses.push(
+            SldprtLossCode::GeometryTolerantEdgeCurveUnread.note(format!(
+                "{} tolerant edge(s) carry their geometry in fin SP_CURVE records, which the \
+                 decoder does not read; the edges have topology and vertices but no curve.",
+                s.tolerant_edges_without_curve
             )),
         );
     }

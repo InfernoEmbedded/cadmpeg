@@ -36,22 +36,6 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 ## 2. Geometry carriers
 
-### GC-02. Missing intersection witnesses
-
-**Question.** Where are the authoritative chart and terminator replacements when an intersection composite references an absent witness record?
-
-**Known.** `sldprt.md` §7.2 "Curve carriers: an edge's `00 10.refs[3]` can point to a `00 86` B-spline/list curve carrier," through `sldprt.md` §7.3 "The chart is a solved cache" define both intersection carriers and the three witness record families. The referenced terminators select the unique chart stride with the least endpoint displacement and replace the approximate chart endpoints. A complete width-4 support-UV record supplies the two solved pcurve caches. An absent or structurally inconsistent optional support-UV record does not invalidate the curve. Tolerance-bounded inversion constructs its pcurves on analytic and positive-weight NURBS supports. Consecutive inverses select one continuous parameter branch, the terminators supply the exact endpoint parameters, and analytic derivative bounds or rational Bézier residual control hulls certify the complete mapped segments against the chart tolerance.
-
-**Need.** We must locate an authoritative replacement when the referenced chart or terminator record is absent.
-
-### GC-03. Surface-owned edge curve attributes
-
-**Question.** What grammar and role do untyped edge curve attributes have when a surface record owns them instead of a curve carrier?
-
-**Known.** `sldprt.md` §7.1 "Stream-scope" defines `00 86` as a B-spline or list curve carrier. `sldprt.md` §7.2 "Curve carriers: an edge's `00 10.refs[3]` can point to a `00 86` B-spline/list curve carrier," defines the intersection curve carriers. An edge selects its support curve through `00 10.refs[3]`.
-
-**Need.** We must know the grammar to construct the edge curve.
-
 ### GC-04. Offset-surface admission
 
 **Question.** Which complete support and selected-set relation validates an unchecked offset for exact transfer, including negative support sense and full canonical indexes?
@@ -178,11 +162,13 @@ A later `PS\0\0` is a boundary only when the bytes from that position contain a 
 
 ### AL-01. DisplayLists face ranges
 
-**Question.** How does a B-rep face attribute select its triangle range in a DisplayLists block?
+**Question.** How does a B-rep face select its triangle range in a DisplayLists block when no face key joins them?
 
-**Known.** `sldprt.md` §7.3 "**`00 28` chart**" defines the DisplayLists descriptor table, strip lengths, and triangle-count relations. `sldprt.md` §4 "Primary ownership chain:" defines the B-rep face topology. `sldprt.md` §8 defines the complete persistent identity path carried by matching B-rep attributes and DisplayLists references, as well as unambiguous ownership from incidence with one analytic or NURBS face support and from complete bounded planar, cylindrical, and conical trims. Procedural, polygonal, opaque, and non-exact NURBS supports, other coincident trims, and tables without a complete matching identity do not supply the stored face-range mapping.
+**Known.** `sldprt.md` §7.3 "**`00 28` chart**" defines the DisplayLists descriptor table, strip lengths, and triangle-count relations. `sldprt.md` §4 "Primary ownership chain:" defines the B-rep face topology. `sldprt.md` §8 "The FACE owner of an `SWEntUnchanged` ATTRIBUTE" defines the face-key join: the integer field of an `SWEntUnchanged` ATTRIBUTE on a FACE equals the u32 at `M+0x64` of the table that face owns, when `M+0x60` is `1` and exactly one table and one current FACE carry the key. `sldprt.md` §5 "`SWEntUnchanged` has definition field codes `[1]`." defines the key family. `sldprt.md` §8 also defines the complete persistent identity path carried by matching B-rep attributes and DisplayLists references, as well as unambiguous ownership from incidence with one analytic or NURBS face support and from complete bounded planar, cylindrical, and conical trims. Procedural, polygonal, opaque, and non-exact NURBS supports, other coincident trims, and tables without a key or a complete matching identity do not supply the stored face-range mapping.
 
-**Need.** We must know the stored mapping to attach tables whose support is ambiguous or unsupported, including non-exact NURBS caches, and carry no complete matching persistent identity.
+**Need.** We must know the stored mapping to attach tables that carry no unique face key, whose support is ambiguous or unsupported, including non-exact NURBS caches, and that carry no complete matching persistent identity.
+
+**Note.** In native dictionaries the `SDL/TYSA_DENSITY` KEY can precede the `SWEntUnchanged` definition. The definition `identifier`, not adjacency, names the family (`sldprt.md` §5 "A definition is named by its `identifier`").
 
 ### AL-03. DisplayLists renderer flag meanings
 

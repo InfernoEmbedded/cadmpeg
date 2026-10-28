@@ -2288,12 +2288,13 @@ face → 00 0f loop head → 00 11 coedge ring → 00 10 edge-use → support cu
 Magic-bearing records use `c2 bc 92 8f 99 6e 00 00`.
 
 The `00 0c`, `00 0d`, `00 0e`, and `00 13` tags are Parasolid XT node types
-BODY, SHELL, FACE, and REGION. Their node pointers use one big-endian u16 for
-values `0` through `0x7ffe`. A larger pointer uses two big-endian u16 values:
-the first has its high bit set and carries the low fifteen bits, and the
-second carries the remaining high bits. The decoded value is
-`(first & 0x7fff) | (second << 15)`. Values `0` and `1` are null-like
-sentinels where a field permits them.
+BODY, SHELL, FACE, and REGION. Their node pointers are XT positive-integer
+cells. A big-endian u16 word `w` in `0` through `0x7fff` is the value `w`. A
+word with its high bit set starts a 4-byte cell: its two's-complement
+magnitude `m = 0x10000 - w` and the next big-endian u16 `q` are both in `1`
+through `32767`, and the value is `q * 32767 + m`. The cell `f2 7e 00 01` is
+the value 36225. A value is one more than the XT index of the node it names.
+Values `0` and `1` are null-like sentinels where a field permits them.
 
 - **Bridge `00 0e`:** `attr` is u16 BE at body +0, `sequence` is u32 BE at body +2, and the ATTRIBUTE-chain head (`attributes_groups`) is u16 BE at body +6. `sequence` is the active-partition face identity used by SWIFT `CadIdentifier` suffixes; it is distinct from `attr`, and sequence values are unique within one partition stream. `refs[2]` = owning loop-head, `refs[4]` = primary surface carrier (compact analytic or `00 7c`), `marker` = face orientation versus the surface natural normal (`0x2b` forward / `0x2d` reversed), which the carrier's own marker orients (§7.1). `refs[0]` and `refs[1]` are the next and previous FACE pointers; `refs[3]` is the SHELL pointer. The five references are either adjacent big-endian u16 cells followed by the marker at body +26 or `[hi][lo][01]` cells followed by the marker at body +31.
 - **Loop head `00 0f`:** `refs[1]` = first coedge, `refs[2]` = owning bridge, `refs[3]` = next sibling loop head.
@@ -2354,14 +2355,19 @@ companion deltas retain historical versions.
 A support surface belongs to a face through `face -> bridge -> bridge.refs[4] -> carrier`. Face and carrier attribute equality does not establish ownership. The carrier reference uses the bridge's site.
 
 The fixed body offsets above hold only while every pointer in the record is
-below `0x7fff`. A bare compact record stores its `attr` and every reference in
+at most `0x7fff`. A bare compact record stores its `attr` and every reference in
 the same variable-width pointer form as the XT ownership nodes, and so does a
 compact analytic carrier (§7.1). The `sequence`, the tolerance and the marker
 keep their widths, and each wide pointer moves the fields after it by two
 bytes. A LocalBodies stream can hold a loop head that begins `00 0f f2 7e 00 01`
-(attr 62078), FACE records whose own attr is in the 4-byte form, and
-narrow-attr FACE records carrying a pointer past `0x7ffe`. The deltas forms of
+(attr 36225), FACE records whose own attr is in the 4-byte form, and
+narrow-attr FACE records carrying a pointer past `0x7fff`. The deltas forms of
 §4.3 keep their fixed `[hi][lo][01]` cells.
+
+A 4-byte cell whose magnitude `m` is at most 256 begins with the byte `ff`,
+which is also the optional first-of-type byte after a type tag. After
+`00 TT ff`, the `attr` starts after the `ff` when that start frames a complete
+record, and at the `ff` otherwise.
 
 A record key is the u16 `attr`, so a pointer past `0xffff` has no key:
 a compact record that holds one does not frame, and a typed node whose own
@@ -2376,9 +2382,10 @@ An edited first-of-type schema header has three bytes: u16 BE node type at `+0`
 and u8 current effective-field count at `+2`. The field count precedes the
 `C`, `D`, `I`, and `A` field-edit instructions ending in `Z`. Effective fields
 are transmittable or variable-length fields. The base schema-13006 effective
-field counts are BODY 23, SHELL 9, REGION 7, FACE 14, and WORLD 11. WORLD
-(type 101) uses the same complete schema-program grammar. The program extent
-ends at `Z`. Pointer-type words and field names inside that extent are field
+field counts are BODY 23, SHELL 9, REGION 7, FACE 14, INTERSECTION 11, and
+WORLD 11. WORLD (type 101) and INTERSECTION (type 38) use the same complete
+schema-program grammar. The program extent ends at `Z`.
+Pointer-type words and field names inside that extent are field
 descriptors, not topology or data records. `C` consumes one base
 field and produces one current field; `D` consumes one base field; `I` produces
 one current field before the base fields are exhausted; `A` produces one
@@ -2531,11 +2538,11 @@ nodes, and `00 54` CHAR_VALUES nodes. A `00 51` header is
 
 Every node id and pointer in these records — a bare ATTRIBUTE's `attr`, `disc`
 and slots, a KEY, ATTRIB_DEF or INT_VALUES node id, and a REAL_VALUES `attr` —
-takes the variable-width pointer form of §4: past `0x7ffe` it is 4 bytes, and
+takes the variable-width pointer form of §4: past `0x7fff` it is 4 bytes, and
 each wide field moves the fields after it by two bytes. The counts, `seq` and
 the values keep their widths, so the u16 offsets in this section hold only
-while every pointer is below `0x7fff`. A REAL_VALUES record can carry a 4-byte `attr` (`00 53 00 00 00 03 bc bf 00 01`,
-attr 48 319), following an ATTRIBUTE whose last slots are wide. The
+while every pointer is at most `0x7fff`. A REAL_VALUES record can carry a 4-byte `attr` (`00 53 00 00 00 03 bc bf 00 01`,
+attr 49 984), following an ATTRIBUTE whose last slots are wide. The
 prefixed (deltas) ATTRIBUTE keeps its fixed header cells and `[01][hi][lo]`
 slots.
 
@@ -2698,6 +2705,10 @@ producer of every body owning one of them.
 carries one nonzero body identity scalar. The scalar and its complete current
 BODY owner relation establish body identity; face identity uses `FACE_ID_2001`.
 
+`SWEntUnchanged` has definition field codes `[1]`. Its integer field names one
+`00 52` INT_VALUES node with one u32, the face key `K` of its FACE owner (§8).
+Zero, `0xffffffff`, and a different field schema supply no key.
+
 `LAST_BODY_MODIFYING_FEATURE_ID` instances hang on BODY attributes and
 resolve one `00 52` integer-list payload containing one native feature source
 identifier. The source identifier selects the Keywords modeling-feature
@@ -2778,7 +2789,7 @@ Stream-scope support-geometry carriers encoding untrimmed surface/curve placemen
 00 TT  [ff]?  attr u16 BE  ordinal u32 BE  refs u16 BE[5]  marker u8 (0x2b|0x2d)  values f64 BE[n]
 ```
 
-The partition form uses the five adjacent u16 references shown above; its marker is at `hdr + 16`, where `hdr` is the attr offset after `00 TT` and the optional `ff`. The attr and the references are pointers (§4): past `0x7ffe` each takes the 4-byte form, and the marker moves two bytes later for each one. A deltas compact analytic record uses five `[hi][lo][01]` reference triples instead:
+The partition form uses the five adjacent u16 references shown above; its marker is at `hdr + 16`, where `hdr` is the attr offset after `00 TT` and the optional `ff`. The attr and the references are pointers (§4): past `0x7fff` each takes the 4-byte form, and the marker moves two bytes later for each one. A deltas compact analytic record uses five `[hi][lo][01]` reference triples instead:
 
 ```
 00 TT [ff]? attr u16 BE ordinal u32 BE refs [hi][lo][01][5] marker u8 (0x2b|0x2d) values f64 BE[n]
@@ -2868,22 +2879,24 @@ Before either construction, the edge curve is evaluated over its vertex paramete
 
 ### 7.3 Surface-intersection curve carriers
 
-An edge's `00 10.refs[3]` can point to either intersection carrier for a curve defined by the intersection of two support surfaces. The compact composite has this shape:
+An edge's `00 10.refs[3]` can point to an INTERSECTION composite for a curve defined by the intersection of two support surfaces. The composite has this shape:
 
 ```
-00 26  attr u16 BE  ordinal u32 BE  refs u16 BE[5]  marker u8 (0x2b|0x2d)
-       payload u16 BE[6] = [support0, support1, chart, term_start, term_end, uv]
+00 26 [ff]? attr  node_id u32 BE  refs[5]  marker u8 (0x2b|0x2d)
+            surface0  surface1  chart  start  end  [intersection_data]
 ```
 
-The intersection-data form replaces the two-byte composite tag with `00 01 5a`; the attribute, ordinal, five header references, marker, and six payload references have the same layout and semantics.
+Every attribute and pointer in the composite and in its witness records uses the XT positive-integer form (§7.5). A four-byte cell moves the fields after it by two bytes. The base schema has five payload pointers. The `intersection_data` pointer is present only when the embedded schema declares the field `intersection_data`. The INTERSECTION base schema has 11 fields. The first composite of an edited type follows the `Z` terminator of its schema program (§4.1). An edited program that changes a base field, or that appends a field other than `intersection_data`, gives no known composite layout. The next node tag follows the last payload pointer.
 
-`support0` and `support1` reference the two intersected surface records. The remaining payload references resolve to three witness records:
+`surface0` and `surface1` reference the two intersected surface records. `chart`, `start`, and `end` resolve to witness records, and `intersection_data` resolves to a support-UV record:
 
-- **`00 28` chart** — the solved point cache: `count u32 BE, attr u16 BE, base_parameter f64 BE, base_scale f64 BE, chart_count u32 BE, chordal_error f64 BE`, one further f64, then two absent-value sentinels `-3.14158e13` at body +36 and +44, then `count` point entries at body +52. An entry is either 88 bytes (point xyz, then a finite nonzero tangent at entry +56) or a bare 24-byte point. The chart has no stride discriminator. `chart_count == count`; `base_scale` is nonzero; `chordal_error` is positive. Chart points lie exactly on both support surfaces. The parameter at point `k+1` is the parameter at point `k` plus the chord length times `base_scale`, starting from `base_parameter`. The referenced terminators select the unique entry width with the least total endpoint displacement. Equal displacement leaves the chart unresolved. The optional support-UV record does not select the chart width.
-- **`00 29` terminator** — an exact curve endpoint: `count u32 BE (1|2), attr u16 BE`, a kind label, then the endpoint xyz as f64 BE. The label is one kind character `L` (limit), `H` (ring), or `T` (terminator), optionally followed by a second character `?`, `F`, or `S`. A ring composite names one `H` terminator in both endpoint slots and its chart closes onto itself. The terminator, not the approximate chart endpoint, is the exact curve end.
-- **`00 cc` support-UV values** — `count u32 BE, attr u16 BE, width u8 (2|3|4)`, then `count` f64 BE values, `width` per chart point. A width-4 row is `[support0.u, support0.v, support1.u, support1.v]` and is co-parameterized with the corresponding chart point. The value count is `width × n` for `n` chart points, or `width × (n + 1)` when the curve crosses a periodic seam of a support surface and the extra row restates the endpoint in the wrapped parameterization. Plane `u` and `v` values and cylinder or cone axial `v` values are lengths in metres. Angular and NURBS-knot parameters are dimensionless. A composite can reference a UV slot with no stored `00 cc` record; the chart and terminators alone define the solved curve.
+- **`00 28` chart** — the solved point cache: `count u32 BE` and `attr`. From the byte after `attr`, the chart has `base_parameter f64 BE` at +0, `base_scale f64 BE` at +8, `chart_count u32 BE` at +16, `chordal_error f64 BE` at +20, one further f64 at +28, two absent-value sentinels `-3.14158e13` at +36 and +44, and `count` point entries at +52. An entry is either 88 bytes (point xyz, then a finite nonzero tangent at entry +56) or a bare 24-byte point. The chart has no stride discriminator. `chart_count == count`; `base_scale` is nonzero. `chordal_error` is the null value `-3.14158e13` or a finite value of zero or more. A null value gives no fit tolerance. Chart points lie exactly on both support surfaces. The parameter at point `k+1` is the parameter at point `k` plus the chord length times `base_scale`, starting from `base_parameter`. The referenced terminators select the unique entry width with the least total endpoint displacement. Equal displacement leaves the chart unresolved. The optional support-UV record does not select the chart width.
+- **`00 29` terminator** — an exact curve endpoint: `count u32 BE (1|2)`, `attr`, a kind label, then the endpoint xyz as f64 BE. The label is one kind character `L` (limit), `H` (ring), `T` (terminator), or `B` (spine boundary), optionally followed by a second character `?`, `F`, or `S`. A ring composite names one `H` terminator in both endpoint slots and its chart closes onto itself. The terminator, not the approximate chart endpoint, is the exact curve end.
+- **`00 cc` support-UV values** — `count u32 BE`, `attr`, `width u8 (2|3|4)`, then `count` f64 BE values, `width` per chart point. A width-4 row is `[support0.u, support0.v, support1.u, support1.v]` and is co-parameterized with the corresponding chart point. The value count is `width × n` for `n` chart points, or `width × (n + 1)` when the curve crosses a periodic seam of a support surface and the extra row restates the endpoint in the wrapped parameterization. Plane `u` and `v` values and cylinder or cone axial `v` values are lengths in metres. Angular and NURBS-knot parameters are dimensionless.
 
 Terminator and support-UV bodies also occur inline after their field labels: `term_use` followed by `00 00 00 01 01 63 43 5a`, and `values` followed by `00 00 00 02 01 66 01`, each directly preceding the same body layout.
+
+Each non-null chart and limit pointer resolves to a node in the same stream. If a pointer does not resolve, the curve is unresolved. Do not use a record from another stream. The chart and terminators alone define the solved curve.
 
 The chart is a solved cache: the exact curve is the surface–surface intersection, and the stored chart polyline reproduces it to within `chordal_error`. The referenced terminators replace the approximate chart endpoints and are the exact ends of the intersection curve. They are an edge's endpoints when they reproduce its vertex positions; a composite whose terminators lie past an edge's vertices carries more of the intersection than that edge, and the edge is a sub-arc of the terminated curve. An absent or structurally inconsistent optional support-UV record does not invalidate the model-space curve. A unique complete width-4 UV cache with exactly `n` rows forms two degree-one NURBS pcurves over the chart's chord-length parameter knots. Length-valued surface parameters convert to millimetres. When that UV cache is unavailable, the inverse of each chart point on an analytic or positive-weight NURBS support forms the pcurve. Each periodic analytic parameter and each NURBS inverse selects the branch nearest to its preceding value. The exact inverse of each terminator replaces its endpoint UV on the same branch. A pcurve attaches only when all surface-evaluated controls reproduce the endpoint-corrected chart within `chordal_error`, its two surface-evaluated endpoints reproduce the edge vertices, and the face surface selects exactly one of the two support slots. For an analytic support, a second-derivative bound keeps every mapped segment within `chordal_error` of its model-space chord. For a NURBS support, each parameter segment splits at every surface knot; its positive-weight rational Bézier residual control hull bounds the complete mapped segment against the model-space chord within `chordal_error`. The pcurve fit tolerance is `chordal_error` converted to millimetres.
 
@@ -2914,7 +2927,7 @@ A variable-radius blend result uses a `00 7c` B-spline surface-use wrapper and t
 
 ### 7.5 Offset surfaces
 
-An `OFFSET_SURF` node has type `00 3c`. Its index and pointers use the XT positive-integer primitive: a signed i16 word in `1..=32767` encodes `word - 1`; a negative word followed by quotient `q` encodes `q * 32767 - word - 1`. The raw short code `00 01` is null. Every four-byte index or pointer moves the following fields by two bytes.
+An `OFFSET_SURF` node has type `00 3c`. Its index and pointers are XT positive-integer cells (§4), and each encodes the cell value minus one. The cell `00 01` is null. Every four-byte index or pointer moves the following fields by two bytes.
 
 The all-short Partition form is:
 
@@ -2939,7 +2952,7 @@ The offset retains the support parameterization and has the same surface sense a
 
 ### 7.6 Tolerant edges and surface-parameter curves
 
-An edge-use whose support-curve slot holds the null `1` is a tolerant edge. Its tolerance slot holds a value rather than the null-real sentinel, and its geometry is carried by its fins: each `00 11` coedge names its own curve in `refs[7]`. Every fin's curve of a tolerant edge is null or a `00 85` bounded curve (§7.2) whose source is a `00 89` SP_CURVE on the fin's face's support surface, and every such edge-use stores a valued tolerance. An ordinary edge's own curve slot can also name an SP_CURVE, bounded or bare.
+An edge-use whose support-curve slot holds the null `1` is a tolerant edge. Its tolerance slot holds a value rather than the null-real sentinel, and its geometry is carried by its fins: each `00 11` coedge names its own curve in `refs[7]`. Every fin's curve of a tolerant edge is null or a `00 85` bounded curve (§7.2) whose source is a `00 89` SP_CURVE on the fin's face's support surface, and every such edge-use stores a valued tolerance. A tolerant edge-use is read only when no other edge-use record in its stream has the same `attr`. An ordinary edge's own curve slot can also name an SP_CURVE, bounded or bare.
 
 ```
 00 89 [ff]? attr  node_id u32  refs[5]  marker u8 (0x2b|0x2d)
@@ -2968,7 +2981,7 @@ The neutral curve carries a solved cache: a cubic model-space B-curve in the SP_
 
   A `uoTempFaceTessData_c` class token has two table-header forms. Offsets are from the byte after the class token. Both forms start with the first table's triangle count as u32 LE at `+0` and strip count as u32 LE at `+4`. These values equal `C - 2*N` and `N` for that table. In the compact form, the first descriptor starts at `+8`. The extended form has u32 LE values `1`, `0`, `0`, and one nonzero token at `+8`, `+12`, `+16`, and `+20`, followed by 16 zero bytes at `+24`; its first descriptor starts at `+40`. The fixed cells and nonzero token select the extended form. A header that does not satisfy the complete extended grammar uses the compact offset and must frame a valid descriptor table there.
 
-  Each extended table can carry the same 40-byte header immediately before its first descriptor without another class declaration. Its triangle and strip counts agree with that table. Let `M` be the exact sixth-descriptor payload end. The extended-form metadata has Boolean u32 LE cells `A` at `M+0x5c`, `B` at `M+0x68`, and `C` at `M+0x6c`; u32 LE `1` at `M+0x60`; an independent u32 word at `M+0x64`; and a four-f32 LE tuple at `M+0x70`. All cells through `M+0x80` belong to the same bounded metadata interval, before the following table header.
+  Each extended table can carry the same 40-byte header immediately before its first descriptor without another class declaration. Its triangle and strip counts agree with that table. Let `M` be the exact sixth-descriptor payload end. The extended-form metadata has Boolean u32 LE cells `A` at `M+0x5c`, `B` at `M+0x68`, and `C` at `M+0x6c`; u32 LE `1` at `M+0x60`; a face key `K` as u32 LE at `M+0x64`; and a four-f32 LE tuple at `M+0x70`. All cells through `M+0x80` belong to the same bounded metadata interval, before the following table header.
 
   The supported extended form words are:
 
@@ -2979,9 +2992,11 @@ The neutral curve carries a solved cache: a cubic model-space B-curve in the SP_
   | 1 | 0 | 1 | `0x00201b96` |
   | 0 | 1 | 1 | `0x00201e96` |
 
-  For these four triples, the word equals `0x00201296 | (A << 8) | (B << 10) | (C << 11)`. Other triples have no defined word. The independent word at `M+0x64` does not contribute. `A=1` requires one repeated 12-byte stored normal pattern; `A=0` requires more than one pattern. This classification requires a nonempty normal channel and compares bytes, including signed-zero bits. `B=0` requires sixteen zero tuple bytes. `B=1` requires a positive finite scalar and a finite unit three-vector within f32 rounding; the unit-length validation tolerance is `1e-6`. These cells do not identify a surface family, face sense, or winding.
+  For these four triples, the word equals `0x00201296 | (A << 8) | (B << 10) | (C << 11)`. Other triples have no defined word. The face key at `M+0x64` does not contribute. `A=1` requires one repeated 12-byte stored normal pattern; `A=0` requires more than one pattern. This classification requires a nonempty normal channel and compares bytes, including signed-zero bits. `B=0` requires sixteen zero tuple bytes. `B=1` requires a positive finite scalar and a finite unit three-vector within f32 rounding; the unit-length validation tolerance is `1e-6`. These cells do not identify a surface family, face sense, or winding.
 
   The mapping requires the complete six-descriptor table, header shape and counts, bounded metadata cells, supported Boolean triple, normal classification, tuple constraints, and agreement between the stored and calculated word. A missing or contradictory field, unsupported triple, or unknown word supplies no known form. The structurally framed table and its channels remain intact. A writer can regenerate a supported word from its three stored flags; the base word is not a default for other states.
+
+  The FACE owner of an `SWEntUnchanged` ATTRIBUTE (§5) carries a face key `K`. A complete six-descriptor table in either header form, whose metadata before the next table header has u32 LE `1` at `M+0x60` and the same nonzero `K` at `M+0x64`, belongs to that face, and its body is the face's topological owner. `K` selects a face only when exactly one table and exactly one current FACE carry it. A table without such a key uses the rules that follow. The key has equality meaning only.
 
   An exact-support table has every position on its owning B-rep face support surface. The f32 coordinate precision limits this incidence test. When exactly one B-rep face has an analytic support incident to all table positions, that face owns the table and its body is the face's topological owner.
 

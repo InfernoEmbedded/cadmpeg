@@ -33,6 +33,7 @@ use cadmpeg_ir::scalar::{Angle, NonNegativeLength, NonZeroLength, PositiveLength
 use cadmpeg_ir::units::{OrthonormalFrame3, UnitVector3};
 
 use crate::layout::compact_analytic_header as analytic;
+use crate::parasolid::xt_integer::{take_key, take_keys};
 
 const EPS_BREP_UNIT_LENGTH_E9: f64 = 1.0e-9;
 const EPS_BREP_ORTHONORMAL_E9: f64 = 1.0e-9;
@@ -201,31 +202,56 @@ pub(crate) struct SurfaceCarrier {
     orientation_reversed: bool,
 }
 
-fn analytic_marker_candidates(body: &[u8], hdr: usize) -> Option<Vec<usize>> {
-    let mut candidates = Vec::new();
+/// The attr and marker offset of a bare compact carrier, whose `attr ordinal
+/// refs[5]` head stores the attr and each reference as an XT cell.
+fn bare_carrier_marker(body: &[u8], hdr: usize) -> Option<(u16, usize)> {
+    let mut fields = View::over_retained(body);
+    fields.seek(hdr)?;
+    let attr = take_key(&mut fields)?;
+    fields.u32_be()?;
+    take_keys::<COMPACT_REF_COUNT>(&mut fields)?;
+    Some((attr, fields.position()))
+}
 
-    let partition_marker = hdr.checked_add(analytic::MARKER)?;
-    if matches!(body.get(partition_marker), Some(0x2b | 0x2d)) {
-        candidates.push(partition_marker);
-    }
-
+fn tripled_carrier_marker(body: &[u8], hdr: usize) -> Option<(u16, usize)> {
     // Deltas records encode each of the five references as [hi][lo][01].
     // The marker follows that fixed-width roster, so its position is not a
     // search result. The terminators distinguish this framing from arbitrary
     // marker-like bytes in the reference and ordinal fields.
     let refs_at = hdr.checked_add(analytic::REFS)?;
-    let tripled_marker = hdr.checked_add(DELTAS_MARKER_OFFSET)?;
     let tripled_refs = (0..COMPACT_REF_COUNT).all(|index| {
         refs_at
             .checked_add(index * DELTAS_REF_STRIDE + DELTAS_REF_STRIDE - 1)
             .and_then(|at| body.get(at))
             == Some(&1)
     });
-    if tripled_refs && matches!(body.get(tripled_marker), Some(0x2b | 0x2d)) {
-        candidates.push(tripled_marker);
-    }
+    tripled_refs.then_some(())?;
+    Some((
+        View::u16_be_at(body, hdr)?,
+        hdr.checked_add(DELTAS_MARKER_OFFSET)?,
+    ))
+}
 
-    Some(candidates)
+/// The bare marker readings after the tag at `tag_end`. A `0xff` after the
+/// tag is either the first-of-type byte or the first byte of a two-word attr
+/// cell.
+fn bare_carrier_markers(body: &[u8], tag_end: usize, hdr: usize) -> Vec<(u16, usize)> {
+    let cell_start = (hdr != tag_end).then_some(tag_end);
+    [Some(hdr), cell_start]
+        .into_iter()
+        .flatten()
+        .filter_map(|start| bare_carrier_marker(body, start))
+        .filter(|(_, marker)| matches!(body.get(*marker), Some(0x2b | 0x2d)))
+        .collect()
+}
+
+fn analytic_marker_candidates(body: &[u8], tag_end: usize, hdr: usize) -> Vec<(u16, usize)> {
+    let mut candidates = bare_carrier_markers(body, tag_end, hdr);
+    candidates.extend(
+        tripled_carrier_marker(body, hdr)
+            .filter(|(_, marker)| matches!(body.get(*marker), Some(0x2b | 0x2d))),
+    );
+    candidates
 }
 
 fn parse_carrier_at_marker(
@@ -271,10 +297,9 @@ pub(crate) fn parse_carrier(body: &[u8], off: usize) -> Option<Carrier> {
     let tag_end = off.checked_add(2)?;
     let has_ff = body.get(tag_end) == Some(&0xff);
     let hdr = tag_end.checked_add(usize::from(has_ff))?;
-    let attr = View::u16_be_at(body, hdr)?;
-    let mut candidates = analytic_marker_candidates(body, hdr)?
+    let mut candidates = analytic_marker_candidates(body, tag_end, hdr)
         .into_iter()
-        .filter_map(|marker_at| parse_carrier_at_marker(body, off, tt, attr, n, marker_at));
+        .filter_map(|(attr, marker_at)| parse_carrier_at_marker(body, off, tt, attr, n, marker_at));
     let carrier = candidates.next()?;
     candidates.next().is_none().then_some(carrier)
 }
@@ -289,12 +314,15 @@ pub(super) fn parse_carrier_for_role(body: &[u8], off: usize, deltas: bool) -> O
     let marker = end.checked_sub(n.checked_mul(8)?.checked_add(1)?)?;
     let tag_end = off.checked_add(2)?;
     let header = tag_end.checked_add(usize::from(body.get(tag_end) == Some(&0xff)))?;
-    let expected = header.checked_add(if deltas {
-        DELTAS_MARKER_OFFSET
+    let expected = if deltas {
+        tripled_carrier_marker(body, header).into_iter().collect()
     } else {
-        analytic::MARKER
-    })?;
-    (marker == expected).then_some(carrier)
+        bare_carrier_markers(body, tag_end, header)
+    };
+    expected
+        .iter()
+        .any(|(_, at)| *at == marker)
+        .then_some(carrier)
 }
 
 /// Map a tag's decoded f64 run to IR geometry, applying the ×1000 length rule to
@@ -457,7 +485,8 @@ pub(crate) fn patch_nurbs_by_attr(
 #[cfg(test)]
 mod tests {
     use super::index::scan_carriers;
-    use super::{parse_carrier, tag, Carrier};
+    use super::{parse_carrier, parse_carrier_for_role, tag, Carrier};
+    use crate::parasolid::xt_integer::encode;
     use cadmpeg_ir::geometry::SolvedCurveGeometry;
     use cadmpeg_ir::geometry::SolvedSurfaceGeometry;
     use cadmpeg_ir::math::Point3;
@@ -549,6 +578,27 @@ mod tests {
             };
             assert_eq!(frame, Some((reference, expected_v)));
         }
+    }
+
+    #[test]
+    fn two_word_cells_move_the_compact_carrier_marker() {
+        let mut bytes = vec![0, tag::PLANE];
+        // attr, the two words of a zero ordinal, then five references.
+        for code in [36_225, 0, 0, 40_000, 1, 1, 33_000, 1] {
+            let (words, count) = encode(code).expect("code in the two-word range");
+            for word in words.into_iter().take(count) {
+                bytes.extend_from_slice(&word.to_be_bytes());
+            }
+        }
+        bytes.push(0x2b);
+        for value in [0.0_f64, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0] {
+            bytes.extend_from_slice(&value.to_be_bytes());
+        }
+        let Some(Carrier::Surface(carrier)) = parse_carrier_for_role(&bytes, 0, false) else {
+            panic!("expected surface carrier");
+        };
+        assert_eq!(carrier.attr, 36_225);
+        assert_eq!(carrier.end, bytes.len());
     }
 
     #[test]
