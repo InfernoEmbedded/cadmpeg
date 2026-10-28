@@ -503,6 +503,74 @@ fn loop_history_roster_uses_declared_loop_count_and_stored_order() {
     assert_eq!(entries[2].boundary, FeatureLoopHistoryBoundary::NamedRecord);
 }
 
+/// The `lo_id_tab_ptr` table and six-record `lo_hist` roster of
+/// `nist_ctc_01_asme1_rd_cr4050_ra.prt.1`, followed by the next table's header.
+const TABLE_SEPARATED_ROSTER: &[u8] = b"\xe0\x00lo_id_tab_ptr\0\xf2\xf8\x06\xf7\x63\xfb\xe3\
+    \xe0\x01lo_hist\0\xf8\x06\
+    \x81\x40\x82\xef\xf6\xe5\x82\xbc\xf1\xf7\x63\xe3\
+    \x81\x41\x82\xee\xf6\xe5\x82\xbc\xe3\
+    \x81\x42\x82\xf0\xf6\xe5\x82\xbc\xe3\
+    \x81\x43\x82\xf3\xf6\xe5\x82\xbd\xe3\
+    \x81\x44\x82\xf2\xf6\xe5\x82\xbd\xe3\
+    \x81\x45\x82\xf7\x81\x42\xe4\xf6\x82\xbd\xf2\xf7\x4c\
+    \xf8\x01\xf7\x4c\xfb\xe2\xf7\x4d\x69\xf6\xe3";
+
+fn table_separated_rows(body: &[u8]) -> [FeatureRow; 1] {
+    [FeatureRow {
+        feature_id: 7,
+        root_schema_class: Some(crate::feature::schema::SchemaClass::Protrusion),
+        stream_offset: 10,
+        body: body.to_vec().try_into().expect("row body"),
+        body_offset: 1_000,
+        offset: 998,
+    }]
+}
+
+#[test]
+fn final_loop_history_record_ends_at_a_table_separator() {
+    let rows = table_separated_rows(TABLE_SEPARATED_ROSTER);
+    let entries = loop_history_entries(&rows, &geometry_tables(&rows));
+
+    assert_eq!(
+        entries
+            .iter()
+            .map(|entry| (entry.loop_id, entry.logical_fields))
+            .collect::<Vec<_>>(),
+        vec![
+            (320, [Some(751), None, Some(0), Some(0), Some(700)]),
+            (321, [Some(750), None, Some(0), Some(0), Some(700)]),
+            (322, [Some(752), None, Some(0), Some(0), Some(700)]),
+            (323, [Some(755), None, Some(0), Some(0), Some(701)]),
+            (324, [Some(754), None, Some(0), Some(0), Some(701)]),
+            (325, [Some(759), Some(322), Some(1), None, Some(701)]),
+        ]
+    );
+    let next_table = TABLE_SEPARATED_ROSTER.len() - 11;
+    assert_eq!(entries[5].end_offset, 1_000 + next_table);
+    assert_eq!(
+        entries[5].boundary,
+        FeatureLoopHistoryBoundary::TableSeparator(0x4c)
+    );
+}
+
+#[test]
+fn table_separator_bounds_only_a_final_record_before_an_array_header() {
+    let separator = TABLE_SEPARATED_ROSTER.len() - 14;
+    let final_record = &TABLE_SEPARATED_ROSTER[separator - 10..];
+    let parse = |body: &[u8], count| loop_history_roster(body, 0, count);
+
+    assert!(parse(final_record, 1).is_some());
+    let mut continue_marker = final_record.to_vec();
+    continue_marker[10] = 0xf1;
+    assert!(parse(&continue_marker, 1).is_none());
+    let mut no_array = final_record.to_vec();
+    no_array[13] = 0x00;
+    assert!(parse(&no_array, 1).is_none());
+    let mut nonfinal = final_record[..13].to_vec();
+    nonfinal.extend_from_slice(b"\xf8\x01\xf7\x4c\xfb\x2a\x02\xf6\xe5\x03\xe3");
+    assert!(parse(&nonfinal, 2).is_none());
+}
+
 #[test]
 fn loop_history_roster_rejects_incomplete_and_early_boundaries() {
     assert!(loop_history_roster(&[1, 2, 0xe3], 0, 1).is_none());

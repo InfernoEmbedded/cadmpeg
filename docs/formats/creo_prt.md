@@ -4676,10 +4676,13 @@ separate from their expanded values.
 
 After all six slots, a record ends at `e3` or
 `f1|f2 f7 <reference> e3`. Only the final record may instead meet the next
-named-record header directly. The final type is never an optional trailing
-field, and the terminator is not one of the six logical slots. Record order
-is the loop roster order. Incomplete fields, extra tail fields, early closes,
-and nonfinal named boundaries define no complete loop roster. Subtype and type
+named-record header directly, or end at an `f2 f7 <reference>` table
+separator that meets the next array header `f8 <count> f7 <class> fb`
+directly. That array header is not part of the record. The final type is
+never an optional trailing field, and the terminator is not one of the six
+logical slots. Record order is the loop roster order. Incomplete fields, extra
+tail fields, early closes, and nonfinal named or table-separator boundaries
+define no complete loop roster. Subtype and type
 values do not by themselves resolve the three operands or a current boundary
 network.
 

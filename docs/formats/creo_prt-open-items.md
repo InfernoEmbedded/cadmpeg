@@ -855,8 +855,9 @@ boundaries or restoration order.
 make the required final `lo_type` actionable?
 
 **Known.** The final type follows all three logical operands in every complete
-row, including the final row before a named header. It is not an optional
-trailing field. Row-boundary tokens follow all six logical slots.
+row, including the final row before a named header or before an
+`f2 f7 <reference>` table separator. It is not an optional trailing field.
+Row-boundary tokens follow all six logical slots.
 
 **Need.** Bind type and subtype to their complete history production before
 traversal or restoration. Retaining the raw enum values does not prove a

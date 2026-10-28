@@ -257,6 +257,9 @@ fn serialize_loop_history_boundary<S: serde::Serializer>(
         FeatureLoopHistoryBoundary::ReferenceFinal(reference) => {
             ("reference_final", Some(*reference))
         }
+        FeatureLoopHistoryBoundary::TableSeparator(reference) => {
+            ("table_separator", Some(*reference))
+        }
         FeatureLoopHistoryBoundary::NamedRecord => ("named_record", None),
     };
     let mut map = serializer.serialize_map(Some(2))?;
