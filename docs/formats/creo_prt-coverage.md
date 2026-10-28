@@ -365,10 +365,11 @@ that gate.
   metadata. It does not create typed appearances or material bindings. Failed
   compressed expansions retain their existing unresolved classification.
 - Count-selected curve frames retain their exact parameter bodies and literal
-  topology references. When count evidence is necessary to fix a boundary,
-  literal zero slots transfer as numeric tokens; other scalar images remain
-  opaque until their numerical roles are proved. Established row framing does
-  not gain new scalar meanings from this boundary rule.
+  topology references. When count evidence is necessary to fix a boundary, the
+  generic Native scalar view exposes only literal zero slots as numeric tokens.
+  The separate complete two-chart path decodes its scalar slots and can supply
+  numeric samples to the ordinary carrier checks. Counted framing alone does
+  not establish scalar meanings or geometry.
 - Holes and rounds transfer typed operation definitions where their affected
   geometry, edge identities, radii, and extents resolve uniquely.
 - A round with a complete placed set of generated cylinder carriers transfers
