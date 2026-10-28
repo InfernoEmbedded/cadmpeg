@@ -71,6 +71,17 @@ surface, or pcurve transition semantics apply.
 
 **Need.** We must know the other transitions to decode all pcurve endpoint arrays.
 
+**Conflict.** A replay reading and a fixed-value reading of `e5` disagree. The
+named body `48 20 00 18 e5 48 20 00 46 13 1e b8 51 eb 85 1f 9e 1e b8 51 eb 85
+1f 18` belongs to a straight edge of length 4.78 between two planar faces. In
+the second face, endpoint B is `[4.78, 0]`. The replay reading gives endpoint
+A `[0, 0]` and the chord length 4.78 that the plane chart preserves; a fixed
+`e5 = [0, 1]` gives a chord of length 4.884. The positional rows
+`2f 20 00 46 13 1e b8 51 eb 85 1f 18 e4 2f 20 00 18 9e 1e b8 51 eb 85 1f 18`
+and `48 20 00 46 13 1e b8 51 eb 85 1f 18 e4 2f 20 00 46 13 1e b8 51 eb 85 1f
+2f 30 00 18` of straight edges with constant second face coordinate likewise
+need `e4` to replay the preceding zero, not to store one.
+
 ### SE-07. Additional model scalar-heap forms
 
 **Question.** Which numeric images do the unresolved model-scale and bounding
