@@ -1649,24 +1649,6 @@ fn decode_section_coordinate_scalar(
     end: usize,
     cache: &scalar::ScalarCache,
 ) -> (ScalarLane, usize) {
-    if payload.get(offset) == Some(&0xed) {
-        let Some(bounded) = payload.get(..end) else {
-            return (ScalarLane::Undefined, offset);
-        };
-        return scalar::decode_section_full_width_scalar(bounded, offset).map_or(
-            (ScalarLane::Undefined, offset),
-            |(value, next)| {
-                (
-                    if value.is_finite() {
-                        ScalarLane::Value(value)
-                    } else {
-                        ScalarLane::Undefined
-                    },
-                    next,
-                )
-            },
-        );
-    }
     match payload.get(offset) {
         Some(0x00 | 0x34) if offset + 3 <= end => return (ScalarLane::Undefined, offset + 3),
         Some(0x01) if offset + 4 <= end => return (ScalarLane::Undefined, offset + 4),

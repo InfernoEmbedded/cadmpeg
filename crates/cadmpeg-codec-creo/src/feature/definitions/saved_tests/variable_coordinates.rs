@@ -226,14 +226,16 @@ fn decodes_var_arr_positional_dict_lattice() {
 }
 
 #[test]
-fn owned_full_width_variable_rejects_truncation_and_nonfinite_without_dimension_fallback() {
-    use crate::feature::definitions::{decode_section_coordinate_scalar, decode_variable_scalar};
+fn typed_full_width_coordinate_retains_nonfinite_and_rejects_truncation() {
+    use crate::feature::definitions::{
+        decode_typed_variable_field, decode_variable_scalar, VariableType,
+    };
     let cache = scalar::ScalarCache::default();
     let expected = -13.25_f64;
     let mut body = vec![0xed];
     body.extend_from_slice(&expected.to_be_bytes());
     assert_eq!(
-        decode_section_coordinate_scalar(&body, 0, body.len(), &cache),
+        decode_typed_variable_field(&body, 0, body.len(), &cache, VariableType::U),
         (ScalarLane::Value(expected), 9)
     );
     assert_eq!(
@@ -242,18 +244,18 @@ fn owned_full_width_variable_rejects_truncation_and_nonfinite_without_dimension_
     );
     for end in 1..9 {
         assert_eq!(
-            decode_section_coordinate_scalar(&body, 0, end, &cache),
+            decode_typed_variable_field(&body, 0, end, &cache, VariableType::U),
             (ScalarLane::Undefined, 0)
         );
     }
     let nonfinite = [0xed, 0x7f, 0xf0, 0, 0, 0, 0, 0, 0];
     assert_eq!(
-        decode_section_coordinate_scalar(&nonfinite, 0, 9, &cache),
-        (ScalarLane::Undefined, 9)
+        decode_typed_variable_field(&nonfinite, 0, 9, &cache, VariableType::U),
+        (ScalarLane::OpaqueFullWidth, 9)
     );
     let short = [0x00, 0x12, 0x34];
     assert_eq!(
-        decode_section_coordinate_scalar(&short, 0, 3, &cache),
+        decode_typed_variable_field(&short, 0, 3, &cache, VariableType::U),
         (ScalarLane::Undefined, 3)
     );
 }
