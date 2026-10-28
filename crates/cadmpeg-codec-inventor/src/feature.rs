@@ -35,10 +35,14 @@ use crate::rse::{RecordFrameState, RseInventory, SegmentBulkState, SegmentKind};
 use crate::{design::DesignInventory, sketch::SketchInventory};
 
 pub(crate) mod base;
+pub(crate) mod combine;
 mod edge_selection;
-mod history;
+pub(crate) mod history;
 mod hole;
 pub(crate) mod loft_sweep;
+pub(crate) mod mirror;
+pub(crate) mod motion;
+pub(crate) mod pattern;
 pub(crate) mod profile;
 pub(crate) mod revolve;
 pub(crate) mod sheet_metal;
@@ -56,7 +60,7 @@ pub(crate) const BOOLEAN_TYPE: [u8; 16] = inventor_id(0x9087_4d28);
 const PLATE_SIDE_TYPE: [u8; 16] = [
     0x69, 0xb9, 0x50, 0x5e, 0xfb, 0x4b, 0xba, 0xa9, 0x25, 0xc3, 0xdf, 0xa8, 0x70, 0x81, 0x78, 0x10,
 ];
-const SURFACE_BODY_TYPE: [u8; 16] = inventor_id(0x9087_4d47);
+pub(crate) const SURFACE_BODY_TYPE: [u8; 16] = inventor_id(0x9087_4d47);
 const ENTITY_STYLE_LINK_TYPE: [u8; 16] = inventor_id(0x9087_4d15);
 const PART_OPERATION_TYPE: [u8; 16] = [
     0x28, 0xbe, 0x9a, 0x72, 0xd1, 0x11, 0x44, 0x09, 0x00, 0x08, 0x4e, 0xba, 0x32, 0xa3, 0xdc, 0x09,
@@ -70,16 +74,16 @@ pub(crate) const SELECTION_LIST_TYPE: [u8; 16] = [
 const EXTENT_TYPE: [u8; 16] = [
     0x29, 0x7d, 0x63, 0x92, 0xd1, 0x11, 0x3c, 0xb9, 0x00, 0x08, 0x31, 0xbd, 0x06, 0x63, 0xdc, 0x09,
 ];
-const FEATURE_DIMENSIONS_TYPE: [u8; 16] = [
+pub(crate) const FEATURE_DIMENSIONS_TYPE: [u8; 16] = [
     0x71, 0xf2, 0x3e, 0xd8, 0xd2, 0x11, 0x50, 0x94, 0xa0, 0x00, 0x49, 0x80, 0x36, 0x03, 0xc8, 0xc9,
 ];
-const RDX_VARIABLE_TYPE: [u8; 16] = [
+pub(crate) const RDX_VARIABLE_TYPE: [u8; 16] = [
     0xdf, 0xd5, 0x1d, 0xbb, 0xd1, 0x11, 0x6e, 0x72, 0x00, 0x08, 0x17, 0xbd, 0x06, 0x63, 0xdc, 0x09,
 ];
 const AUXILIARY_ENUM_TYPE: [u8; 16] = [
     0x73, 0x39, 0xfd, 0xce, 0x7a, 0x4e, 0x40, 0x11, 0xbe, 0xe3, 0x43, 0x89, 0x79, 0x08, 0xba, 0x92,
 ];
-const OBJECT_COLLECTION_TYPE: [u8; 16] = [
+pub(crate) const OBJECT_COLLECTION_TYPE: [u8; 16] = [
     0xae, 0x70, 0x68, 0x0e, 0xd1, 0x4a, 0x1e, 0x86, 0xd7, 0x62, 0x48, 0xb0, 0x3c, 0x2a, 0x96, 0xe1,
 ];
 pub(crate) const FACE_COLLECTION_TYPE: [u8; 16] = [
@@ -116,7 +120,7 @@ const FILLET_EDGE_SELECTION_TYPE: [u8; 16] = [
 const RECTANGULAR_PATTERN_FEATURE_TYPE: [u8; 16] = [
     0x44, 0x32, 0x67, 0x20, 0xd2, 0x11, 0xc5, 0x1d, 0x60, 0x00, 0x2a, 0xab, 0x01, 0xf3, 0x1b, 0xb0,
 ];
-const MIRROR_FEATURE_TYPE: [u8; 16] = [
+pub(crate) const MIRROR_FEATURE_TYPE: [u8; 16] = [
     0xb5, 0xa9, 0xd9, 0xfa, 0xd2, 0x11, 0x05, 0x33, 0x60, 0x00, 0x2c, 0xab, 0x01, 0xf3, 0x1b, 0xb0,
 ];
 const PROFILE_SELECTION_TYPE: [u8; 16] = [
@@ -129,7 +133,7 @@ const PLATE_PROFILE_SELECTION_TYPE: [u8; 16] = [
 const KERNEL_ENTITY_LINK_TYPE: [u8; 16] = [
     0x21, 0x75, 0x0f, 0xcc, 0xd1, 0x11, 0x27, 0x80, 0xe3, 0x86, 0x19, 0x96, 0x22, 0x59, 0x01, 0x7a,
 ];
-const WORK_PLANE_TYPE: [u8; 16] = [
+pub(crate) const WORK_PLANE_TYPE: [u8; 16] = [
     0x42, 0xdf, 0x52, 0xce, 0xd0, 0x11, 0xd0, 0xd2, 0x00, 0x08, 0xcc, 0xbc, 0x06, 0x63, 0xdc, 0x09,
 ];
 const TERMINATION_FLAG_TYPE: [u8; 16] = [
@@ -157,6 +161,7 @@ pub(crate) struct FeatureInventory {
     record_types: HashMap<cadmpeg_ir::ids::IdentityKey, HashMap<u32, Option<String>>>,
     pub(crate) features: Vec<PmDcFeature>,
     pub(crate) pattern_features: Vec<PmDcPatternFeature>,
+    pub(crate) pattern_operands: pattern::Operands,
     pub(crate) terminators: Vec<PmDcFeatureTerminator>,
     pub(crate) properties: Vec<PmDcFeatureProperty>,
     pub(crate) sheet_metal_styles: Vec<sheet_metal::style::Style>,
@@ -177,6 +182,7 @@ pub(crate) struct FeatureProjection {
     pub(crate) unresolved_features: usize,
     pub(crate) unresolved_states: usize,
     pub(crate) revolve_losses: Vec<cadmpeg_ir::report::loss::LossNote>,
+    pub(crate) mirror_losses: Vec<cadmpeg_ir::report::loss::LossNote>,
     /// Closed loops that resolved extrusion profiles append to sketch
     /// profile tables, by sketch id, in table order.
     pub(crate) added_profiles: HashMap<String, Vec<Vec<cadmpeg_ir::sketches::SketchEntityUse>>>,
@@ -184,7 +190,7 @@ pub(crate) struct FeatureProjection {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct PmDcFeaturePropertyPayload {
-    save_version_major: u8,
+    pub(crate) save_version_major: u8,
     pub(crate) header: PmDcContentHeader,
     pub(crate) kind: PmDcFeaturePropertyKind,
 }
@@ -192,6 +198,9 @@ pub(crate) struct PmDcFeaturePropertyPayload {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "form", rename_all = "snake_case")]
 pub(crate) enum PmDcFeaturePropertyKind {
+    Mirror {
+        definition: mirror::Property,
+    },
     SheetMetal {
         definition: sheet_metal::SheetMetalProperty,
     },
@@ -297,28 +306,35 @@ pub(crate) enum PmDcFeatureEnumFamily {
     Chamfer,
     Auxiliary,
     PlateSide,
+    Motion,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-enum PmDcPatternFamily {
+pub(crate) enum PmDcPatternFamily {
     Rectangular,
     Mirror,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct PmDcPatternFeaturePayload {
-    save_version_major: u8,
+    pub(crate) save_version_major: u8,
     pub(crate) header: PmDcContentHeader,
-    state: i32,
-    outline_value: u32,
+    pub(crate) state: i32,
+    pub(crate) outline_value: u32,
     pub(crate) properties: PmDcReferenceList,
-    value: u32,
+    pub(crate) value: u32,
     pub(crate) participants: PmDcReferenceList,
-    family: PmDcPatternFamily,
+    pub(crate) family: PmDcPatternFamily,
     pub(crate) property_slots: Vec<crate::pmdc::PmDcReference>,
-    control: u8,
-    extension_values: Vec<u32>,
+    pub(crate) control: u8,
+    pub(crate) extension_values: Vec<u32>,
+}
+
+impl PmDcPatternFeaturePayload {
+    pub(crate) fn is_rectangular(&self) -> bool {
+        self.family == PmDcPatternFamily::Rectangular
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -334,6 +350,8 @@ pub(crate) enum PmDcFeatureReferenceFamily {
     FaceCollection,
     LoftSections,
     SheetMetalAttachmentSelections,
+    TransformList,
+    BodySelection,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -543,11 +561,11 @@ pub(crate) struct PmDcKernelEntityLinkPayload {
 /// A planar work feature with its resolved frame in internal centimetres.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct PmDcWorkPlanePayload {
-    save_version_major: u8,
+    pub(crate) save_version_major: u8,
     pub(crate) header: PmDcContentHeader,
-    entity_flags: u32,
-    values: Vec<u32>,
-    marker: bool,
+    pub(crate) entity_flags: u32,
+    pub(crate) values: Vec<u32>,
+    pub(crate) marker: bool,
     pub(crate) origin: [cadmpeg_ir::scalar::FiniteReal; 3],
     pub(crate) u_axis: [cadmpeg_ir::scalar::FiniteReal; 3],
     pub(crate) v_axis: [cadmpeg_ir::scalar::FiniteReal; 3],
@@ -579,6 +597,7 @@ pub(crate) fn inventory(
         record_types: HashMap::new(),
         features: Vec::new(),
         pattern_features: Vec::new(),
+        pattern_operands: pattern::Operands::default(),
         terminators: Vec::new(),
         properties: Vec::new(),
         dimensions: Vec::new(),
@@ -609,11 +628,22 @@ pub(crate) fn inventory(
             .record_types
             .entry(segment.pair.token.key().clone())
             .or_default();
+        let has_rectangular_pattern = table
+            .records
+            .iter()
+            .any(|record| record.type_id == RECTANGULAR_PATTERN_FEATURE_TYPE);
         for record in &table.records {
             record_types
                 .entry(record.ordinal)
                 .and_modify(|previous| *previous = None)
                 .or_insert_with(|| Some(type_id_string(record.type_id)));
+            if has_rectangular_pattern {
+                inventory.pattern_operands.note_record(
+                    segment.pair.token.as_str(),
+                    record.ordinal,
+                    record.type_id,
+                );
+            }
             if segment.kind == SegmentKind::PmBRep && record.type_id != KERNEL_ENTITY_LINK_TYPE {
                 continue;
             }
@@ -790,7 +820,71 @@ pub(crate) fn inventory(
                 });
             }
         }
+        if !has_rectangular_pattern {
+            continue;
+        }
+        let operand_references = inventory
+            .pattern_features
+            .iter()
+            .filter(|pattern| {
+                pattern.identity.segment_token.as_str() == segment.pair.token.as_str()
+                    && pattern.family == PmDcPatternFamily::Rectangular
+            })
+            .flat_map(|pattern| {
+                pattern
+                    .property_slots
+                    .iter()
+                    .filter_map(|reference| reference.record_ordinal())
+            })
+            .collect::<HashSet<_>>();
+        for record in &table.records {
+            if !operand_references.contains(&record.ordinal) || !pattern::is_operand(record.type_id)
+            {
+                continue;
+            }
+            if let Err(error) = inventory.pattern_operands.read(
+                ctx,
+                segment.pair.token.as_str(),
+                record.ordinal,
+                record.type_id,
+                record.payload,
+                version,
+            ) {
+                if matches!(error, CodecError::ResourceLimit(_)) {
+                    return Err(error);
+                }
+                ctx.charge_entities(1, "admit Inventor PmDc feature issue")?;
+                inventory.issues.push(RecordIssue {
+                    family: RecordIssueFamily::Feature {
+                        type_id: crate::record_identity::RecordTypeId::from_bytes(record.type_id),
+                    },
+                    segment_token: segment.pair.token.key().clone(),
+                    record_ordinal: record.ordinal,
+                    detail: crate::issue_detail(error)?,
+                });
+            }
+        }
+        for pattern in inventory.pattern_features.iter().filter(|pattern| {
+            pattern.identity.segment_token.as_str() == segment.pair.token.as_str()
+                && pattern.family == PmDcPatternFamily::Rectangular
+        }) {
+            if let Err(error) = inventory
+                .pattern_operands
+                .validate_suppression(pattern, &inventory.properties)
+            {
+                ctx.charge_entities(1, "admit Inventor PmDc feature issue")?;
+                inventory.issues.push(RecordIssue {
+                    family: RecordIssueFamily::Feature {
+                        type_id: pattern.identity.type_id.clone(),
+                    },
+                    segment_token: pattern.identity.segment_token.clone(),
+                    record_ordinal: pattern.identity.record_ordinal,
+                    detail: crate::issue_detail(error)?,
+                });
+            }
+        }
     }
+    mirror::admit_operands(ctx, document, &mut inventory)?;
     Ok(inventory)
 }
 
@@ -951,7 +1045,9 @@ fn feature_property_parser(type_id: [u8; 16]) -> Option<PropertyParser> {
         TERMINATION_FLAG_TYPE => Some(parse_termination_flag),
         WORK_AXIS_TYPE => Some(parse_work_axis),
         revolve::CONTROL_TYPE => Some(parse_auxiliary_enum),
-        _ => sheet_metal::property_parser(type_id).or_else(|| split::property_parser(type_id)),
+        _ => sheet_metal::property_parser(type_id)
+            .or_else(|| split::property_parser(type_id))
+            .or_else(|| motion::parser(type_id)),
     }
 }
 
@@ -1702,6 +1798,8 @@ pub(crate) enum FeatureFamily {
     Sweep,
     Loft,
     Revolve,
+    Motion,
+    Combine,
 }
 
 impl FeatureFamily {
@@ -1720,6 +1818,12 @@ impl FeatureFamily {
             Self::Sweep => &[loft_sweep::slots::SWEEP_CLASS],
             Self::Loft => &[loft_sweep::slots::LOFT_CLASS],
             Self::Revolve => &[REVOLVE_CLASS_ID],
+            Self::Motion => &[
+                motion::MOVE_CLASS_ID,
+                motion::MOVE_BODY_CLASS_ID,
+                motion::ROTATE_CLASS_ID,
+            ],
+            Self::Combine => &[combine::CLASS_ID],
         }
     }
 
@@ -1743,6 +1847,9 @@ impl FeatureFamily {
             Self::Sweep => 15,
             Self::Loft => 13,
             Self::Revolve => 17,
+            Self::Motion if source.properties.references().len() == 13 => 8,
+            Self::Motion => 0,
+            Self::Combine => 0,
         }
     }
 
@@ -1760,6 +1867,8 @@ impl FeatureFamily {
             Self::Sweep,
             Self::Loft,
             Self::Revolve,
+            Self::Motion,
+            Self::Combine,
         ]
         .into_iter()
         .find(|family| family.class_ids().contains(&class_id))
@@ -1808,6 +1917,14 @@ impl FeatureFamily {
             ) | (
                 Self::Revolve,
                 FeatureDefinition::Operation(FeatureOperation::Revolve { .. })
+            ) | (
+                Self::Motion,
+                FeatureDefinition::Operation(
+                    FeatureOperation::MoveBody { .. } | FeatureOperation::MoveFace { .. }
+                )
+            ) | (
+                Self::Combine,
+                FeatureDefinition::Operation(FeatureOperation::Combine { .. })
             )
         )
     }
@@ -1833,12 +1950,17 @@ impl FeatureFamily {
                 Some(Self::Loft)
             }
             FeatureDefinition::Operation(FeatureOperation::Revolve { .. }) => Some(Self::Revolve),
+            FeatureDefinition::Operation(
+                FeatureOperation::MoveBody { .. } | FeatureOperation::MoveFace { .. },
+            ) => Some(Self::Motion),
+            FeatureDefinition::Operation(FeatureOperation::Combine { .. }) => Some(Self::Combine),
             _ => None,
         }
     }
 }
 
-struct ProjectionIndex<'a> {
+#[derive(Default)]
+pub(crate) struct ProjectionIndex<'a> {
     result_model: Option<&'a cadmpeg_ir::document::Model>,
     edge_names: HashMap<(String, u32), Option<cadmpeg_ir::features::GeneratedEdgeRef>>,
     dimensions: HashMap<(&'a str, u32), Option<&'a revolve::Dimension>>,
@@ -1905,6 +2027,7 @@ pub(crate) fn project(
             unresolved_features: total,
             unresolved_states: 0,
             revolve_losses: Vec::new(),
+            mirror_losses: mirror::native_losses(&inventory.pattern_features, &[]),
             added_profiles: HashMap::new(),
         });
     }
@@ -2111,6 +2234,8 @@ pub(crate) fn project(
                 FeatureFamily::Revolve => {
                     project_revolve(ctx, feature, label, &index, &mut revolve_losses)
                 }
+                FeatureFamily::Motion => motion::project(ctx, feature, label, &index),
+                FeatureFamily::Combine => combine::project(ctx, feature, label, &index),
             }
             .map(|result| result.map(|(feature, result)| (feature, Some(result))))
             .transpose()?,
@@ -2159,19 +2284,72 @@ pub(crate) fn project(
             None => {}
         }
     }
+    let mirrors = inventory
+        .pattern_features
+        .iter()
+        .any(mirror::is_mirror_record)
+        .then(|| {
+            let index = mirror::MirrorIndex::new(
+                &inventory.properties,
+                &sketch.transforms,
+                &inventory.work_planes,
+            );
+            let seeds = unique_index(
+                inventory
+                    .features
+                    .iter()
+                    .map(|record| &record.identity)
+                    .chain(
+                        inventory
+                            .pattern_features
+                            .iter()
+                            .map(|record| &record.identity),
+                    )
+                    .map(|identity| (identity.record_ordinal, identity)),
+            );
+            (index, seeds)
+        });
     for pattern in &inventory.pattern_features {
         if history.placement(pattern.identity.record_ordinal).is_none() {
             continue;
         }
         let label = label_of(pattern.identity.record_ordinal);
+        let value = match pattern.family {
+            PmDcPatternFamily::Mirror => label.and_then(|label| {
+                let (mirror_index, seed_records) = mirrors.as_ref()?;
+                mirror_index.project(ctx, pattern, label, |ordinal| {
+                    let seed = seed_records.get(&ordinal)?.as_ref()?;
+                    mirror::seed_feature_id(&history, pattern.identity.record_ordinal, seed)
+                })
+            }),
+            PmDcPatternFamily::Rectangular => pattern::project(
+                ctx,
+                pattern,
+                label,
+                &index,
+                &inventory.pattern_operands,
+                &history,
+            ),
+        }
+        .transpose()?;
+        let (feature, result) = match value {
+            Some((feature, result)) => {
+                neutral += 1;
+                (feature, Some(result))
+            }
+            None => (
+                native_feature(ctx, &pattern.identity, label, pattern.id())?,
+                None,
+            ),
+        };
         projected.push(HistoryItem {
             record: pattern.identity.record_ordinal,
             kind: history::HistoryNodeKind::Pattern,
             flags: pattern.header.flags,
             label,
-            feature: native_feature(ctx, &pattern.identity, label, pattern.id())?,
-            result: None,
-            neutral: false,
+            neutral: result.is_some(),
+            feature,
+            result,
         });
     }
     for record in &sketch.sketches {
@@ -2259,6 +2437,7 @@ pub(crate) fn project(
             })?,
         unresolved_states: unresolved_states.min(neutral),
         revolve_losses,
+        mirror_losses: mirror::native_losses(&inventory.pattern_features, &features),
         features,
         result_topologies,
         input_topologies,
@@ -2385,7 +2564,7 @@ fn insert_history_property(
     Ok(())
 }
 
-fn history_feature_id(
+pub(crate) fn history_feature_id(
     identity: &crate::record_identity::RecordIdentity,
 ) -> Result<FeatureId, CodecError> {
     Ok(FeatureId::compose(
@@ -2473,6 +2652,14 @@ fn native_kind(class_id: Option<ClassId>) -> cadmpeg_ir::features::NativeFeature
             FeatureFamily::Sweep => NativeFeatureKind::Other("Sweep".into()),
             FeatureFamily::Loft => NativeFeatureKind::Other("Loft".into()),
             FeatureFamily::Revolve => NativeFeatureKind::Other("Revolve".into()),
+            FeatureFamily::Motion => NativeFeatureKind::Other(
+                NATIVE_CLASSES
+                    .iter()
+                    .find(|(bytes, _)| *bytes == class_id.0.into_inner())
+                    .map_or("MoveBody", |(_, name)| *name)
+                    .into(),
+            ),
+            FeatureFamily::Combine => NativeFeatureKind::Other("Combine".into()),
         };
     }
     if let Some(family) = loft_sweep::slots::Family::from_class_id(class_id) {
@@ -3797,6 +3984,15 @@ fn feature_result(
     index: &ProjectionIndex<'_>,
 ) -> Option<Result<(FeatureId, FeatureResultTopology), CodecError>> {
     let collection = slot_property(source, slot, index)?;
+    result_from_collection(ctx, &source.identity, collection, index)
+}
+
+fn result_from_collection(
+    ctx: &DecodeContext<'_>,
+    identity: &crate::record_identity::RecordIdentity,
+    collection: &PmDcFeatureProperty,
+    index: &ProjectionIndex<'_>,
+) -> Option<Result<(FeatureId, FeatureResultTopology), CodecError>> {
     let PmDcFeaturePropertyKind::References {
         family: PmDcFeatureReferenceFamily::ObjectCollection,
         items,
@@ -3804,13 +4000,19 @@ fn feature_result(
     else {
         return None;
     };
+    feature_result_members(ctx, identity, collection, items, index)
+}
+
+fn feature_result_members(
+    ctx: &DecodeContext<'_>,
+    identity: &crate::record_identity::RecordIdentity,
+    collection: &PmDcFeatureProperty,
+    items: &PmDcReferenceList,
+    index: &ProjectionIndex<'_>,
+) -> Option<Result<(FeatureId, FeatureResultTopology), CodecError>> {
     let mut bodies = Vec::new();
     for reference in items.references() {
-        let body = resolve_property(
-            source.identity.segment_token.as_str(),
-            reference.index(),
-            index,
-        )?;
+        let body = resolve_property(identity.segment_token.as_str(), reference.index(), index)?;
         if !matches!(body.kind, PmDcFeaturePropertyKind::SurfaceBody { .. }) {
             return None;
         }
@@ -3825,7 +4027,7 @@ fn feature_result(
     if let Err(error) = ctx.charge_entities(1, "project Inventor feature result topology") {
         return Some(Err(error));
     }
-    let key = match source.identity.key() {
+    let key = match identity.key() {
         Ok(key) => key,
         Err(error) => return Some(Err(error)),
     };
@@ -3920,7 +4122,8 @@ fn enum16(
         PmDcFeatureEnumFamily::Hole => 3,
         PmDcFeatureEnumFamily::Fillet
         | PmDcFeatureEnumFamily::Chamfer
-        | PmDcFeatureEnumFamily::PlateSide => 2,
+        | PmDcFeatureEnumFamily::PlateSide
+        | PmDcFeatureEnumFamily::Motion => 2,
         PmDcFeatureEnumFamily::Auxiliary => return None,
     };
     match property.kind {
@@ -4076,7 +4279,7 @@ impl RecordPayload for PmDcFeatureTerminatorPayload {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     mod holes;
     mod sheet_metal;
     mod thicken;
@@ -4154,6 +4357,7 @@ mod tests {
             record_types: std::collections::HashMap::new(),
             features: vec![test_feature(0, 0, &[])],
             pattern_features: Vec::new(),
+            pattern_operands: super::pattern::Operands::default(),
             terminators: Vec::new(),
             properties: Vec::new(),
             dimensions: Vec::new(),
@@ -4320,6 +4524,21 @@ mod tests {
     }
 
     #[test]
+    fn unreferenced_mirror_operand_types_keep_their_native_record_grammar() {
+        for (type_id, tail_len) in [
+            (super::mirror::SELECTION_TYPE, 24),
+            (super::mirror::OPTIONS_TYPE, 9),
+        ] {
+            let mut payload = content(0);
+            payload.resize(payload.len() + tail_len, 0);
+            let inventory = inventory_with_record(type_id, &payload, DecodePolicy::service())
+                .expect("unreferenced operand record");
+            assert!(inventory.properties.is_empty());
+            assert!(inventory.issues.is_empty());
+        }
+    }
+
+    #[test]
     fn feature_terminator_is_admitted() {
         let mut payload = content(0);
         payload.extend_from_slice(&0u32.to_le_bytes());
@@ -4362,7 +4581,7 @@ mod tests {
         );
     }
 
-    pub(super) fn segment() -> cadmpeg_ir::ids::IdentityKey {
+    pub(crate) fn segment() -> cadmpeg_ir::ids::IdentityKey {
         cadmpeg_ir::identity_key!("generated")
     }
 
@@ -4396,12 +4615,12 @@ mod tests {
         bytes
     }
 
-    pub(super) fn reference(index: u32) -> crate::pmdc::PmDcReference {
+    pub(crate) fn reference(index: u32) -> crate::pmdc::PmDcReference {
         crate::pmdc::PmDcReference::new(index, index != 0)
             .expect("test reference index fits 31 bits")
     }
 
-    pub(super) fn reference_list(values: &[u32]) -> PmDcReferenceList {
+    pub(crate) fn reference_list(values: &[u32]) -> PmDcReferenceList {
         PmDcReferenceList::new(
             2,
             (!values.is_empty()).then_some(crate::pmdc::PmDcListMetadata::U32([
@@ -4413,7 +4632,7 @@ mod tests {
         .expect("test list metadata matches length")
     }
 
-    pub(super) fn test_header() -> PmDcContentHeader {
+    pub(crate) fn test_header() -> PmDcContentHeader {
         PmDcContentHeader {
             header_value: 0,
             header_id: 0,
@@ -4450,7 +4669,10 @@ mod tests {
         assert!(admitted(&edge_set(Some(reference(11))), types));
     }
 
-    fn test_property(ordinal: u32, kind: PmDcFeaturePropertyKind) -> PmDcFeatureProperty {
+    pub(super) fn test_property(
+        ordinal: u32,
+        kind: PmDcFeaturePropertyKind,
+    ) -> PmDcFeatureProperty {
         Located::new(
             PmDcFeaturePropertyPayload {
                 save_version_major: 16,
@@ -4464,7 +4686,7 @@ mod tests {
         )
     }
 
-    pub(super) fn test_feature(
+    pub(crate) fn test_feature(
         ordinal: u32,
         slot_count: usize,
         slots: &[(usize, u32)],
@@ -4525,7 +4747,7 @@ mod tests {
         assert!(serde_json::from_value::<PmDcFeatureLabel>(wire).is_err());
     }
 
-    pub(super) fn test_label(
+    pub(crate) fn test_label(
         owner_ordinal: u32,
         index: u32,
         class_id: ClassId,
@@ -4556,7 +4778,7 @@ mod tests {
         )
     }
 
-    fn raw_parameter(ordinal: u32) -> crate::design::PmDcParameter {
+    pub(super) fn raw_parameter(ordinal: u32) -> crate::design::PmDcParameter {
         Located::new(
             crate::design::PmDcParameterPayload {
                 save_version_major: 16,
@@ -4588,7 +4810,7 @@ mod tests {
         )
     }
 
-    fn neutral_parameter(
+    pub(super) fn neutral_parameter(
         raw: &crate::design::PmDcParameter,
         value: ParameterValue,
     ) -> DesignParameter {
@@ -4613,7 +4835,7 @@ mod tests {
 
     // The fixture builder keeps each independently indexed record family explicit.
     #[allow(clippy::too_many_arguments)]
-    fn test_projection_index<'a>(
+    pub(super) fn test_projection_index<'a>(
         properties: &'a [PmDcFeatureProperty],
         parameters: &'a [crate::design::PmDcParameter],
         neutral_parameters: &'a [DesignParameter],
@@ -4744,7 +4966,7 @@ mod tests {
         assert_eq!(parsed.state, -1);
     }
 
-    fn pattern_feature_bytes(version: u8, family: PmDcPatternFamily) -> Vec<u8> {
+    pub(super) fn pattern_feature_bytes(version: u8, family: PmDcPatternFamily) -> Vec<u8> {
         let mut bytes = if version >= 23 {
             content_at(21, version, &[])
         } else {
@@ -5991,6 +6213,7 @@ mod tests {
         crate::pmdc::PMDC_LIST_CLONE_COUNT.with(|count| assert_eq!(count.get(), 0));
     }
 
+    mod body_selection;
     mod edge_treatments;
     mod extents;
     mod revolve;

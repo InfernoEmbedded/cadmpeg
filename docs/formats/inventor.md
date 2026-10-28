@@ -1,12 +1,12 @@
-# Autodesk Inventor IPT/IAM
+# Autodesk Inventor IPT/IAM/IDW
 
-This specification defines the byte semantics of the supported Autodesk Inventor IPT/IAM envelope. Multi-byte integers are little-endian unless a section states otherwise.
+This specification defines the byte semantics of the supported Autodesk Inventor document envelope. Multi-byte integers are little-endian unless a section states otherwise.
 
 Record offsets, field widths, and endianness are also maintained as a machine-checked table in [`docs/layouts/inventor.md`](../layouts/inventor.md), generated from `docs/layouts/inventor.toml`. That table is the canonical source for the numbers; the prose below carries the semantics. `cargo test -p cadmpeg --test layout_tables` proves the two agree.
 
 ## 1. Compound container
 
-An IPT or IAM document is a Compound File Binary container. The container follows the CFB sector, FAT, DIFAT, mini-FAT, directory, and sibling-tree rules. The directory contains the `RSeStorage` storage. A positive format identification also requires a structurally reached `RSeStorage/RSeSegInfo` stream or a stream at `RSeStorage/V<n>/RSeDb`, where `<n>` is one or more decimal digits.
+An IPT, IAM, or IDW document is a Compound File Binary container. The container follows the CFB sector, FAT, DIFAT, mini-FAT, directory, and sibling-tree rules. The directory contains the `RSeStorage` storage. A positive format identification also requires a structurally reached `RSeStorage/RSeSegInfo` stream or a stream at `RSeStorage/V<n>/RSeDb`, where `<n>` is one or more decimal digits.
 
 The last DIFAT sector's next-sector link is ENDOFCHAIN (`0xfffffffe`). Some Inventor documents store FREESECT (`0xffffffff`) in that link instead. That link is a chain terminator only when the header DIFAT count equals `ceil((fat_count - 109) / (sector_size / 4 - 1))`, the walk visits exactly that many DIFAT sectors, and the walk collects exactly `fat_count` FAT sector identifiers. Such a document decodes and reports `inventor/container.noncanonical` ("CFB DIFAT chain ended with FREESECT instead of ENDOFCHAIN"). A FREESECT link under any other count, an empty DIFAT whose start is not ENDOFCHAIN, and a FREESECT terminator on any FAT chain are malformed.
 
@@ -35,6 +35,8 @@ span u32
 `span` equals `4 + count * item_size`. Section 1 items are 4-byte block descriptors. Bit 31 states that the corresponding bulk block is stored; bits 0 through 30 give its payload length. Section 2 items are 10 bytes. Section 3 items are 28 bytes. Section 4 items are 28-byte type descriptors. A type descriptor contains a 16-byte type identifier and two `(u16, u32)` field pairs. The section 4 count is not limited to 256; descriptors at index 256 and later have no record selector that addresses them.
 
 Sections 5 through 11 use backward framing. The eight bytes before a section payload contain a u32 span to the previous payload and a u32 discriminator. The section chain joins the section 4 footer exactly. Section 11 has a 72-byte payload. The 16-byte terminal identifier follows section 11.
+
+Section 9 is a counted sequence of tagged reference entries. Each entry starts with `key:u16` and `tag:u8`. Tags 1 and 2 carry a 16-byte identifier. Tag 3 carries two u32 values. Entries have no padding, and the sequence exhausts the section payload. A section-9 payload that is not a complete tagged sequence, and whose length is the count times 19 bytes, keeps its entries untyped.
 
 ## 4. RSe bulk stream and records
 
@@ -420,17 +422,18 @@ Feature property records use the same 22-byte content header. The following enum
 - `297d6392d1113cb9000831bd0663dc09`: extent;
 - `117ccd43d2119658a00021803603c8c9`: hole form;
 - `2788f278c54dd7be4313b3986039b52e`: fillet form;
-- `7339fdce7a4e4011bee343897908ba92`: auxiliary feature enumeration.
+- `7339fdce7a4e4011bee343897908ba92`: auxiliary feature enumeration;
+- `fb7982ef3347f24f718133968efffa3f`: face-motion mode.
 
 Types `1990e1b8d311467bc000e39545df724f` and `1790e1b8d311467bc000e39545df724f` use the same enumeration grammar. Their type values are 3 and 4 respectively. Both use the versioned content header of section 12, including its stamps.
 
 Type `3200aa7dd2112b836000f3a89dccefb0` stores the chamfer form. It adds the same `type_value:i16` and `value:u16` fields, followed by a zero u32 terminal value.
 
-The part-operation, hole-form, fillet-form, and chamfer-form records use type values 5, 3, 2, and 2 respectively. Extent records use type value 11 through segment major version 21 and type value 12 from segment major version 22.
+The part-operation, hole-form, fillet-form, and chamfer-form records use type values 5, 3, 2, and 2 respectively. Extent records use type value 11 through segment major version 21 and type value 12 from segment major version 22. The face-motion mode uses type value 2.
 
 Type `284d8790d011f8d10008cabc0663dc09` adds a counted UTF-16LE name, `name_value:u32`, and a Boolean byte. The Boolean byte is 0 or 1. Types `91739422d11107cf000835bd0663dc09`, `71f23ed8d2115094a00049803603c8c9`, `ae70680ed14a1e86d76248b03c2a96e1`, and `dae9481bd211dc2c00083eab1b14dc09` add one type-2 reference list. They identify a boundary patch, feature dimensions, an object collection, and constant-radius fillet edge sets respectively.
 
-Type `f1b2bc24d01121dd0008d0bc0663dc09` stores a face collection. After the content header it stores one type-2 reference list and ends. Each non-null member selects a record in the same PmDc segment.
+Type `f1b2bc24d01121dd0008d0bc0663dc09` stores a face collection. After the content header it stores one type-2 reference list and ends. Each member names a distinct face-selection item of type `ccb59f50d1114f6b0008a1ba32a3dc09` in the same PmDc segment. The face collection and its items define a native selection independent of the current kernel topology.
 
 Type `ccb59f50d1114f6b0008a1ba32a3dc09` stores a face item. After the content header it stores a type-2 `u32` index-reference list. An empty list selects no face and ends the record without a trailer. A nonempty list is followed by `terminal_value:i32 = -1`, then the record ends. The index values are native topology selectors, not one-based PmDc record references.
 
@@ -581,11 +584,47 @@ Slot 6 supplies the thickness length in internal centimetres. Slot 12 supplies a
 
 Feature-label class identifier `12963cb8d1118a2860008bb801f31bb0` identifies a Shell operation. Slot 1 identifies the removed-face collection. An empty collection removes no face. Collection members are non-null and distinct by record index. Slot 2 identifies a selection list. Slot 3 identifies the wall-thickness length parameter, with units as defined in section 11. Slot 4 stores a reference. Slot 9 identifies the result object collection, whose members identify the output bodies.
 
-A result object collection contains one or more surface-body references. This ordered surface-body list is the feature's native result-body identity.
+A result object collection contains one or more distinct surface-body references in the same PmDc segment. This ordered surface-body list is the feature's native result-body identity.
+
+Feature-label class identifiers `dea6a68f4c4b529188ca31b5630198c8`, `e99f832b7a4295a1d9763383bea17cce`, and `e6da3f26924b5dab8e1bc5a93fead7de` identify Move, MoveBody, and Rotate respectively. The class identifier, not the display name, identifies the operation.
+
+Each class has a three-slot body-motion form. Slot 0 is an object collection of the selected surface-body wrappers. The collection members are distinct wrappers in the same PmDc segment. Slot 1 is a transform list of type `29fe0008d511dd3510003697ab9f0ab5`. Slot 2 contains feature dimensions. A transform-list record contains the versioned content header and one type-2 reference list, then ends. In the single-transform form the list has one member, a transform of type `184d8790d011f8d10008cabc0663dc09`. It applies to every selected body. The matrix maps a model-space point `p` to `R*p + t`, with column vectors. The linear part is a proper orthogonal rotation; the last row is `0, 0, 0, 1`. Translation values use internal centimetres. The selected bodies keep their identities; this form creates no copies.
+
+Type `83aadad54f4375dacd1003b260a8a422` is an ordered body selection. It contains the versioned content header and one type-2 reference list, then ends. Each non-null member names a distinct surface-body wrapper in the same PmDc segment. A null member selects no body. The wrapper identity is the persistent body selection. Combine slot 0, Split slot 7, and the 13-slot Move form's slot 8 use this selection.
+
+Move also has a 13-slot face-motion form. Slot 0 is a face collection of type `f1b2bc24d01121dd0008d0bc0663dc09`. Slot 1 is the face-motion mode. Slot 8 is the selection of affected bodies. Slot 9 contains feature dimensions. Slot 11 is a Boolean. Slot 12 is the model-space motion transform. Face-motion mode 2 with null slots 2 through 7 and 10, a true slot-11 Boolean, and an identity linear part translates the selected faces by the transform translation. The body identities in slot 8 persist after this motion.
+
+A feature with label class `336723c07e40eacb2eff669e9add87f8` is Combine. Its property list has four entries. Slot 0 is a body selector with exactly one target-body wrapper. Slot 1 is an object collection with one or more tool-body wrappers, in order. Slot 2 is a part-operation enumeration with type value 5: values 2, 3, and 4 mean cut, join, and intersection. Slot 3 is the keep-tools Boolean: true retains the tool bodies and false consumes them. Target and tool wrapper identities are distinct, and each tool occurs once. The result retains the target wrapper identity. The slot-0 selector names this result identity. The slot-1 collection supplies operands, not result identities.
 
 Types `44326720d211c51d60002aab01f31bb0` and `b5a9d9fad211053360002cab01f31bb0` store rectangular-pattern and mirror feature records. Both start with the generic 30-byte feature prefix through `outline_value`, followed by a type-2 property-reference list, `value:u32`, a type-2 participant-reference list, six property references, and `control:u8`.
 
 For segment major versions 15 through 20, the rectangular-pattern suffix contains 20 more property references. From segment major version 21, it contains 26 more property references. From segment major version 29, eight u32 extension values follow the first 12 of these references, and from version 30 six more u32 extension values end the suffix. The mirror suffix contains five more property references, six u32 extension values from segment major version 21, and two final property references. From segment major version 29, eight u32 extension values separate the two final property references. The record ends after the applicable suffix.
+
+A feature label with class identifier `a326c2b6d211263660002cab01f31bb0` identifies a mirror. The 13 property slots have the same indices in each suffix form. Extension values do not take slot indices. The identity-frame, zero-option mirror has these operands:
+
+| Slot | Record | Value or role |
+| --- | --- | --- |
+| 0 | `184d8790d011f8d10008cabc0663dc09` | Identity operand placement matrix. |
+| 1 | `bef06e8d354cc7aad7c88db7ea9b0ffb` | Selection control `0x30000004`, value 0. |
+| 2 | `dfd51dbbd1116e72000817bd0663dc09` | Nominal and model values 0. |
+| 3 | Null | No auxiliary operand. |
+| 4 | `5a4a6899d2117fec6000b0abc8433cb0` | Nine zero option bytes. |
+| 5 | `71f23ed8d2115094a00049803603c8c9` | Empty feature-dimension list. |
+| 6 | `284d8790d011f8d10008cabc0663dc09` | False selects feature mode; true selects body mode. |
+| 7 | `284d8790d011f8d10008cabc0663dc09` | False. |
+| 8 | Null | No generated-instance map. |
+| 9 | Object collection in feature mode; null in body mode | Affected result surface-body records. |
+| 10 | Null in feature mode; object collection in body mode | Source surface-body records. |
+| 11 | Null or `284d8790d011f8d10008cabc0663dc09` | Null or false. |
+| 12 | `42df52ced011d0d20008ccbc0663dc09` | Reflection plane in part coordinates. |
+
+Mirror auxiliary payloads follow the versioned content header and stamps. In the empty-selection form, type `bef06e8d354cc7aad7c88db7ea9b0ffb` has an 8-byte payload: `control:u32` at offset 0 and `value:u32` at offset 4. In the zero-option form, type `5a4a6899d2117fec6000b0abc8433cb0` has nine zero bytes at offset 0. Offsets are relative to the end of the header and stamps. Each record ends after this payload.
+
+Boolean operands and the slot-2 variable have `name_value` 0. The pattern's property list is empty, `value` is 0, and `control` is 0. Through segment major version 20, no extension values occur. From version 21, extension value 0 references a false Boolean property, and extension values 1 through 5 are zero. From version 29, extension values 6 through 13 are `[0, 0, 0, 0, 0, 2, 0, 0]`.
+
+The slot-12 plane has zero entity flags, three zero u32 values through segment major version 21 or four thereafter, and no frame marker. Its u and v axes are perpendicular unit vectors. With plane origin `o` and unit normal `n = normalize(u × v)`, reflection is `p' = p - 2 n dot(n, p - o)`. Its linear part is `I - 2 n nᵀ`, and its translation is `2 n dot(n, o)`. The plane origin uses internal centimetres. The slot-0 matrix places the operands; it does not store the reflection.
+
+In feature mode, the nonempty pattern participant list gives distinct ordered seeds. Each seed is a generic feature or pattern feature that precedes the mirror under the same model root. Slot 9 gives a nonempty ordered collection of distinct result surface-body records. In body mode, the pattern participant list is empty. Slot 10 gives a nonempty ordered collection of distinct source surface-body records. With a null slot 8, the source and result use the same surface-body identities. In both modes, the mirror label's participant list is empty.
 
 ### 13.1 Feature history
 
@@ -688,7 +727,7 @@ Feature-label class `2d11a90cd0118b83000819b00524dc09` identifies a stored-body 
 
 An unqualified surface-body reference is a one-based index in its PmDc metadata section 10. A qualified surface-body reference is a one-based record index in its own segment. The packed word 0 is null. A qualified reference with index 0 does not select a body.
 
-Metadata section 7 has a segment-pair form with 32-byte entries: `segment_id:bytes[16]`, `revision_id:bytes[16]`. Its discriminator is its entry count. Section 8 contains 20-byte revision entries: `revision_id:bytes[16]`, `segment_pair_index:u16`, `reference_count:u16`. The segment-pair index is zero-based into section 7. The revision identifier identifies the referenced revision; it need not equal the segment pair's revision identifier. Section 10 contains 8-byte external entries: `revision_index:u32`, `key_extension:u16`, `header_id:u16`. The revision index is zero-based into section 8. Each section's payload length equals its entry count times its entry width. A revision entry's reference count equals the number of section-10 entries that select it.
+In the surface-body reference form, metadata section 7 has a segment-pair form with 32-byte entries: `segment_id:bytes[16]`, `revision_id:bytes[16]`. Its discriminator is its entry count. Section 8 contains 20-byte revision entries: `revision_id:bytes[16]`, `segment_pair_index:u16`, `reference_count:u16`. The segment-pair index is zero-based into section 7. The revision identifier identifies the referenced revision; it need not equal the segment pair's revision identifier. Section 10 contains 8-byte external entries: `revision_index:u32`, `key_extension:u16`, `header_id:u16`. The revision index is zero-based into section 8. Each section's payload length equals its entry count times its entry width. A revision entry's reference count equals the number of section-10 entries that select it.
 
 The zero-extension external form has `key_extension = 0` and selects the unique kernel-entity link whose `header_value` is 0 and whose `header_id` equals the external entry's header identifier, in the unique segment whose identifier equals the selected section-7 segment identifier. The current-model Base result form selects a kernel-entity link in the document model root's named PmBRep segment. The link's qualified body reference and the carrier footer's selected key select the same active carrier record. The link's entity identifier joins the unique body with that ASM body key in this carrier. A body key is scoped to its carrier. A result identity can survive later changes to that body; it does not state that the current body is the Base source shape. A result whose body is absent from the current model has no current-body join.
 
@@ -911,6 +950,98 @@ The length operands reference the parameters `Thickness`, `BendRadius`, `BendRel
 
 The plate scalar control contains `value:u32` after its versioned content header and stamps. The base bend scalar control contains `value:u32` after that header and stamps. The extended bend scalar control contains `value:u32` and `state:u8`. Each record ends after its last stated field.
 
+### 13.6 Rectangular patterns
+
+Feature-label class `dac27a76d2110d2e60002aab01f31bb0` identifies a rectangular pattern. The participant list of the pattern record gives the seed feature records in seed order. Each seed is a distinct feature or pattern-feature record in the same segment and precedes the pattern in the same model history.
+
+The suffix property slots are numbered from zero, including the six references before `control`. Slot 0 is the pattern placement transform. Slot 1 is the instance-suppression record. Slot 2 is the computation-mode integer variable. Slot 4 is the auxiliary selection-control record. Slot 5 is the feature-dimension collection. Slot 6 selects the seed mode: false selects features from the participant list; true selects bodies from the object collection in slot 10 and has an empty participant list. Feature mode uses slot 9 for the result object collection. The result collection has the surface-body identity rule stated above.
+
+The direction-slot base is 12 in segment major versions 15 through 20, and 18 from version 21. For direction index `i` equal to 0 or 1, the slots are:
+
+| Slot | Meaning |
+| --- | --- |
+| `base + i` | Instance count, including the seed, in the integer variable's equal nominal and model values |
+| `base + 2 + i` | Spacing parameter, in internal centimetres |
+| `base + 4 + i` | Direction selection |
+| `base + 6 + i` | Direction control 0 Boolean |
+| `base + 8 + i` | Direction control 1 Boolean |
+| `base + 10 + i` | Direction control 2 Boolean |
+| `base + 12 + i` | Direction control 3 Boolean |
+
+A null second count selects one direction and requires null second spacing, direction, and control slots. A present second count selects two directions and requires its spacing, direction, and control records. Counts are positive u32 values. Their product is at least 2 and fits u32. The fixed-spacing feature branch has nominal and model computation-mode values zero and an identity placement transform. Its prefix property-reference list is empty, its `control` byte is zero, and its extension values are zero except extension value 5, which equals the product of the direction counts, with an absent second direction counted as 1. From segment major version 21, slots 12 through 17 are null in this branch. In this branch, the instance-suppression list is empty, the slot-6 and slot-11 Booleans are false, and all four controls of each present direction are false. The spacing is positive. The displacement of instance `(u, v)` is `u * spacing_0 * direction_0 + v * spacing_1 * direction_1`, with zero-based coordinates below the corresponding counts. A direction is normalized before its spacing is applied. The seed is at `(0, 0)`.
+
+Type `bef06e8d354cc7aad7c88db7ea9b0ffb` stores instance suppressions. After the content header, it stores the u16 pair `4, 0x3000` and a u32 count. A nonzero count adds two zero u32 metadata values, then that many pairs of u32 coordinates. The coordinates are one-based direction indices, including the seed. Each pair is unique, is inside the count rectangle, and is not `(1, 1)`. An empty list ends after its count. Feature suppression in the content-header flags is independent of these individual instance suppressions.
+
+Type `5a4a6899d2117fec6000b0abc8433cb0` stores auxiliary selection controls. After the content header it stores two record references and one u8 control. The fixed-spacing feature branch has zero references and a zero control in this record, a false slot-11 Boolean, and null slots 3, 7, 8, and 10. A body seed is a member of the slot-10 object collection, with the same surface-body reference grammar as a result collection.
+
+A direct direction selection names a direction record of type `40df52ced011d0d20008ccbc0663dc09`. This record has entity flags 0, parameter 0, and an absent or zero extension in the fixed-spacing feature branch. A work-axis geometry reference in a cached selection uses the work-axis grammar above, including its versioned content-header stamps. The fixed-spacing work-axis form has zero entity flags and u32 values, an empty reference list, no `0x203` marker, state 0 or 1, and a nonzero span.
+
+Types `7b4544a2ab4d9e16850c48a21edf9e3a` and `aa7b97a57045795897b51396ffc5d631` store cached line selections. Their content headers have no stamps. The single-line branch has selection form 1 and curve form 23. The header is followed by `state:i32`, a reversal-Boolean reference, a geometry reference, `selection_form:u32`, u16 value 0, and `curve_form:u32`. Selection form 1 with curve form 23 stores three finite f64 triples: a line origin, a nonzero line span, and a selection point. A u8 value 1 follows. Type `7b4544a2ab4d9e16850c48a21edf9e3a` ends with two source references; type `aa7b97a57045795897b51396ffc5d631` ends with one. The fixed-spacing feature branch has state 1 or 2 for type `7b4544a2ab4d9e16850c48a21edf9e3a`, state −1 for type `aa7b97a57045795897b51396ffc5d631`, and non-null geometry and source references that resolve in the same segment. The span supplies the direction. A geometry reference to a work axis has the same normalized span as that work axis. The referenced reversal Boolean negates the direction before the spacing is applied.
+
 ## 14. Document kind
 
 `Pm*` segment families identify a part document. `Am*` segment families identify an assembly document. A document that contains both families has the distinct `mixed_part_assembly` kind. Property metadata can identify a part, assembly, drawing, or presentation only when segment-family evidence does not already identify the kind.
+
+## 15. Drawing documents
+
+An IDW drawing uses the CFB and RSe envelope of sections 1 through 4. The segment registry identifies these drawing families:
+
+| Registry type | Segment family |
+| --- | --- |
+| `DlDocDcSegmentType` | Drawing document |
+| `DlBRxSegmentType` | Drawing browser |
+| `DlDirectorySegmentType` | Drawing directory |
+| `AppSegmentType` | Drawing application |
+| `DlSheetDcSegmentType` | Sheet definition |
+| `DlSheetSmSegmentType` | Sheet cache |
+| `DlSheetDlSegmentType` | Sheet display |
+
+A segment's registry type, segment identifier, and registry version govern its record family. A display name does not select a drawing family.
+
+The following drawing record forms use segment major version 19. Other segment versions keep these records untyped.
+
+| Segment | Type identifier | Record |
+| --- | --- | --- |
+| `DlSheetDcSegmentType` | `cd907cd3d01116fa60000dbd861c3cb0` | Sheet |
+| `DlSheetDcSegmentType` | `5942cb22d111c557600037bd861c3cb0` | Drawing view |
+| `DlSheetDcSegmentType` | `c1965962d4114e8e600095873fa6fbb0` | Alternate drawing view |
+| `DlBRxSegmentType` | `69a56f6bd2112c3d6000b58d3125c3b0` | Modeled-document browser reference |
+| `DlSheetSmSegmentType` | `81136d8ad111566b600038bd861c3cb0` | Cached view |
+
+The sheet prefix contains `header:bytes[14]` and `identifier:bytes[16]`. A u32-counted UTF-16LE label follows the prefix. A type-2 property-reference list follows the label. The sheet property-list prefix contains `marker:u16 = 2`, `signature:u16 = 0x3000`, `count:u32 = 6`, and `metadata:u32[2]`. Its six packed references follow. The six property references are qualified local references to type `754d8790d011f8d10008cabc0663dc09`. The first two auxiliary lists contain qualified local references to type `b2206557d11196a460001b8aeb49cdb0`. The view lists contain non-null qualified local references. The sheet controls contain `controls:bytes[24]`. A type-2 view-reference list follows the controls, then the sheet tail. The view-reference list names drawing-view records of type `5942cb22d111c557600037bd861c3cb0` in the same sheet segment. The sheet tail prefix contains `prefix:bytes[14]`. Three type-2 auxiliary reference lists follow. The third list names alternate-drawing-view records of type `c1965962d4114e8e600095873fa6fbb0`. The sheet terminal contains `terminal:bytes[8]` and ends the record.
+
+The view prefix contains `header:bytes[22]` and `values:u32[2]`. The view operand-list prefix contains `marker:u16 = 2`, `signature:u16 = 0x3000`, `count:u32 = 19`, and `metadata:u32[2]`. Its nineteen ordered packed references follow. The operand references are non-null qualified references in the same sheet segment. Their target classes are:
+
+| Slot | Target type identifier |
+| --- | --- |
+| 0 | `2e187506d2111f5e6000b3856c2387b0` |
+| 1 | `9ff49f1dd11101e96000a8ade3bc87b0` |
+| 2 | `3edf52ced011d0d20008ccbc0663dc09` |
+| 3 | `3edf52ced011d0d20008ccbc0663dc09` |
+| 4 | `4debf5fad41120726000bebead9287b0` |
+| 5 | `35df52ced011d0d20008ccbc0663dc09` |
+| 6 | `474dd06b2047478c9da481bcfae149d5` |
+| 7 | `229630f7d111a466600027a5602d6bb0` |
+| 8 | `5c42cb22d111c557600037bd861c3cb0` |
+| 9 | `284d8790d011f8d10008cabc0663dc09` |
+| 10 | `284d8790d011f8d10008cabc0663dc09` |
+| 11 | `ebf44026d111e457600037bd861c3cb0` |
+| 12 | `264d8790d011f8d10008cabc0663dc09` |
+| 13 | `264d8790d011f8d10008cabc0663dc09` |
+| 14 | `e9ee786bd11195a460009dade3bc87b0` |
+| 15 | `e9ee786bd11195a460009dade3bc87b0` |
+| 16 | `2e187506d2111f5e6000b3856c2387b0` |
+| 17 | `9ff49f1dd11101e96000a8ade3bc87b0` |
+| 18 | `35df52ced011d0d20008ccbc0663dc09` |
+
+The list is followed by `word:u16`, `values:u32[2]`, a u32 extension in the alternate-view form, and u32-counted UTF-16LE text. The opaque tail follows the text. The counted text length is a u32 immediately before its UTF-16LE code units. The view header contains `header_value:u32`, `header_id:u16`, and `remainder:bytes[16]`.
+
+A type-2 list with zero items contains only its marker, signature, and u32 count. A nonempty type-2 list also contains two u32 metadata values and one packed u32 reference per item. A packed local reference uses bits 0 through 30 as a one-based record index. Bit 31 is the qualifier. A zero index selects no record.
+
+The modeled-document browser prefix contains `prefix:bytes[49]`. A u32-counted UTF-16LE path follows. Its suffix is `.ipt` or `.iam`. The opaque tail follows the path.
+
+The cached-view prefix contains `prefix:bytes[28]` and `view_reference:u32`. The view reference is non-null and unqualified. It is a one-based index in metadata section 10. In the zero-high-word, zero-key-extension form, the first u32 of the section-10 entry is a zero-based index in section 8. The selected revision entry gives a zero-based segment-pair index in section 7. It selects one drawing-view record of type `5942cb22d111c557600037bd861c3cb0` in the selected sheet segment by `header_value = 0` and equal `header_id`. A cached view whose reference selects any other record keeps its record untyped. The opaque tail follows the reference.
+
+Drawing metadata section 7 has 32-byte segment-pair entries. Section 8 has 20-byte revision entries. Section 10 has 8-byte entries containing a u32 reference word and two u16 values. The section-8 count field is `reference_count:u16`. Section 9 has the tagged entries of section 3.
+
+`RSeEmbeddings/ThirdPartyStorages/_DWFSnapshot` contains opaque file bytes.

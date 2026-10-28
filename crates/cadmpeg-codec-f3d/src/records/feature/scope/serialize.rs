@@ -93,6 +93,7 @@ impl Serialize for DesignParameterScope {
         emit!("record_index", self.record_index);
         emit!("frame_length", self.frame_length);
         emit!("kind", self.kind_name());
+        emit_opt!("source_kind", self.source_kind.as_ref());
         emit!("kind_offset", self.kind_offset);
 
         if let Some(extrude) = self.extrude() {
@@ -307,6 +308,7 @@ impl Serialize for DesignParameterScope {
             );
         }
         emit_opt!("hole_construction", self.hole_construction());
+        emit_opt!("hole_extent", self.hole_extent());
         if let Some(sketch) = self.sketch_entity() {
             emit!("entity_id", sketch.entity_id.as_str());
             emit!("entity_suffix", sketch.entity_id.suffix());

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //! Inventor-native validation.
 
+mod mirror;
+
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 mod base;
@@ -118,7 +120,15 @@ const ARENAS: &[&str] = &[
     "wire_topologies",
 ];
 
-const OPTIONAL_ARENAS: &[&str] = &["pm_dc_sheet_metal_styles", "pm_dc_sheet_metal_flanges"];
+const OPTIONAL_ARENAS: &[&str] = &[
+    "pm_dc_sheet_metal_styles",
+    "pm_dc_sheet_metal_flanges",
+    "drawing_records",
+    "drawing_metadata_references",
+    "drawing_reference_tables",
+    "drawing_record_issues",
+    "pm_dc_pattern_operands",
+];
 
 pub(crate) fn validate_native(
     ctx: &DecodeContext<'_>,
@@ -175,10 +185,19 @@ pub(crate) fn validate_native(
     let mut findings = Vec::new();
     validate_databases(&data, &mut findings);
     validate_segments(&data, &mut findings);
+    crate::drawing::validate_native(
+        ctx,
+        namespace,
+        &data.records,
+        &data.metadata,
+        &data.registry,
+        &data.meta_sections,
+        &mut findings,
+    )?;
     validate_active_carrier(&data, &mut findings);
     validate_design(&data, ir, &mut findings);
     validate_sketches(&data, ir, &mut findings);
-    validate_features(ir, &data, &mut findings);
+    validate_features(ctx, ir, &data, &mut findings)?;
     unique(
         &mut findings,
         data.unknowns.iter().map(|record| record.id.as_str()),
@@ -822,7 +841,13 @@ fn validate_sketches(data: &NativeData, ir: &CadIr, findings: &mut Vec<Finding>)
     }
 }
 
-fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>) {
+fn validate_features(
+    ctx: &DecodeContext<'_>,
+    ir: &CadIr,
+    data: &NativeData,
+    findings: &mut Vec<Finding>,
+) -> Result<(), CodecError> {
+    let mirror_outputs = mirror::validate_mirrors(ctx, ir, data, findings)?;
     sheet_metal::records(data, findings);
     sheet_metal::definitions(ir, data, findings);
     let raw = data
@@ -1058,7 +1083,8 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
                 .into_iter()
                 .chain(option.map(crate::pmdc::PmDcReference::index)),
             ),
-            PmDcFeaturePropertyKind::Enumeration { .. }
+            PmDcFeaturePropertyKind::Mirror { .. }
+            | PmDcFeaturePropertyKind::Enumeration { .. }
             | PmDcFeaturePropertyKind::WideEnumeration { .. }
             | PmDcFeaturePropertyKind::Boolean { .. }
             | PmDcFeaturePropertyKind::RdxVariable { .. }
@@ -1081,6 +1107,13 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
             property.identity.segment_token.as_str(),
             property.identity.record_ordinal,
         )) != Some(&property.identity.type_id.as_str())
+            || !crate::feature::motion::property_is_valid(property, |reference| {
+                raw.get(&(
+                    property.identity.segment_token.as_str(),
+                    reference.record_ordinal()?,
+                ))
+                .copied()
+            })
             || references
                 .into_iter()
                 .any(|reference| !resolves(property.identity.segment_token.as_str(), reference))
@@ -1380,7 +1413,84 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
                 record,
             )
         }));
+    let motion_index = crate::feature::motion::ValidationIndex::new(
+        &data.pm_dc_feature_properties,
+        &data.pm_dc_transforms,
+    );
+    let patterns_by_id = cadmpeg_core::decode::unique_index(
+        data.pm_dc_pattern_features
+            .iter()
+            .map(|record| (record.id(), record)),
+    );
+    let pattern_operands = if data.pm_dc_pattern_operands.is_empty() {
+        crate::feature::pattern::Operands::default()
+    } else {
+        crate::feature::pattern::Operands::from_native(&data.pm_dc_pattern_operands, &data.records)
+    };
+    for operand in &data.pm_dc_pattern_operands {
+        if !pattern_operands.matches_record(operand) {
+            findings.push(finding(Check::NativeLinks, "Inventor rectangular-pattern operand does not resolve to a unique typed RSe record".into(), Some(operand.id())));
+        }
+    }
+    for source in data
+        .pm_dc_pattern_features
+        .iter()
+        .filter(|source| source.is_rectangular())
+    {
+        if pattern_operands
+            .validate_suppression(source, &data.pm_dc_feature_properties)
+            .is_err()
+        {
+            findings.push(finding(
+                Check::NativeLinks,
+                "Inventor rectangular-pattern suppression does not match its instance counts"
+                    .into(),
+                Some(source.id()),
+            ));
+        }
+    }
+    let pattern_validation = ir
+        .model
+        .features
+        .iter()
+        .any(crate::feature::pattern::is_linear_pattern)
+        .then(|| {
+            crate::feature::pattern::validation_index(crate::feature::pattern::SourceRecords {
+                properties: &data.pm_dc_feature_properties,
+                parameters: &data.pm_dc_parameters,
+                values: &ir.model.parameters,
+                transforms: &data.pm_dc_transforms,
+                directions: &data.pm_dc_directions,
+            })
+        });
     for feature in &ir.model.features {
+        if crate::feature::pattern::is_linear_pattern(feature) {
+            if feature
+                .native_ref
+                .as_ref()
+                .and_then(|id| patterns_by_id.get(id))
+                .and_then(Option::as_ref)
+                .is_none_or(|source| {
+                    pattern_validation.as_ref().is_none_or(|index| {
+                        !crate::feature::pattern::matches_source(
+                            source,
+                            feature,
+                            index,
+                            &pattern_operands,
+                            &ir.model.feature_result_topologies,
+                            &ir.model.features,
+                        )
+                    })
+                })
+            {
+                findings.push(finding(
+                    Check::NativeLinks,
+                    "Inventor rectangular pattern does not match its PmDc operands".into(),
+                    Some(feature.id.as_str().to_owned()),
+                ));
+            }
+            continue;
+        }
         if is_flat_pattern_feature(feature)
             && feature
                 .native_ref
@@ -1554,7 +1664,18 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
                 raw_feature.identity.segment_token.as_str(),
                 raw_feature.identity.record_ordinal,
             ))
-            .and_then(|label| crate::feature::FeatureFamily::from_class_id(label.class_id()))
+            .and_then(|label| {
+                let family = crate::feature::FeatureFamily::from_class_id(label.class_id())?;
+                if matches!(family, crate::feature::FeatureFamily::Motion)
+                    && !crate::feature::motion::class_admits(
+                        label.class_id(),
+                        raw_feature.properties.references().len(),
+                    )
+                {
+                    return None;
+                }
+                Some(family)
+            })
             .filter(|family| family.admits_definition(definition))
         else {
             findings.push(finding(
@@ -1581,6 +1702,31 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
             }
             continue;
         }
+        if matches!(family, crate::feature::FeatureFamily::Motion)
+            && !motion_index.matches(raw_feature, definition)
+        {
+            findings.push(finding(
+                Check::NativeLinks,
+                "Inventor neutral motion does not match its PmDc operands or transform".into(),
+                Some(feature.id.as_str().to_owned()),
+            ));
+        }
+        if matches!(family, crate::feature::FeatureFamily::Combine)
+            && crate::feature::combine::definition(raw_feature, |reference| {
+                let ordinal = reference.checked_sub(1)?;
+                properties_by_record
+                    .get(&(raw_feature.identity.segment_token.as_str(), ordinal))
+                    .copied()
+            })
+            .as_ref()
+                != Some(definition)
+        {
+            findings.push(finding(
+                Check::NativeLinks,
+                "Inventor Combine operands, operation, or keep-tools state differs from its PmDc properties".into(),
+                Some(feature.id.as_str().to_owned()),
+            ));
+        }
         let output_slot = family.output_slot(raw_feature);
         let expected_collection = raw_feature
             .properties
@@ -1606,13 +1752,17 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
         }
     }
     for result in &ir.model.feature_result_topologies {
-        if ir.model.features.iter().any(|feature| {
-            feature.id == result.output_of
-                && matches!(
-                    crate::feature::FeatureFamily::from_definition(feature.evaluation.definition()),
-                    Some(crate::feature::FeatureFamily::Base)
-                )
-        }) {
+        if mirror_outputs.contains(&result.output_of)
+            || ir.model.features.iter().any(|feature| {
+                feature.id == result.output_of
+                    && matches!(
+                        crate::feature::FeatureFamily::from_definition(
+                            feature.evaluation.definition()
+                        ),
+                        Some(crate::feature::FeatureFamily::Base)
+                    )
+            })
+        {
             continue;
         }
         let Some(collection) = result
@@ -1622,7 +1772,7 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
         else {
             findings.push(finding(
                 Check::NativeLinks,
-                "Inventor feature result does not resolve to its PmDc object collection".into(),
+                "Inventor feature result does not resolve to its PmDc result collection".into(),
                 Some(result.id.as_str().to_owned()),
             ));
             continue;
@@ -1644,13 +1794,15 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
             continue;
         }
         let PmDcFeaturePropertyKind::References {
-            family: crate::feature::PmDcFeatureReferenceFamily::ObjectCollection,
+            family:
+                crate::feature::PmDcFeatureReferenceFamily::ObjectCollection
+                | crate::feature::PmDcFeatureReferenceFamily::BodySelection,
             items,
         } = &collection.kind
         else {
             findings.push(finding(
                 Check::NativeLinks,
-                "Inventor feature result native reference is not an object collection".into(),
+                "Inventor feature result native reference is not its body collection or body selector".into(),
                 Some(result.id.as_str().to_owned()),
             ));
             continue;
@@ -1678,7 +1830,7 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
         {
             findings.push(finding(
                 Check::NativeLinks,
-                "Inventor feature result bodies do not match its PmDc object collection".into(),
+                "Inventor feature result bodies do not match its PmDc result collection".into(),
                 Some(result.id.as_str().to_owned()),
             ));
         }
@@ -1690,6 +1842,7 @@ fn validate_features(ir: &CadIr, data: &NativeData, findings: &mut Vec<Finding>)
             Some(issue.id()),
         ));
     }
+    Ok(())
 }
 
 fn face_property_is_admitted<'a>(
@@ -2034,6 +2187,7 @@ struct NativeData {
     sketch_record_issues: Vec<RecordIssue>,
     pm_dc_features: Vec<PmDcFeature>,
     pm_dc_pattern_features: Vec<PmDcPatternFeature>,
+    pm_dc_pattern_operands: Vec<crate::feature::pattern::NativeOperand>,
     pm_dc_feature_terminators: Vec<PmDcFeatureTerminator>,
     pm_dc_feature_properties: Vec<PmDcFeatureProperty>,
     pm_dc_sheet_metal_styles: Vec<crate::feature::sheet_metal::style::Style>,
@@ -2107,6 +2261,7 @@ impl NativeData {
             sketch_record_issues: namespace.arena_as_for_decode(ctx, "sketch_record_issues")?,
             pm_dc_features: namespace.arena_as_for_decode(ctx, "pm_dc_features")?,
             pm_dc_pattern_features: namespace.arena_as_for_decode(ctx, "pm_dc_pattern_features")?,
+            pm_dc_pattern_operands: namespace.arena_as_for_decode(ctx, "pm_dc_pattern_operands")?,
             pm_dc_feature_terminators: namespace
                 .arena_as_for_decode(ctx, "pm_dc_feature_terminators")?,
             pm_dc_feature_properties: namespace

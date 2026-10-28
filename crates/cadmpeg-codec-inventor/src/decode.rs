@@ -379,6 +379,7 @@ fn decode_container<'a>(
     let meta_types = projection.meta_types;
     let segment_meta_issues = projection.segment_meta_issues;
     let rse_records = projection.rse_records;
+    let drawing_inventory = crate::drawing::inventory(ctx, container, &rse_records)?;
     let segment_bulk = projection.segment_bulk;
     let segment_bulk_issues = projection.segment_bulk_issues;
     let unpaired_segments = projection.unpaired_segments;
@@ -479,6 +480,10 @@ fn decode_container<'a>(
         &sketch_inventory.constraints,
     )?;
     namespace.set_arena(ctx, "sketch_record_issues", &sketch_inventory.issues)?;
+    let pattern_operands = feature_inventory.pattern_operands.native_records()?;
+    if !pattern_operands.is_empty() {
+        namespace.set_arena(ctx, "pm_dc_pattern_operands", &pattern_operands)?;
+    }
     namespace.set_arena(ctx, "pm_dc_features", &feature_inventory.features)?;
     namespace.set_arena(
         ctx,
@@ -538,7 +543,9 @@ fn decode_container<'a>(
     namespace.set_arena(ctx, "unpaired_segments", &unpaired_segments)?;
     namespace.set_arena(ctx, "active_carrier", std::slice::from_ref(&active_carrier))?;
 
+    drawing_inventory.write(ctx, namespace)?;
     let mut losses = crate::container::deviation_losses(&container.snapshot);
+    losses.extend(drawing_inventory.losses());
     let mut geometry_failure = None;
     let mut empty_kernel_stream = false;
     let kernel_brep = match &container.rse.active_carrier {
@@ -811,6 +818,11 @@ fn decode_container<'a>(
             ir.model.features.iter(),
         ));
         losses.extend(unresolved.revolve_losses);
+        losses.extend(unresolved.mirror_losses);
+        losses.extend(crate::feature::pattern::native_losses(
+            feature_inventory.pattern_features.iter(),
+            &ir.model.features,
+        ));
         losses.extend(crate::feature::loft_sweep::retained_control_losses(
             ir.model
                 .features
@@ -1330,6 +1342,7 @@ struct UnresolvedDesign {
     profile_bodies: usize,
     sketch_construction: usize,
     revolve_losses: Vec<cadmpeg_ir::report::loss::LossNote>,
+    mirror_losses: Vec<cadmpeg_ir::report::loss::LossNote>,
 }
 
 /// Projects the design inventories into the document's design arenas.
@@ -1404,6 +1417,7 @@ fn project_design(
         profile_bodies: profile_bodies.undecoded,
         sketch_construction: sketches.unresolved_construction,
         revolve_losses: features.revolve_losses,
+        mirror_losses: features.mirror_losses,
     })
 }
 

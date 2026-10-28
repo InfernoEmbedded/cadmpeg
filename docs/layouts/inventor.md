@@ -962,6 +962,228 @@ Parsed by:
 | 0 | 4 | `marker` | `u32` | little | spec | marker:u32 = 0x30000002 · value `805306370` |
 | 4 | 4 | `item_count` | `u32` | little | spec | item_count:u32 |
 
+## `meta_reference_header`
+
+Spec §3 · layout: byte offsets · size: 3 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/records/references.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 2 | `key` | `u16` | little | spec | key:u16 |
+| 2 | 1 | `tag` | `u8` | little | spec | tag:u8 |
+
+## `drawing_sheet_prefix`
+
+Spec §15 · layout: byte offsets · size: 30 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 14 | `header` | `bytes[14]` | little | spec | The sheet prefix contains |
+| 14 | 16 | `identifier` | `bytes[16]` | little | spec | The sheet prefix contains |
+
+## `drawing_view_prefix`
+
+Spec §15 · layout: byte offsets · size: 30 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 22 | `header` | `bytes[22]` | little | spec | The view prefix contains |
+| 22 | 4 | `value_0` | `u32` | little | spec | The view prefix contains |
+| 26 | 4 | `value_1` | `u32` | little | spec | The view prefix contains |
+
+## `drawing_sheet_controls`
+
+Spec §15 · layout: byte offsets · size: 24 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 24 | `controls` | `bytes[24]` | little | spec | The sheet controls contain |
+
+## `drawing_model_reference_prefix`
+
+Spec §15 · layout: byte offsets · size: 49 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 49 | `prefix` | `bytes[49]` | little | spec | The modeled-document browser prefix contains |
+
+## `drawing_cached_view_prefix`
+
+Spec §15 · layout: byte offsets · size: 32 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 28 | `prefix` | `bytes[28]` | little | spec | The cached-view prefix contains |
+| 28 | 4 | `view_reference` | `u32` | little | spec | The cached-view prefix contains |
+
+## `drawing_sheet_property_list`
+
+Spec §15 · layout: byte offsets · size: 16 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 2 | `marker` | `u16` | little | spec | The sheet property-list prefix contains · value `2` |
+| 2 | 2 | `signature` | `u16` | little | spec | The sheet property-list prefix contains · value `12288` |
+| 4 | 4 | `count` | `u32` | little | spec | The sheet property-list prefix contains · value `6` |
+| 8 | 8 | `metadata` | `u32[2]` | little | spec | The sheet property-list prefix contains |
+
+## `drawing_view_operand_list`
+
+Spec §15 · layout: byte offsets · size: 16 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 2 | `marker` | `u16` | little | spec | The view operand-list prefix contains · value `2` |
+| 2 | 2 | `signature` | `u16` | little | spec | The view operand-list prefix contains · value `12288` |
+| 4 | 4 | `count` | `u32` | little | spec | The view operand-list prefix contains · value `19` |
+| 8 | 8 | `metadata` | `u32[2]` | little | spec | The view operand-list prefix contains |
+
+## `meta_reference_identifier`
+
+Spec §3 · layout: byte offsets · size: 16 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/records/references.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 16 | `identifier` | `bytes[16]` | little | spec | Tags 1 and 2 carry a 16-byte identifier |
+
+## `meta_reference_pair`
+
+Spec §3 · layout: byte offsets · size: 8 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/records/references.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 8 | `values` | `u32[2]` | little | spec | Tag 3 carries two u32 values |
+
+## `drawing_sheet_tail_prefix`
+
+Spec §15 · layout: byte offsets · size: 14 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 14 | `prefix` | `bytes[14]` | little | spec | The sheet tail prefix contains |
+
+## `drawing_sheet_terminal`
+
+Spec §15 · layout: byte offsets · size: 8 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 8 | `terminal` | `bytes[8]` | little | spec | The sheet terminal contains |
+
+## `drawing_view_operands`
+
+Spec §15 · layout: ordered slots (no stated byte offsets) · size: not stated
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| # | Slot | Type | Endian | Src | Meaning |
+| -: | ---- | ---- | ------ | --- | ------- |
+| 0 | `operand_0` | `u32` | little | spec | \| 0 \| `2e187506d2111f5e6000b3856c2387b0` \| |
+| 1 | `operand_1` | `u32` | little | spec | \| 1 \| `9ff49f1dd11101e96000a8ade3bc87b0` \| |
+| 2 | `operand_2` | `u32` | little | spec | \| 2 \| `3edf52ced011d0d20008ccbc0663dc09` \| |
+| 3 | `operand_3` | `u32` | little | spec | \| 3 \| `3edf52ced011d0d20008ccbc0663dc09` \| |
+| 4 | `operand_4` | `u32` | little | spec | \| 4 \| `4debf5fad41120726000bebead9287b0` \| |
+| 5 | `operand_5` | `u32` | little | spec | \| 5 \| `35df52ced011d0d20008ccbc0663dc09` \| |
+| 6 | `operand_6` | `u32` | little | spec | \| 6 \| `474dd06b2047478c9da481bcfae149d5` \| |
+| 7 | `operand_7` | `u32` | little | spec | \| 7 \| `229630f7d111a466600027a5602d6bb0` \| |
+| 8 | `operand_8` | `u32` | little | spec | \| 8 \| `5c42cb22d111c557600037bd861c3cb0` \| |
+| 9 | `operand_9` | `u32` | little | spec | \| 9 \| `284d8790d011f8d10008cabc0663dc09` \| |
+| 10 | `operand_10` | `u32` | little | spec | \| 10 \| `284d8790d011f8d10008cabc0663dc09` \| |
+| 11 | `operand_11` | `u32` | little | spec | \| 11 \| `ebf44026d111e457600037bd861c3cb0` \| |
+| 12 | `operand_12` | `u32` | little | spec | \| 12 \| `264d8790d011f8d10008cabc0663dc09` \| |
+| 13 | `operand_13` | `u32` | little | spec | \| 13 \| `264d8790d011f8d10008cabc0663dc09` \| |
+| 14 | `operand_14` | `u32` | little | spec | \| 14 \| `e9ee786bd11195a460009dade3bc87b0` \| |
+| 15 | `operand_15` | `u32` | little | spec | \| 15 \| `e9ee786bd11195a460009dade3bc87b0` \| |
+| 16 | `operand_16` | `u32` | little | spec | \| 16 \| `2e187506d2111f5e6000b3856c2387b0` \| |
+| 17 | `operand_17` | `u32` | little | spec | \| 17 \| `9ff49f1dd11101e96000a8ade3bc87b0` \| |
+| 18 | `operand_18` | `u32` | little | spec | \| 18 \| `35df52ced011d0d20008ccbc0663dc09` \| |
+
+Cross-checked against code:
+
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs` — The view has nineteen typed operand positions.
+
+## `drawing_view_header`
+
+Spec §15 · layout: byte offsets · size: 22 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `header_value` | `u32` | little | spec | header_value:u32 |
+| 4 | 2 | `header_id` | `u16` | little | spec | header_id:u16 |
+| 6 | 16 | `remainder` | `bytes[16]` | little | spec | remainder:bytes[16] |
+
+## `drawing_main_view_fixed`
+
+Spec §15 · layout: byte offsets · size: 136 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 30 | `prefix` | `bytes[30]` | little | spec | The view prefix contains |
+| 30 | 16 | `operand_list` | `bytes[16]` | little | spec | The view operand-list prefix contains |
+| 46 | 76 | `operands` | `u32[19]` | little | spec | Its nineteen ordered packed references follow |
+| 122 | 2 | `word` | `u16` | little | spec | word:u16 |
+| 124 | 8 | `values` | `u32[2]` | little | spec | values:u32[2] |
+| 132 | 4 | `text_length` | `u32` | little | spec | The counted text length is a u32 immediately before its UTF-16LE code units. |
+
+## `drawing_alternate_view_fixed`
+
+Spec §15 · layout: byte offsets · size: 140 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/drawing/records.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 30 | `prefix` | `bytes[30]` | little | spec | The view prefix contains |
+| 30 | 16 | `operand_list` | `bytes[16]` | little | spec | The view operand-list prefix contains |
+| 46 | 76 | `operands` | `u32[19]` | little | spec | Its nineteen ordered packed references follow |
+| 122 | 2 | `word` | `u16` | little | spec | word:u16 |
+| 124 | 8 | `values` | `u32[2]` | little | spec | values:u32[2] |
+| 132 | 4 | `extension` | `u32` | little | spec | a u32 extension in the alternate-view form |
+| 136 | 4 | `text_length` | `u32` | little | spec | The counted text length is a u32 immediately before its UTF-16LE code units. |
+
 ## `pm_dc_feature_dimension_list_metadata`
 
 Spec §13 · layout: byte offsets · size: 8 B
@@ -991,3 +1213,154 @@ Parsed by:
 | 4 | `slot_4` | `u32` | little | spec | \| 4 \| Plate profile selection shared with plate slot 0 \| |
 | 5 | `slot_5` | `u32` | little | spec | \| 5 \| Null \| |
 | 6 | `slot_6` | `u32` | little | spec | \| 6 \| Result object collection; absent in the six-property form \| |
+
+## `pm_dc_mirror_selection_tail`
+
+Spec §13 · layout: byte offsets · size: 8 B
+
+The zero-option mirror form. Offsets are relative to the end of the versioned content header and stamps.
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/feature/mirror.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `control` | `u32` | little | spec | Mirror auxiliary payloads follow the versioned content header and stamps. · value `805306372` |
+| 4 | 4 | `value` | `u32` | little | spec | Mirror auxiliary payloads follow the versioned content header and stamps. · value `0` |
+
+## `pm_dc_mirror_options_tail`
+
+Spec §13 · layout: byte offsets · size: 9 B
+
+The zero-option mirror form. Offsets are relative to the end of the versioned content header and stamps.
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/feature/mirror.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 9 | `options` | `bytes[9]` | little | spec | Mirror auxiliary payloads follow the versioned content header and stamps. · value `[0, 0, 0, 0, 0, 0, 0, 0, 0]` |
+
+## `pm_dc_body_motion_properties`
+
+Spec §13 · layout: ordered slots (no stated byte offsets) · size: 12 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/feature/motion.rs`
+
+| # | Slot | Type | Endian | Src | Meaning |
+| -: | ---- | ---- | ------ | --- | ------- |
+| 0 | `selected_bodies` | `u32` | little | spec | Slot 0 is an object collection |
+| 1 | `transforms` | `u32` | little | spec | Slot 1 is a transform list |
+| 2 | `dimensions` | `u32` | little | spec | Slot 2 contains feature dimensions |
+
+## `pm_dc_face_motion_properties`
+
+Spec §13 · layout: ordered slots (no stated byte offsets) · size: 52 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/feature/motion.rs`
+
+| # | Slot | Type | Endian | Src | Meaning |
+| -: | ---- | ---- | ------ | --- | ------- |
+| 0 | `selected_faces` | `u32` | little | spec | Slot 0 is a face collection |
+| 1 | `mode` | `u32` | little | spec | Slot 1 is the face-motion mode |
+| 2 | `mode_operand_2` | `u32` | little | spec | null slots 2 through 7 and 10 |
+| 3 | `mode_operand_3` | `u32` | little | spec | null slots 2 through 7 and 10 |
+| 4 | `mode_operand_4` | `u32` | little | spec | null slots 2 through 7 and 10 |
+| 5 | `mode_operand_5` | `u32` | little | spec | null slots 2 through 7 and 10 |
+| 6 | `mode_operand_6` | `u32` | little | spec | null slots 2 through 7 and 10 |
+| 7 | `mode_operand_7` | `u32` | little | spec | null slots 2 through 7 and 10 |
+| 8 | `affected_bodies` | `u32` | little | spec | Slot 8 is the selection of affected bodies |
+| 9 | `dimensions` | `u32` | little | spec | Slot 9 contains feature dimensions |
+| 10 | `mode_operand` | `u32` | little | spec | null slots 2 through 7 and 10 |
+| 11 | `flag` | `u32` | little | spec | Slot 11 is a Boolean |
+| 12 | `transform` | `u32` | little | spec | Slot 12 is the model-space motion transform |
+
+## `pm_dc_pattern_selection_control_body`
+
+Spec §13.6 · layout: byte offsets · size: 9 B
+
+Offsets are relative to the end of the versioned content header.
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/feature/pattern.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `first_reference` | `u32` | little | spec | After the content header it stores two record references and one u8 control |
+| 4 | 4 | `second_reference` | `u32` | little | spec | After the content header it stores two record references and one u8 control |
+| 8 | 1 | `control` | `u8` | little | spec | After the content header it stores two record references and one u8 control |
+
+## `pm_dc_pattern_cached_edge_body`
+
+Spec §13.6 · layout: byte offsets · size: 103 B
+
+Selection form 1 with curve form 23. Offsets are relative to the end of the content header without stamps.
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/feature/pattern.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `state` | `i32` | little | spec | store cached line selections |
+| 4 | 4 | `reverse_reference` | `u32` | little | spec | store cached line selections |
+| 8 | 4 | `geometry_reference` | `u32` | little | spec | store cached line selections |
+| 12 | 4 | `selection_form` | `u32` | little | spec | store cached line selections · value `1` |
+| 16 | 2 | `zero` | `u16` | little | spec | store cached line selections · value `0` |
+| 18 | 4 | `curve_form` | `u32` | little | spec | store cached line selections · value `23` |
+| 22 | 24 | `origin` | `f64[3]` | little | spec | store cached line selections |
+| 46 | 24 | `span` | `f64[3]` | little | spec | store cached line selections |
+| 70 | 24 | `selection_point` | `f64[3]` | little | spec | store cached line selections |
+| 94 | 1 | `line_state` | `u8` | little | spec | store cached line selections · value `1` |
+| 95 | 8 | `source_references` | `u32[2]` | little | spec | store cached line selections |
+
+## `pm_dc_pattern_cached_line_body`
+
+Spec §13.6 · layout: byte offsets · size: 99 B
+
+Selection form 1 with curve form 23. Offsets are relative to the end of the content header without stamps.
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/feature/pattern.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `state` | `i32` | little | spec | store cached line selections |
+| 4 | 4 | `reverse_reference` | `u32` | little | spec | store cached line selections |
+| 8 | 4 | `geometry_reference` | `u32` | little | spec | store cached line selections |
+| 12 | 4 | `selection_form` | `u32` | little | spec | store cached line selections · value `1` |
+| 16 | 2 | `zero` | `u16` | little | spec | store cached line selections · value `0` |
+| 18 | 4 | `curve_form` | `u32` | little | spec | store cached line selections · value `23` |
+| 22 | 24 | `origin` | `f64[3]` | little | spec | store cached line selections |
+| 46 | 24 | `span` | `f64[3]` | little | spec | store cached line selections |
+| 70 | 24 | `selection_point` | `f64[3]` | little | spec | store cached line selections |
+| 94 | 1 | `line_state` | `u8` | little | spec | store cached line selections · value `1` |
+| 95 | 4 | `source_references` | `u32[1]` | little | spec | store cached line selections |
+
+## `pm_dc_pattern_suppression_prefix`
+
+Spec §13.6 · layout: byte offsets · size: 8 B
+
+Offsets are relative to the end of the versioned content header.
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/feature/pattern.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 2 | `marker` | `u16` | little | spec | stores the u16 pair `4, 0x3000` and a u32 count · value `4` |
+| 2 | 2 | `marker_kind` | `u16` | little | spec | stores the u16 pair `4, 0x3000` and a u32 count · value `12288` |
+| 4 | 4 | `count` | `u32` | little | spec | stores the u16 pair `4, 0x3000` and a u32 count |
+
+## `pm_dc_pattern_suppression_pair`
+
+Spec §13.6 · layout: byte offsets · size: 8 B
+
+Parsed by:
+- `crates/cadmpeg-codec-inventor/src/feature/pattern.rs`
+
+| Offset | Size | Field | Type | Endian | Src | Meaning |
+| -----: | ---: | ----- | ---- | ------ | --- | ------- |
+| 0 | 4 | `first` | `u32` | little | spec | pairs of u32 coordinates |
+| 4 | 4 | `second` | `u32` | little | spec | pairs of u32 coordinates |

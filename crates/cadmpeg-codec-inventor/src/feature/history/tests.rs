@@ -163,6 +163,7 @@ fn inventory() -> (FeatureInventory, Vec<crate::sketch::PmDcSketch>) {
             feature(21, 0x6200),
         ],
         pattern_features: Vec::new(),
+        pattern_operands: crate::feature::pattern::Operands::default(),
         terminators: vec![terminator(5), terminator(22)],
         dimensions: Vec::new(),
         properties: Vec::new(),
@@ -244,6 +245,25 @@ fn history_visits_a_repeated_member_once() {
         .expect("history context");
     let history = build(&ctx, "generated", &inventory, &design(), &sketches).expect("history");
     assert_eq!(history.order, vec![7, 2, 11, 21]);
+}
+
+#[test]
+fn history_keeps_distinct_flat_pattern_model_roots() {
+    let (mut inventory, sketches) = inventory();
+    let mut design = design();
+    design.model_roots.push(model_root(30, "MbBRepSegment"));
+    inventory.features.push(feature(31, 0));
+    inventory.labels.push(label(130, 30, "", EXTRUSION, &[31]));
+    let arena = DecodeArena::new();
+    let (ctx, _) = DecodeContext::from_root_bytes(&[], &arena, &DecodePolicy::service())
+        .expect("history context");
+    let history = build(&ctx, "generated", &inventory, &design, &sketches).expect("history");
+    let first = history.placement(21).expect("first flat-pattern feature");
+    let second = history.placement(31).expect("second flat-pattern feature");
+    assert!(!first.model_history);
+    assert!(!second.model_history);
+    assert_eq!(first.model_root, 20);
+    assert_eq!(second.model_root, 30);
 }
 
 #[test]

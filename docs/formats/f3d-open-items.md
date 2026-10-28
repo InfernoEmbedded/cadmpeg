@@ -20,6 +20,30 @@ This document uses ASD-STE100 Simplified Technical English. Record names, field 
 
 ## 1. Container, header, and design records
 
+### DR-105. Hole Extents To
+
+**Question.** Which extent controls and face operands define an Extents To hole?
+
+**Known.** To and Through All both store a non-distance depth with the name `SavedHoleDepthInNonDistanceExtentsCase`. Control `1` with that property, no `HoleDepth`, and only start-face operands defines Through All.
+
+**Need.** A file with a To-face hole.
+
+**Conflict.** None.
+
+**Note.** A Distance hole that reaches a face does not define the To-face form.
+
+### DR-106. Hole extent leading word
+
+**Question.** What does the u32 word before the Hole extent controls in type versions 5 and 7 encode?
+
+**Known.** Type versions 3 and 4 do not store the word, and type version 3 stores no extent control. Every observed word is `0`, on Distance and non-distance holes.
+
+**Need.** A Hole of type version 5 or 7 with a nonzero word, and the hole type, tap, or position setting that produces it.
+
+**Conflict.** None.
+
+**Note.** The decoder records the word on the native Hole extent and does not use it for projection.
+
 ### DR-09A. Sheet-metal settings compatibility and override encoding
 
 **Question.** What is the Hem Tangent bend-position code, what do the compatibility values `1` and `4` encode, what does the version-3 rule-reference suffix encode, and how do the settings mask bits, optional slots, and override bundle tails map to independent rule controls?
@@ -362,6 +386,18 @@ the native feature when a fixed lane carries a symmetric distance.
 
 ## 2. External references
 
+### DR-111. Component-path poses of nested occurrences
+
+**Question.** How does a component-path record with more than two path elements join to a nested occurrence, and does its world pose supersede that occurrence's own placement?
+
+**Known.** A two-element path of a cross-document element and a local element naming an occurrence-placement record stores the current world pose of that placed occurrence. A two-element path of a Component record and a local occurrence carrier of that component stores the current pose of a local occurrence in the root component. Longer paths continue through further cross-document and local elements, each with an instance discriminator, and also store a world transform. A path of a referenced design's root component and occurrence placement, then this document's placement of the external occurrence and some of its local owners, stores the pose of the inner occurrence in the frame of the occurrence holding the outermost one listed; when all such records of one instance agree, they place it.
+
+**Need.** Why an external occurrence's own two-element record can keep its insert pose while the records of the occurrences inside it give another; the join from each later path element to the placement record of the nested occurrence in its placed design, and the relation between that world pose and the nested occurrence's own placement and joints, and whether a two-local-element pose of an occurrence below another component is local to its container or in the world.
+
+**Conflict.** None.
+
+**Note.** Longer component-path records do not place occurrences; their bytes stay in the source stream.
+
 ### DR-113. Solved placement without a bound assembly operand
 
 **Question.** Which native relation, if any, selects the current solved pose of an inserted occurrence when no assembly operand path binds to it?
@@ -372,7 +408,7 @@ the native feature when a fixed lane carries a symmetric distance.
 
 **Conflict.** A stored placement can disagree with the checked assembly while no projected joint selects the occurrence. This does not distinguish an unbound constraint, an unread placement carrier, and a different saved assembly state.
 
-**Note.** Retain the stored transform and native records.
+**Note.** For an external occurrence at the document root, a two-element component-path record supplies the current pose (`f3d.md` §1.4). This item remains open for occurrences without such a record and for nested occurrences (DR-111). Retain the stored transform and native records.
 
 ### DR-109. Legacy external placement control and extended envelopes
 

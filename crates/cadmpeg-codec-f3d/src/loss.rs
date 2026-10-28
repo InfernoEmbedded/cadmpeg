@@ -118,6 +118,8 @@ pub(crate) enum F3dLossCode {
     SheetThicknessUnruled,
     /// Decoded feature scopes have no neutral construction-history feature.
     FeatureScopeUnprojected,
+    /// Hole extent controls do not define an admitted termination.
+    HoleExtentUnproven,
     /// A decoded native feature envelope has no interpreted specialized payload.
     FeatureScopePayloadUninterpreted,
     /// A non-equivalent duplicate scope envelope was superseded by the
@@ -211,6 +213,34 @@ pub(crate) enum F3dLossCode {
     XrefPlacementMetadataNative,
     /// A legacy placement role has no containing reference-table entry.
     XrefPlacementRoleUnbound,
+    /// Root external occurrences take their component-path carrier pose; the
+    /// placement matrix stays native.
+    XrefPlacementCurrentPose,
+    /// An owned external occurrence keeps its placement matrix; its
+    /// component-path carrier pose stays native.
+    XrefCurrentPoseNative,
+    /// Two or more component-path carriers name one placement; its placement
+    /// matrix stays in place.
+    XrefCurrentPoseAmbiguous,
+    /// Local occurrences at the document root take their component-path
+    /// carrier pose; the carrier's stored placement stays native.
+    LocalOccurrenceCurrentPose,
+    /// Owned local occurrences keep their stored placement; their
+    /// component-path carrier pose stays native.
+    LocalOccurrenceCurrentPoseNative,
+    /// Two or more component-path carriers name one local occurrence; its
+    /// stored placement stays in place.
+    LocalOccurrenceCurrentPoseAmbiguous,
+    /// External occurrence instances take the pose their contained
+    /// occurrences' component-path carriers store; the placement matrix stays
+    /// native.
+    XrefContainedPose,
+    /// The contained occurrences' component-path carriers of an instance give
+    /// different poses; it keeps its placement.
+    XrefContainedPoseDisagrees,
+    /// Contained-occurrence component-path carriers name no merged instance
+    /// with their owner chain.
+    XrefContainedPoseNative,
     /// A Design stream has no type and record index for placement admission.
     XrefPlacementMetadataMissing,
     /// Structured placement records were superseded by scope-bound carriers.
@@ -346,6 +376,7 @@ impl F3dLossCode {
         Self::FeatureDefinitionIncomplete,
         Self::SheetThicknessUnruled,
         Self::FeatureScopeUnprojected,
+        Self::HoleExtentUnproven,
         Self::FeatureScopePayloadUninterpreted,
         Self::FeatureScopeEnvelopeSuperseded,
         Self::ParameterUnprojected,
@@ -392,6 +423,15 @@ impl F3dLossCode {
         Self::XrefPlacementUndecoded,
         Self::XrefPlacementMetadataNative,
         Self::XrefPlacementRoleUnbound,
+        Self::XrefPlacementCurrentPose,
+        Self::XrefCurrentPoseNative,
+        Self::XrefCurrentPoseAmbiguous,
+        Self::LocalOccurrenceCurrentPose,
+        Self::LocalOccurrenceCurrentPoseNative,
+        Self::LocalOccurrenceCurrentPoseAmbiguous,
+        Self::XrefContainedPose,
+        Self::XrefContainedPoseDisagrees,
+        Self::XrefContainedPoseNative,
         Self::XrefPlacementMetadataMissing,
         Self::XrefPlacementSuperseded,
         Self::XrefOwnerUnresolved,
@@ -490,6 +530,7 @@ impl F3dLossCode {
             Self::SheetThicknessUnruled => "feature.sheet-thickness-unruled",
             Self::FeatureScopePayloadUninterpreted => "feature.scope-payload-uninterpreted",
             Self::FeatureScopeEnvelopeSuperseded => "feature.scope-envelope-superseded",
+            Self::HoleExtentUnproven => "feature.hole-extent-unproven",
             Self::FeatureScopeUnprojected => "feature.scope-unprojected",
             Self::ParameterUnprojected => "parameter.unprojected",
             Self::ParameterRecordUnparsed => "parameter.record-unparsed",
@@ -537,6 +578,19 @@ impl F3dLossCode {
             Self::XrefPlacementUndecoded => "xref.placement-undecoded",
             Self::XrefPlacementMetadataNative => "xref.placement-metadata-native",
             Self::XrefPlacementRoleUnbound => "xref.placement-role-unbound",
+            Self::XrefPlacementCurrentPose => "xref.placement-current-pose",
+            Self::XrefCurrentPoseNative => "xref.current-pose-native",
+            Self::XrefCurrentPoseAmbiguous => "xref.current-pose-ambiguous",
+            Self::LocalOccurrenceCurrentPose => "assembly.local-occurrence-current-pose",
+            Self::LocalOccurrenceCurrentPoseNative => {
+                "assembly.local-occurrence-current-pose-native"
+            }
+            Self::LocalOccurrenceCurrentPoseAmbiguous => {
+                "assembly.local-occurrence-current-pose-ambiguous"
+            }
+            Self::XrefContainedPose => "xref.contained-pose",
+            Self::XrefContainedPoseDisagrees => "xref.contained-pose-disagrees",
+            Self::XrefContainedPoseNative => "xref.contained-pose-native",
             Self::XrefPlacementMetadataMissing => "xref.placement-metadata-missing",
             Self::XrefPlacementSuperseded => "xref.placement-superseded",
             Self::XrefOwnerUnresolved => "xref.owner-unresolved",
@@ -589,6 +643,12 @@ impl F3dLossCode {
             Self::WriterAppearancePropertiesOmitted => Severity::Warning,
             Self::BodylessDesignCarrier
             | Self::XrefPlacementMetadataNative
+            | Self::XrefPlacementCurrentPose
+            | Self::XrefCurrentPoseNative
+            | Self::LocalOccurrenceCurrentPose
+            | Self::LocalOccurrenceCurrentPoseNative
+            | Self::XrefContainedPose
+            | Self::XrefContainedPoseNative
             | Self::AssemblyComponentsExternal
             | Self::NurbsSurfaceCarrier
             | Self::NurbsCurveCarrier
@@ -645,6 +705,7 @@ impl F3dLossCode {
             | Self::EdgeReferenceLostUnrepaired
             | Self::FeatureDefinitionIncomplete
             | Self::SheetThicknessUnruled
+            | Self::HoleExtentUnproven
             | Self::FeatureScopeUnprojected
             | Self::FeatureScopePayloadUninterpreted
             | Self::FeatureScopeEnvelopeSuperseded
@@ -690,6 +751,9 @@ impl F3dLossCode {
             | Self::XrefTableUndecoded
             | Self::XrefPlacementUndecoded
             | Self::XrefPlacementRoleUnbound
+            | Self::XrefCurrentPoseAmbiguous
+            | Self::LocalOccurrenceCurrentPoseAmbiguous
+            | Self::XrefContainedPoseDisagrees
             | Self::XrefPlacementMetadataMissing
             | Self::XrefPlacementSuperseded
             | Self::XrefOwnerUnresolved
@@ -740,6 +804,15 @@ impl F3dLossCode {
             | Self::ConfigurationFeatureSuppressionUnbound
             | Self::DrawingDocumentOmitted
             | Self::XrefPlacementMetadataNative
+            | Self::XrefPlacementCurrentPose
+            | Self::XrefCurrentPoseNative
+            | Self::XrefCurrentPoseAmbiguous
+            | Self::LocalOccurrenceCurrentPose
+            | Self::LocalOccurrenceCurrentPoseNative
+            | Self::LocalOccurrenceCurrentPoseAmbiguous
+            | Self::XrefContainedPose
+            | Self::XrefContainedPoseDisagrees
+            | Self::XrefContainedPoseNative
             | Self::XrefTableUndecoded => LossTaxonomy::MetadataNotTransferred,
             Self::ActComponentLinkUnresolved
             | Self::AssemblyComponentsExternal
@@ -758,6 +831,7 @@ impl F3dLossCode {
             | Self::FeatureDefinitionIncomplete
             | Self::SheetThicknessUnruled
             | Self::WorkPlaneFrameUnbound
+            | Self::HoleExtentUnproven
             | Self::FeatureScopeUnprojected
             | Self::FeatureScopePayloadUninterpreted
             | Self::FeatureScopeEnvelopeSuperseded
@@ -949,6 +1023,7 @@ mod tests {
                 "feature.definition-incomplete",
                 "feature.sheet-thickness-unruled",
                 "feature.scope-unprojected",
+                "feature.hole-extent-unproven",
                 "feature.scope-payload-uninterpreted",
                 "feature.scope-envelope-superseded",
                 "parameter.unprojected",
@@ -995,6 +1070,15 @@ mod tests {
                 "xref.placement-undecoded",
                 "xref.placement-metadata-native",
                 "xref.placement-role-unbound",
+                "xref.placement-current-pose",
+                "xref.current-pose-native",
+                "xref.current-pose-ambiguous",
+                "assembly.local-occurrence-current-pose",
+                "assembly.local-occurrence-current-pose-native",
+                "assembly.local-occurrence-current-pose-ambiguous",
+                "xref.contained-pose",
+                "xref.contained-pose-disagrees",
+                "xref.contained-pose-native",
                 "xref.placement-metadata-missing",
                 "xref.placement-superseded",
                 "xref.owner-unresolved",

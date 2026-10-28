@@ -65,6 +65,8 @@ pub(crate) enum InventorLossCode {
     FeatureLabelNameReplaced,
     /// Typed feature records have an operation graph that is not closed.
     FeatureOperationGraphOpen,
+    /// Rectangular patterns retain construction operands outside the fixed-spacing feature form.
+    FeatureRectangularPatternOperandsNative,
     /// Thread annotations retain sizing and termination operands only natively.
     FeatureThreadDefinitionPartial,
     /// Thicken selections and thickness side remain native operands.
@@ -87,6 +89,8 @@ pub(crate) enum InventorLossCode {
     FeatureSheetMetalStyleFormsNative,
     /// Revolve operands differ from the admitted construction forms.
     FeatureRevolveOperandsNative,
+    /// Mirror operands differ from the identity-frame, zero-option construction.
+    FeatureMirrorOperandsNative,
     /// Revolve extents retain unresolved angular termination operands.
     FeatureRevolveExtentNative,
     /// Fixed-angle revolutions retain an unresolved direction control.
@@ -151,6 +155,10 @@ pub(crate) enum InventorLossCode {
     KernelHeaderToleranceUnresolved,
     /// The compound container uses an admitted noncanonical encoding.
     ContainerNoncanonical,
+    /// Drawing records retain unresolved semantics natively.
+    DrawingNativeOnly,
+    /// A drawing record is outside its typed prefix form.
+    DrawingRecordMalformed,
 }
 
 impl InventorLossCode {
@@ -173,6 +181,7 @@ impl InventorLossCode {
         Self::FeatureProfileBodyUndecoded,
         Self::FeatureLabelNameReplaced,
         Self::FeatureOperationGraphOpen,
+        Self::FeatureRectangularPatternOperandsNative,
         Self::FeatureThreadDefinitionPartial,
         Self::FeatureThickenOperandsNative,
         Self::FeatureShellDefinitionPartial,
@@ -184,6 +193,7 @@ impl InventorLossCode {
         Self::FeatureSheetMetalBendControlsRetained,
         Self::FeatureSheetMetalStyleFormsNative,
         Self::FeatureRevolveOperandsNative,
+        Self::FeatureMirrorOperandsNative,
         Self::FeatureRevolveExtentNative,
         Self::FeatureRevolveDirectionNative,
         Self::FeatureRevolveControlUnresolved,
@@ -216,6 +226,8 @@ impl InventorLossCode {
         Self::KernelHeaderMetadataUnresolved,
         Self::KernelHeaderToleranceUnresolved,
         Self::ContainerNoncanonical,
+        Self::DrawingNativeOnly,
+        Self::DrawingRecordMalformed,
     ];
 
     /// The stable string identifier. This is the gating contract.
@@ -239,6 +251,9 @@ impl InventorLossCode {
             Self::SketchPairedAssociationUnprojected => "sketch.paired-association-unprojected",
             Self::FeatureProfileBodyUndecoded => "feature.profile-body-undecoded",
             Self::FeatureLabelNameReplaced => "feature.label-name-replaced",
+            Self::FeatureRectangularPatternOperandsNative => {
+                "feature.rectangular-pattern-operands-native"
+            }
             Self::FeatureOperationGraphOpen => "feature.operation-graph-open",
             Self::FeatureThreadDefinitionPartial => "feature.thread-definition-partial",
             Self::FeatureThickenOperandsNative => "feature.thicken-operands-native",
@@ -258,6 +273,7 @@ impl InventorLossCode {
                 "feature.sheet-metal-bend-controls-retained"
             }
             Self::FeatureSheetMetalStyleFormsNative => "feature.sheet-metal-style-forms-native",
+            Self::FeatureMirrorOperandsNative => "feature.mirror-operands-native",
             Self::FeatureRevolveOperandsNative => "feature.revolve-operands-native",
             Self::FeatureRevolveExtentNative => "feature.revolve-extent-native",
             Self::FeatureRevolveDirectionNative => "feature.revolve-direction-native",
@@ -291,6 +307,8 @@ impl InventorLossCode {
             Self::KernelHeaderMetadataUnresolved => "source.kernel-header-metadata-unresolved",
             Self::KernelHeaderToleranceUnresolved => "source.kernel-header-tolerance-unresolved",
             Self::ContainerNoncanonical => "container.noncanonical",
+            Self::DrawingNativeOnly => "drawing.native-only",
+            Self::DrawingRecordMalformed => "drawing.record-malformed",
         }
     }
 
@@ -308,10 +326,11 @@ impl InventorLossCode {
         match self {
             Self::GeometryKernelCarrierNotTransferred
             | Self::GeometryProceduralSurfaceNotTransferred => LossTaxonomy::GeometryNotTransferred,
-            Self::RseSegmentPairUntyped | Self::UfrxSchemaUnsupported => {
+            Self::DrawingNativeOnly | Self::RseSegmentPairUntyped | Self::UfrxSchemaUnsupported => {
                 LossTaxonomy::RecordNotTyped
             }
-            Self::RseMetadataStreamMalformed
+            Self::DrawingRecordMalformed
+            | Self::RseMetadataStreamMalformed
             | Self::RseBulkStreamMalformed
             | Self::AssemblyRecordMalformed
             | Self::PresentationRecordMalformed
@@ -328,6 +347,7 @@ impl InventorLossCode {
             }
             Self::KernelHeaderToleranceUnresolved => LossTaxonomy::GeometryNotTransferred,
             Self::FeatureOperationGraphOpen
+            | Self::FeatureRectangularPatternOperandsNative
             | Self::FeatureThreadDefinitionPartial
             | Self::FeatureThickenOperandsNative
             | Self::FeatureShellDefinitionPartial
@@ -338,6 +358,7 @@ impl InventorLossCode {
             | Self::FeatureSheetMetalAttachmentControlsRetained
             | Self::FeatureSheetMetalBendControlsRetained
             | Self::FeatureSheetMetalStyleFormsNative
+            | Self::FeatureMirrorOperandsNative
             | Self::FeatureRevolveOperandsNative
             | Self::FeatureRevolveExtentNative
             | Self::FeatureRevolveDirectionNative
@@ -425,6 +446,7 @@ mod tests {
                 "feature.profile-body-undecoded",
                 "feature.label-name-replaced",
                 "feature.operation-graph-open",
+                "feature.rectangular-pattern-operands-native",
                 "feature.thread-definition-partial",
                 "feature.thicken-operands-native",
                 "feature.shell-definition-partial",
@@ -436,6 +458,7 @@ mod tests {
                 "feature.sheet-metal-bend-controls-retained",
                 "feature.sheet-metal-style-forms-native",
                 "feature.revolve-operands-native",
+                "feature.mirror-operands-native",
                 "feature.revolve-extent-native",
                 "feature.revolve-direction-native",
                 "feature.revolve-control-unresolved",
@@ -468,6 +491,8 @@ mod tests {
                 "source.kernel-header-metadata-unresolved",
                 "source.kernel-header-tolerance-unresolved",
                 "container.noncanonical",
+                "drawing.native-only",
+                "drawing.record-malformed",
             ]
         );
     }
