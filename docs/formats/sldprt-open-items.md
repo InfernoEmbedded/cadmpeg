@@ -155,13 +155,15 @@ image in field data can therefore be classified as a new stream.
 
 **Note.** Outer framing does not establish physical occurrence policy or permit salvage of an invalid CFB extent.
 
-### CM-14. Configuration identity carriers and update state
+### CM-14. Configuration identity carriers
 
-**Question.** Which carrier controls membership when Keywords `id` differs from manifest `swID`, or a `NeedsUpdate="YES"` row has a decoded partition?
+**Question.** Which carrier controls membership when Keywords `id` differs from manifest `swID`, or a native explicit `SourceIndex` conflicts with the complete manifest join?
 
-**Known.** `sldprt.md` §2 defines the complete Keywords-name, manifest-row, referenced-model, and decimal `swID` join for current inactive and active snapshots. Missing partitions leave membership unresolved; decoded empty partitions establish empty membership. Keywords `id` and `swID` coincide in the available witnesses, so their covariance does not establish interchangeable authority. For configurations without a valid explicit index, the reader requires the complete manifest join and `NeedsUpdate="NO"`; it abstains on a conflicting explicit `SourceIndex` or an update-required row with a present partition. These abstentions do not establish producer precedence in the unobserved cases.
+**Known.** `sldprt.md` §2 defines the complete manifest-row, referenced-model, and decimal `swID` join for saved inactive and active configurations. A readable Keywords name must agree with that join. A missing or unreadable Keywords definition does not erase a complete saved identity. Missing partitions leave membership unresolved; decoded empty partitions establish empty membership. An update-required row can have a decoded partition: `140489.sldprt` has `NeedsUpdate="YES"` and a complete active partition-0 identity. The reader retains that saved identity without asserting regeneration freshness. Keywords `id` and `swID` coincide in the available paired witnesses, so their covariance does not establish interchangeable authority. Conflicting explicit `SourceIndex` values remain unresolved.
 
-**Need.** We must know whether another stored field binds an inactive source-less configuration. The body membership stays `Unresolved`. A producer save or export must distinguish unequal Keywords `id` and manifest `swID`, and separately distinguish a `YES` row with a present current partition. A native dual-carrier witness must test explicit `SourceIndex` disagreement with the full manifest join.
+**Need.** A producer save or export must distinguish unequal Keywords `id` and manifest `swID`. A native dual-carrier witness must test explicit `SourceIndex` disagreement with the full manifest join.
+
+**Note.** Saved partition membership does not establish current feature definitions or regenerated geometry. A manifest name and body set do not supply an unreadable Keywords definition or its feature states.
 
 ## 4. Auxiliary lanes
 
