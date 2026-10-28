@@ -562,6 +562,15 @@ Entity-orientation and point-alignment constraint families are distinct.
 
 **Note.** A missing or ambiguous owner and an unproved locus sense retain native geometry. Family does not follow from the numeric entity identifier or a single center-like sense.
 
+**Conflict.** `creo_prt.md` §5 states that sense `4` establishes a native
+circular family, and a solver-only identity with only sense-four roles takes
+that family. Sense four also selects a locus on entities that are not circular:
+a type-0 incidence stores the `segtab` type-5 point row `05 00 00 f6 f6 11` as
+item `11 04`, and a centered type-47 construction line has a sense-four center.
+A solver-only identity that is the sense-zero point of a type-35 midpoint row
+and also takes sense four therefore has both point and circular evidence and
+remains unresolved.
+
 ### SP-17. Solver-only external references
 
 **Question.** What complete declaration and replay grammar certifies
