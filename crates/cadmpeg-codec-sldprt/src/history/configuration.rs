@@ -147,11 +147,14 @@ pub(crate) fn enrich_history_semantic(
     lanes: &[crate::records::FeatureInputLane],
     pmi_dimensions: &[crate::records::PmiDimension],
     mode: HistoryEnrichment,
-) -> Result<(), cadmpeg_core::CodecError> {
+) -> Result<usize, cadmpeg_core::CodecError> {
     crate::resolved_features::terminations::enrich_history_extrusion_terminations(
         ctx, histories, lanes,
     )?;
-    crate::resolved_features::terminations::enrich_history_combine_selections(histories, lanes)?;
+    let ambiguous_body_features =
+        crate::resolved_features::terminations::enrich_history_combine_selections(
+            histories, lanes,
+        )?;
     crate::resolved_features::terminations::enrich_history_sweep_profiles(histories, lanes);
     crate::resolved_features::reference_geometry::enrich_history_sketch_block_references(
         histories, lanes,
@@ -180,7 +183,7 @@ pub(crate) fn enrich_history_semantic(
     apply_evaluated_parameters(ctx, histories)?;
     crate::resolved_features::reference_geometry::enrich_history_reference_axes(histories, lanes);
     crate::resolved_features::axes::enrich_history_revolution_inputs(histories, lanes);
-    Ok(())
+    Ok(ambiguous_body_features)
 }
 
 /// The shared compact/generated projection block, declared once for both codec

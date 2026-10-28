@@ -2047,7 +2047,7 @@ fn component_path_continues(payload: &[u8], end: usize, root_separators: bool) -
         })
 }
 
-fn compact_mixed_component_at(
+pub(super) fn compact_mixed_component_at(
     payload: &[u8],
     offset: usize,
     remaining: usize,

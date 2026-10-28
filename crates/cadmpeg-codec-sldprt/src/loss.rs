@@ -113,6 +113,8 @@ pub(crate) enum SldprtLossCode {
     FeatureThinOperationAmbiguous,
     /// Native edge selection has a refused terminal feature owner.
     FeatureEdgeTerminalUnresolved,
+    /// A compact body-path boundary has competing local-ID and tagged-entry spellings.
+    FeatureBodyPathAmbiguous,
     /// Body delete/keep feature retains native selection without a decoded mode.
     FeatureBodyRetentionUnresolved,
     /// Face or procedural construction references an untyped support surface.
@@ -260,6 +262,7 @@ impl SldprtLossCode {
         Self::FeatureTypedOperandIncomplete,
         Self::FeatureThinOperationAmbiguous,
         Self::FeatureEdgeTerminalUnresolved,
+        Self::FeatureBodyPathAmbiguous,
         Self::FeatureBodyRetentionUnresolved,
         Self::GeometryFaceSupportSurfaceUntyped,
         Self::GeometrySurfaceCarrierAmbiguous,
@@ -343,6 +346,7 @@ impl SldprtLossCode {
             Self::FeatureTypedOperandIncomplete => "feature.typed-operand-incomplete",
             Self::FeatureThinOperationAmbiguous => "feature.thin-operation-ambiguous",
             Self::FeatureEdgeTerminalUnresolved => "feature.edge-terminal-unresolved",
+            Self::FeatureBodyPathAmbiguous => "feature.body-path-ambiguous",
             Self::FeatureBodyRetentionUnresolved => "feature.body-retention-unresolved",
             Self::GeometryFaceSupportSurfaceUntyped => "geometry.face-support-surface-untyped",
             Self::GeometrySurfaceCarrierAmbiguous => "geometry.surface-carrier-ambiguous",
@@ -456,6 +460,7 @@ impl SldprtLossCode {
             | Self::FeatureTypedOperandIncomplete
             | Self::FeatureThinOperationAmbiguous
             | Self::FeatureEdgeTerminalUnresolved
+            | Self::FeatureBodyPathAmbiguous
             | Self::FeatureBodyRetentionUnresolved
             | Self::GeometryFaceSupportSurfaceUntyped
             | Self::GeometrySurfaceCarrierAmbiguous
@@ -590,6 +595,7 @@ impl SldprtLossCode {
             | Self::FeatureTypedOperandIncomplete
             | Self::FeatureThinOperationAmbiguous
             | Self::FeatureEdgeTerminalUnresolved
+            | Self::FeatureBodyPathAmbiguous
             | Self::FeatureBodyRetentionUnresolved => LossTaxonomy::FeatureHistoryRetained,
         }
     }
@@ -774,6 +780,7 @@ mod tests {
                 "feature.typed-operand-incomplete",
                 "feature.thin-operation-ambiguous",
                 "feature.edge-terminal-unresolved",
+                "feature.body-path-ambiguous",
                 "feature.body-retention-unresolved",
                 "geometry.face-support-surface-untyped",
                 "geometry.surface-carrier-ambiguous",

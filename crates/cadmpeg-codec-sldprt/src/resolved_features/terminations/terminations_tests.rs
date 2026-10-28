@@ -1,5 +1,7 @@
 //! Tests for the `terminations` module.
 
+mod body_path_boundary;
+
 use super::super::selections::COMPACT_EDGE_VECTOR_MARKER;
 use super::super::selections::{compact_surface_selections, selection_vector_tail};
 use super::{

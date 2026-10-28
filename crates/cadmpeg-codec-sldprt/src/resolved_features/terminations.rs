@@ -8,7 +8,7 @@ use super::is_class_token;
 use super::parameters::value_only_scalar_offset;
 use super::scalars::FeatureObjectNames;
 use super::selections::{
-    compact_general_curve_ref_at, compact_heterogeneous_component_path,
+    compact_general_curve_ref_at, compact_heterogeneous_component_path, compact_mixed_component_at,
     compact_mixed_component_path, compact_profile_general_curve_ref_at,
     component_profile_source_at, component_reference_curve_path_at,
     declared_general_curve_profile_prefix, is_component_vector_selector,
@@ -19,7 +19,7 @@ use crate::records::{FeatureInputComponentPathEntry, FeatureInputLane};
 use cadmpeg_core::decode::View;
 use cadmpeg_core::decode::{u64_from_index, DecodeContext};
 use cadmpeg_ir::features::{FeatureDefinition, FeatureOperation};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 const EPS_TERMINATIONS_ENRICH_HISTORY_EXTRUSION_TERMINATIONS_E9: f64 = 1.0e-9;
 
@@ -605,7 +605,8 @@ struct CombineSelection {
 pub(crate) fn enrich_history_combine_selections(
     histories: &mut [crate::records::FeatureHistory],
     lanes: &[FeatureInputLane],
-) -> Result<(), cadmpeg_core::CodecError> {
+) -> Result<usize, cadmpeg_core::CodecError> {
+    let mut ambiguous_features = HashSet::new();
     let mut selections = HashMap::<String, Vec<Option<CombineSelection>>>::new();
     for lane in lanes {
         let objects = history_object_offsets(histories, lane);
@@ -631,21 +632,29 @@ pub(crate) fn enrich_history_combine_selections(
                 .unwrap_or(lane.native_payload.len());
             let mut first = None;
             let mut last = None;
+            let mut ambiguous = false;
             if let (Some(scan_start), Some(scan_end)) = (
                 start.checked_add(12),
                 end.checked_sub(COMPACT_EDGE_VECTOR_MARKER.len()),
             ) {
                 for marker in scan_start..scan_end {
-                    if compact_body_component_path_at(&lane.native_payload, marker).is_some() {
-                        if first.is_none() {
-                            first = Some(marker);
+                    match compact_body_component_path_state_at(&lane.native_payload, marker) {
+                        Some(CompactBodyPath::Complete(_)) => {
+                            if first.is_none() {
+                                first = Some(marker);
+                            }
+                            last = Some(marker);
                         }
-                        last = Some(marker);
+                        Some(CompactBodyPath::Ambiguous) => {
+                            ambiguous = true;
+                            ambiguous_features.insert(feature_id.clone());
+                        }
+                        None => {}
                     }
                 }
             }
             let selection = match (first, last) {
-                (Some(target), Some(tools)) if target != tools => {
+                (Some(target), Some(tools)) if target != tools && !ambiguous => {
                     let operation = compact_combine_operation_at(&lane.native_payload, start);
                     let lane_key = lane
                         .id
@@ -700,7 +709,7 @@ pub(crate) fn enrich_history_combine_selections(
             insert_termination_field(&mut feature.properties, key, value)?;
         }
     }
-    Ok(())
+    Ok(ambiguous_features.len())
 }
 
 fn compact_combine_operation_at(payload: &[u8], name_offset: usize) -> Option<&'static str> {
@@ -1162,6 +1171,18 @@ fn compact_body_component_path_at(
     payload: &[u8],
     marker: usize,
 ) -> Option<Vec<FeatureInputComponentPathEntry>> {
+    match compact_body_component_path_state_at(payload, marker)? {
+        CompactBodyPath::Complete(components) => Some(components),
+        CompactBodyPath::Ambiguous => None,
+    }
+}
+
+enum CompactBodyPath {
+    Complete(Vec<FeatureInputComponentPathEntry>),
+    Ambiguous,
+}
+
+fn compact_body_component_path_state_at(payload: &[u8], marker: usize) -> Option<CompactBodyPath> {
     let count = (|| {
         if marker < 12
             || payload.get(marker..marker + 16) != Some(COMPACT_EDGE_VECTOR_MARKER.as_slice())
@@ -1185,7 +1206,7 @@ fn compact_body_component_entries_at(
     payload: &[u8],
     cursor: usize,
     count: usize,
-) -> Option<Vec<FeatureInputComponentPathEntry>> {
+) -> Option<CompactBodyPath> {
     if count == 0 {
         return None;
     }
@@ -1199,12 +1220,31 @@ fn compact_body_component_entries_at(
             .any(|component| component.instance.is_none() || component.local_id.is_none())
             .then_some((components, end))
     };
-    if let Some((components, _)) = parse(count) {
-        return Some(components);
+    let unambiguous = |components: &[FeatureInputComponentPathEntry], end: usize| {
+        !components.last().is_some_and(|component| {
+            component.local_id.is_some()
+                && end
+                    .checked_sub(4)
+                    .and_then(|offset| compact_mixed_component_at(payload, offset, 1))
+                    .is_some_and(|(entry, _)| entry.instance.is_some())
+        })
+    };
+    if let Some((components, end)) = parse(count) {
+        return Some(if unambiguous(&components, end) {
+            CompactBodyPath::Complete(components)
+        } else {
+            CompactBodyPath::Ambiguous
+        });
     }
     if count > 1 {
         let (components, end) = parse(count - 1)?;
-        return compact_body_null_slot_at(payload, end).then_some(components);
+        return compact_body_null_slot_at(payload, end).then(|| {
+            if unambiguous(&components, end) {
+                CompactBodyPath::Complete(components)
+            } else {
+                CompactBodyPath::Ambiguous
+            }
+        });
     }
     None
 }
