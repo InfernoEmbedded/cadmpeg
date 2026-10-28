@@ -206,6 +206,65 @@ fn fc08_body_is_an_eight_sample_two_chart_count() {
     assert_eq!(record.samples[7], [[1.0, 0.0], [0.0, -1.0]]);
 }
 
+fn two_chart_body_payload(count: u8, first_row: &[u8]) -> Vec<u8> {
+    let mut payload = b"topol_ref_data\0".to_vec();
+    payload.extend_from_slice(&[7, 0, 4, 1, 0xf6, 0xfc, count]);
+    payload.extend_from_slice(first_row);
+    for _ in 1..count {
+        payload.extend_from_slice(&[0x18; 4]);
+    }
+    payload.extend_from_slice(&[10, 11, 7, 7, 0, 0, 0xe3, 0xe1, 0xe3]);
+    payload
+}
+
+#[test]
+fn counted_two_chart_bodies_read_2d_positive_and_46_negative() {
+    let mut first_row = vec![0x2d, 0x08, 0, 0, 0, 0, 0, 0];
+    first_row.extend_from_slice(&[0x46, 0x08, 0, 0, 0, 0, 0, 0]);
+    first_row.extend_from_slice(&[0x46, 0x14, 0, 0, 0, 0, 0, 0]);
+    first_row.extend_from_slice(&[0x2d, 0x14, 0, 0, 0, 0, 0, 0]);
+    let face_ids = BTreeSet::from([10, 11]);
+
+    let counted = two_chart_pcurve_samples(&two_chart_body_payload(3, &first_row), Some(&face_ids));
+    let [record] = counted.as_slice() else {
+        panic!("one counted fc 03 body");
+    };
+    assert_eq!(record.samples[0], [[3.0, -3.0], [-5.0, 5.0]]);
+
+    let short_forms = [
+        0x2f, 0x08, 0x00, 0x48, 0x08, 0x00, 0x48, 0x14, 0x00, 0x2f, 0x14, 0x00,
+    ];
+    let counted =
+        two_chart_pcurve_samples(&two_chart_body_payload(3, &short_forms), Some(&face_ids));
+    let [record] = counted.as_slice() else {
+        panic!("one counted fc 03 body with short forms");
+    };
+    assert_eq!(record.samples[0], [[3.0, -3.0], [-5.0, 5.0]]);
+
+    let two_sample =
+        two_chart_pcurve_samples(&two_chart_body_payload(2, &first_row), Some(&face_ids));
+    let [record] = two_sample.as_slice() else {
+        panic!("one counted fc 02 body");
+    };
+    assert_eq!(record.samples[0], [[-3.0, 3.0], [5.0, -5.0]]);
+}
+
+#[test]
+fn counted_two_chart_first_coordinate_reads_positive_dict_prefixes() {
+    let mut first_row = vec![0x4b, 0x20, 0, 0, 0, 0, 0];
+    first_row.extend_from_slice(&[0x18, 0x18, 0x18]);
+    let face_ids = BTreeSet::from([10, 11]);
+
+    let counted = two_chart_pcurve_samples(&two_chart_body_payload(3, &first_row), Some(&face_ids));
+    let [record] = counted.as_slice() else {
+        panic!("one counted fc 03 body");
+    };
+    assert_eq!(
+        record.samples[0][0][0],
+        f64::from_be_bytes([0x3f, 0xc0, 0x20, 0, 0, 0, 0, 0])
+    );
+}
+
 #[test]
 fn two_chart_sample_rows_do_not_claim_fc05_circle_bodies() {
     let mut payload = b"topol_ref_data\0".to_vec();

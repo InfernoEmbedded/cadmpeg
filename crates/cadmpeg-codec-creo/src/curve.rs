@@ -7295,9 +7295,14 @@ fn counted_curve_scalar_lane(
         let cache = scalar::ScalarCache::default();
         let mut slots = 0;
         for slot in 0..slot_count {
-            let Some((_, next)) = decode_two_chart_scalar(body, cursor, slot % 2 == 0, &cache)
-                .filter(|(value, next)| value.is_finite() && *next > cursor && *next <= body.len())
-            else {
+            let Some((_, next)) = decode_two_chart_scalar(
+                body,
+                cursor,
+                slot % 2 == 0,
+                slot_count >= 4 * MIN_COUNTED_LANE_SAMPLES,
+                &cache,
+            )
+            .filter(|(value, next)| value.is_finite() && *next > cursor && *next <= body.len()) else {
                 break;
             };
             if body[cursor] == 0x18 {
@@ -7465,17 +7470,22 @@ fn decode_two_chart_scalar(
     body: &[u8],
     cursor: usize,
     first_coordinate: bool,
+    counted: bool,
     cache: &scalar::ScalarCache,
 ) -> Option<(f64, usize)> {
     if body.get(cursor) == Some(&0x18) {
         return Some((0.0, cursor + 1));
     }
-    if first_coordinate {
-        scalar::decode_two_chart_first_coordinate(body, cursor, cache)
-    } else {
-        scalar::decode_two_chart_second_coordinate(body, cursor, cache)
+    match (first_coordinate, counted) {
+        (true, true) => scalar::decode_counted_two_chart_first_coordinate(body, cursor, cache),
+        (true, false) => scalar::decode_two_chart_first_coordinate(body, cursor, cache),
+        (false, true) => scalar::decode_counted_two_chart_second_coordinate(body, cursor, cache),
+        (false, false) => scalar::decode_two_chart_second_coordinate(body, cursor, cache),
     }
 }
+
+/// Smallest sample count whose body uses the counted two-chart coordinate lanes.
+const MIN_COUNTED_LANE_SAMPLES: usize = 3;
 
 fn complete_two_chart_samples(
     body: &[u8],
@@ -7493,7 +7503,13 @@ fn complete_two_chart_samples(
     for _ in 0..sample_count {
         let mut sample = [[0.0; 2]; 2];
         for (slot, value) in sample.iter_mut().flatten().enumerate() {
-            let (decoded, next) = decode_two_chart_scalar(body, cursor, slot % 2 == 0, cache)?;
+            let (decoded, next) = decode_two_chart_scalar(
+                body,
+                cursor,
+                slot % 2 == 0,
+                sample_count >= MIN_COUNTED_LANE_SAMPLES,
+                cache,
+            )?;
             if next <= cursor || !decoded.is_finite() {
                 return None;
             }

@@ -4292,13 +4292,7 @@ fn observe_inline_type26_radius(
     if kind != SurfaceKind::TorusOrSphere || inline_suffix_frame_directions(frame).is_none() {
         return;
     }
-    let decode_radius = |cursor| {
-        if local.get(cursor) == Some(&0x0d) {
-            Some((0.25, cursor + 1))
-        } else {
-            scalar::decode_inline_surface_suffix_scalar(local, cursor, cache)
-        }
-    };
+    let decode_radius = |cursor| scalar::decode_type26_radius_slot(local, cursor, cache);
     let Some((major, cursor)) = decode_radius(frame.cursor) else {
         return;
     };

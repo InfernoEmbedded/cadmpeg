@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #![allow(clippy::unwrap_used)]
 
-use super::definition_revolution_extents;
 use crate::feature::definitions::bind_definition_owners;
 use crate::feature::definitions::bind_replay_definition_owners;
 use crate::feature::definitions::bind_section_owners;
@@ -511,65 +510,6 @@ fn depdb_owner_binding_preserves_stored_definition_identifier() {
 
     assert_eq!(definition.identity.id(), 2);
     assert_eq!(definition.identity.owner_feature_id(), Some(247));
-}
-
-#[test]
-fn mode_only_depdb_revolve_does_not_define_an_extent() {
-    let mut definition = pending_replay(&[]);
-    definition.identity = DefinitionIdentity::Parsed {
-        schema_id: std::num::NonZeroU32::new(247),
-        owner_feature_id: Some(247),
-    };
-    definition.offset = 100;
-    definition.body = vec![
-        0x83, 0xdf, 0xf6, 0xe3, 0x00, 0x00, 0xea, 0x44, 0x00, 0x00, 0xf6, 0xf6, 0xf6, 0x00, 0x00,
-        0x00, 0x00,
-    ];
-    let revolve = operation(247, Some(FeatureRecipe::ProtrudeRevolve), 10);
-
-    let decoded = definition_revolution_extents(&[definition.clone()], &[revolve]);
-
-    assert!(decoded.is_empty());
-
-    let extrude = operation(247, Some(FeatureRecipe::ProtrudeExtrude), 10);
-    assert!(definition_revolution_extents(&[definition], &[extrude]).is_empty());
-}
-
-#[test]
-fn mode_only_depdb_requires_an_angle_value() {
-    let mut definition = pending_replay(&[]);
-    definition.identity = DefinitionIdentity::Parsed {
-        schema_id: std::num::NonZeroU32::new(247),
-        owner_feature_id: Some(247),
-    };
-    definition.body = vec![
-        0x83, 0xdf, 0xf6, 0xe3, 0x00, 0x00, 0xea, 0x44, 0x00, 0x00, 0xf6, 0xf6, 0xf6, 0x00, 0x00,
-        0x00, 0x00,
-    ];
-    let revolve = operation(247, Some(FeatureRecipe::ProtrudeRevolve), 10);
-    assert!(definition_revolution_extents(&[definition], &[revolve]).is_empty());
-}
-
-#[test]
-fn mode_only_repeated_depdb_states_do_not_supply_a_magnitude() {
-    let sequence = [
-        0x83, 0xdf, 0xf6, 0xe3, 0x00, 0x00, 0xea, 0x44, 0x00, 0x00, 0xf6, 0xf6, 0xf6, 0x00, 0x00,
-        0x00, 0x00,
-    ];
-    let mut definition = pending_replay(&[]);
-    definition.identity = DefinitionIdentity::Parsed {
-        schema_id: std::num::NonZeroU32::new(247),
-        owner_feature_id: Some(247),
-    };
-    definition.offset = 100;
-    definition.body.extend(sequence);
-    definition.body.extend([0xe7, 0x04, 0x00, 0xe1]);
-    definition.body.extend(sequence);
-    let revolve = operation(247, Some(FeatureRecipe::ProtrudeRevolve), 10);
-
-    let decoded = definition_revolution_extents(&[definition], &[revolve]);
-
-    assert!(decoded.is_empty());
 }
 
 #[test]

@@ -13,7 +13,7 @@ use crate::scalar;
 use super::entity::{generated_class_200_source_entity_ids, FeatureEntityTable};
 use super::helpers::find_bytes;
 use super::operations::FeatureOperation;
-use super::rows::{FeatureGeometryTable, FeatureRevolutionExtent};
+use super::rows::FeatureGeometryTable;
 use super::segment_rows::{SegmentRow, SegmentRows};
 
 const EPS_PARAMETER_AGREEMENT: f64 = 1.0e-9;
@@ -6720,14 +6720,6 @@ fn positional_saved_section(
     entities.as_mut_slice().sort_by_key(saved_entity_offset);
     let offset = entities.first().map(saved_entity_offset)?;
     Some(FeatureSavedSection { entities, offset })
-}
-
-/// A rotational recipe and angle-choice mode do not supply an angular magnitude.
-pub(crate) fn definition_revolution_extents(
-    _definitions: &[FeatureDefinition],
-    _operations: &[FeatureOperation],
-) -> Vec<FeatureRevolutionExtent> {
-    Vec::new()
 }
 
 fn definitions_in_ranges(

@@ -486,6 +486,44 @@ pub(crate) fn decode_two_chart_second_coordinate(
     decode_tabulated_cylinder_second_coordinate(data, offset, cache)
 }
 
+/// Decode the first coordinate of one chart in a counted two-chart body with
+/// three or more samples.
+///
+/// The eight-byte `2d` and `46` forms and the positive-DICT prefixes use the
+/// first tabulated-cylinder directrix-coordinate lane. Other forms use the
+/// two-chart lane.
+pub(crate) fn decode_counted_two_chart_first_coordinate(
+    data: &[u8],
+    offset: usize,
+    cache: &ScalarCache,
+) -> Option<(f64, usize)> {
+    match *data.get(offset)? {
+        0x2d => ieee8(data, offset, 0x40),
+        0x46 => ieee8(data, offset, 0xc0),
+        head @ (0x4b | 0x66..=0x68 | 0x77 | 0x82..=0x8f) => {
+            ieee7_dict(data, offset, 0x3f75 + u16::from(head))
+        }
+        _ => decode_two_chart_first_coordinate(data, offset, cache),
+    }
+}
+
+/// Decode the second coordinate of one chart in a counted two-chart body with
+/// three or more samples.
+///
+/// The eight-byte `2d <tail7>` form reconstructs `40 <tail7>` and `46 <tail7>`
+/// reconstructs `c0 <tail7>`. Other forms use the two-chart lane.
+pub(crate) fn decode_counted_two_chart_second_coordinate(
+    data: &[u8],
+    offset: usize,
+    cache: &ScalarCache,
+) -> Option<(f64, usize)> {
+    match *data.get(offset)? {
+        0x2d => ieee8(data, offset, 0x40),
+        0x46 => ieee8(data, offset, 0xc0),
+        _ => decode_two_chart_second_coordinate(data, offset, cache),
+    }
+}
+
 /// Decode a model-space coordinate in an `ActDatums` outline.
 ///
 /// Named and positional datum outlines use the backed subset of the bounded
@@ -848,6 +886,22 @@ pub(crate) fn decode_inline_surface_suffix_scalar(
         0x18 => Some((0.0, offset + 1)),
         _ => decode_positive_dict(body, offset)
             .or_else(|| decode_in_surface_row_lane(body, offset, cache)),
+    }
+}
+
+/// Decode one type-26 `radius1` or `radius2` slot of an inline family suffix.
+///
+/// The slot extends the suffix lane with `0d` for one quarter and the
+/// eight-byte `2d <tail7>` form, which reconstructs `40 <tail7>`.
+pub(crate) fn decode_type26_radius_slot(
+    body: &[u8],
+    offset: usize,
+    cache: &ScalarCache,
+) -> Option<(f64, usize)> {
+    match body.get(offset)? {
+        0x0d => Some((0.25, offset + 1)),
+        0x2d => ieee8(body, offset, 0x40),
+        _ => decode_inline_surface_suffix_scalar(body, offset, cache),
     }
 }
 

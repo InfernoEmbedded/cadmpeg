@@ -46,7 +46,27 @@ pub(in super::super) fn admitted_feature_recipe(
     if feature_recipe_schema_conflict(scan, feature_id) {
         return None;
     }
-    current_feature_recipe(&scan.features.operations, feature_id)
+    let stored = current_feature_recipe(&scan.features.operations, feature_id);
+    match (stored, row_form_recipe(scan, feature_id)) {
+        (Some(stored), Some(formed)) => (stored == formed).then_some(stored),
+        (stored, formed) => stored.or(formed),
+    }
+}
+
+/// The section-sweep recipe that every `AllFeatur` row of the feature states
+/// through its feature form.
+fn row_form_recipe(
+    scan: &ContainerScan,
+    feature_id: u32,
+) -> Option<crate::feature::operations::FeatureRecipe> {
+    let mut recipes = scan
+        .features
+        .rows
+        .iter()
+        .filter(|row| row.feature_id == feature_id)
+        .map(crate::feature::rows::FeatureRow::section_sweep_form_recipe);
+    let first = recipes.next()??;
+    recipes.all(|recipe| recipe == Some(first)).then_some(first)
 }
 
 pub(in super::super) fn admitted_feature_recipe_parent(

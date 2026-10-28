@@ -1330,7 +1330,8 @@ system has three direction triples followed
 by one origin triple and is closed by `e3`. A cylinder suffix is one radius, a
 cone suffix is one half-angle, and a type-26 suffix is `radius1 radius2`.
 The suffix lane uses exact `18` for zero, `0f` for one, and `0e` for one half.
-A type-26 radius slot also uses `0d` for one quarter. These radius-slot
+A type-26 radius slot also uses `0d` for one quarter, and its eight-byte
+`2d <tail7>` form reconstructs `40 <tail7>`. These radius-slot
 meanings do not apply to local-system coordinates or generic row scalars.
 For type 26, a finite non-negative `radius1` and positive `radius2` define a
 torus; exact `radius1 = 0` selects a sphere whose radius is `radius2`.
@@ -2469,7 +2470,12 @@ coordinate lane. In this bounded curve grammar, `32 <tail7>` is an eight-byte
 positive sub-unit first-coordinate scalar that reconstructs IEEE-754 bytes
 `3f <tail7>`. Its second coordinate uses the second directrix coordinate lane.
 The positive-DICT lattice extends through prefixes `4b..a3` in this grammar;
-the prefix and six-byte tail reconstruct by the positive-DICT rule. A bare
+the prefix and six-byte tail reconstruct by the positive-DICT rule. In a body
+of three or more samples, `2d <tail7>` reconstructs `40 <tail7>` and
+`46 <tail7>` reconstructs `c0 <tail7>` in both coordinates, and the first
+coordinate reads `4b`, `66..68`, `77`, and `82..8f` by the positive-DICT
+rule. The three-byte forms keep their signs: `2e` and `2f` are positive, and
+`47` and `48` are negative. A bare
 `18` occupies one zero slot in either coordinate. The chart pair
 for a spline face is the interpolation surface's `(u, v)` pair. A plane uses
 its stored affine `(u, v)` frame. An extrusion uses profile parameter followed
@@ -3591,7 +3597,8 @@ surface-of-revolution reductions require `ratio = 1`.
 `MdlStatus` item names can contain feature-kind text as `<Kind> id <N>`. A
 name alone does not select a current native candidate; same-ID names project a
 common operation only under the agreement rule below. A generic material name
-describes a sweep family only through an admitted recipe. Kind names include
+describes a sweep family only through an admitted recipe or the feature form
+of its section-sweep row. Kind names include
 `Annotation Feature`, `Cross Section`, `Datum Plane`, `Round`, `Chamfer`,
 `Protrusion`, `Extrude`, `Revolve`, `Hole`, `Cut`, `Draft`, `Mirror`, and
 `Surface`. Reference-backed `Thicken <decimal-ordinal>` and
@@ -3640,7 +3647,12 @@ that creates curves at the intersections of two selected shape sets.
 `Protrusion` and `Cut` identify generic material-addition and material-removal
 labels, not a linear or rotational family. For example, the panel-lamp source
 stores `protrevolve` beside `Protrusion id 667`; that stored state does not by
-itself establish the current recipe. Without an independently admitted current
+itself establish the current recipe. When every `AllFeatur` row of the
+feature is a class-916 or class-917 row with the same `feat_type_ptr.form`,
+that form is an independent family: form `1` selects extrusion and form `2`
+selects rotation. A stored
+recipe of the other family conflicts with the form, and neither then selects
+the family. Without an independently admitted current
 procedural family, retain a generic material feature as Native with its
 parameters and source identity. An admitted `protextrude` or `cutextrude`
 selects extrusion, while `protrevolve` or `cutrevolve` selects rotation;
@@ -3876,6 +3888,21 @@ design radius. A constant radius is admitted only when every matching value is
 finite, positive, and bit-identical. A missing dimension row supplies no
 radius witness; a malformed, non-positive, or differing matching set supplies
 an unresolved radius.
+In a binary part, the `FullMData` or `BasFullData` section stores the model
+`dim_array` as `e0 00 dim_array 00`, an optional `f1`, `f3`, or `f4 04`
+token, `f8 <count> f7 <class> fb`, and `<count>` slots. The slot index is the
+dimension identifier and the `i_val` of the element's `symbol`. A null slot is
+`e1`. The first present element is the labelled prototype. An element opens
+with `e3`, optionally followed by `f7 <class>`. A `BasFullData` element then
+stores the `dtl_named_item` and `dtl_item` compounds as `e2 e2` and a null
+`name` as `e1`. The next fields are `type` (`08`), `dim_type`, `feat_id`,
+`attr_arr`, and `dim_dat_ptr`. `dim_type` and `feat_id` are compact integers.
+`attr_arr` holds two integers; an optional `f5` precedes them, and each
+integer is a compact integer, a three-byte `c0`..`df` integer, or `eb` with
+four big-endian bytes. `dim_dat_ptr` opens with `e3` and stores `value` then
+`bck_value` as scalar tokens. `dim_type` `3` is a radius and `21` is an angle
+in degrees. The `dim_array` holds the section dimensions of each sketched
+feature and its feature-level dimensions.
 The complete visible crv_array rows whose feat_id equals the round feature id
 are its result-edge identities only when every crv_id is unique. An absent or
 ambiguous row set does not select edges.
@@ -3948,7 +3975,7 @@ row-shaped bytes inside an existing row do not create a boundary.
 
 The root schema class dispatches the row to its operation-definition grammar.
 Class 916 is a subtractive section-sweep definition and class 917 is an
-additive section-sweep definition; their recipes discriminate linear
+additive section-sweep definition; their feature form and recipes discriminate linear
 extrusion from rotation. Class 911 is a hole definition, class 913 is a round definition,
 class 914 is a chamfer definition, class 923 is a datum-plane definition, and
 class 926 is a saved section. In a DEPDB recipe prefix, the root schema class
@@ -4036,21 +4063,27 @@ new-body semantics. A hole,
 round, chamfer, or joining sweep without a body output does not establish a
 body for subsequent Boolean classification.
 
-In a class-916 or class-917 positional feature row, feature form `2` selects a
-rotational section sweep. Its `param_choice_ptr` body begins after
+In a class-916 or class-917 positional feature row, feature form `1` selects a
+linear section sweep and feature form `2` selects a rotational section sweep.
+The rotational row's `param_choice_ptr` body begins after
 `83 df f6 e3` and stores the choices in the labelled prototype order. The
 `angle_choice` lane contains a termination-mode bit mask. For this lane,
 `ea` introduces three big-endian mask bytes and `eb` introduces four.
 `ea 44 00 00` is `FROM_NONE | TO_ANGLE`; `eb 20 04 00 00` is
 `FROM_NONE | SYMMETRIC`. Neither mode states an angle magnitude. The inactive
-`depth_choice` zero is not an angular extent. A one-sided angle requires its
-independently owned angle value; a symmetric angle has half that value on each
-side. Two-sided angles require both side values. A reference mode requires its
-typed reference and placement. Standard direction is separate from the mode.
-The same mode inside a bounded DEPDB rotational definition does not gain a
-magnitude from its recipe or repetition. A neutral angular extent requires
-complete, agreeing owned magnitude/reference and direction states. State order
-does not select one termination over another.
+`depth_choice` zero is not an angular extent. The angle value is the model
+angular dimension of the feature: the `dim_array` element whose `dim_type` is
+`21` and whose `feat_id` is the feature identifier. A `FROM_NONE | TO_ANGLE`
+mode whose feature has exactly one such dimension, with value 360, is a
+complete 360-degree revolution; its direction does not change the swept
+region. A one-sided angle below 360 also requires the standard direction; a
+symmetric angle has half the value on each side. Two-sided angles require both
+side values. A reference mode requires its typed reference and placement.
+Standard direction is separate from the mode. The same mode inside a bounded
+DEPDB rotational definition does not gain a magnitude from its recipe or
+repetition. A neutral angular extent requires complete, agreeing owned
+magnitude/reference and direction states. State order does not select one
+termination over another.
 For a complete full-turn revolution, every `srf_array` row whose `feat_id`
 selects the feature must transfer to one carrier before generated carriers can
 define the revolution axis. Cylinder, cone, and torus carriers contribute their

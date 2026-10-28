@@ -183,6 +183,8 @@ display name, or an API-enum cast.
 
 **Need.** Define the remaining body grammar and a unique placement witness before constructing a torus or sphere carrier from those forms. An agreeing inline radius pair does not resolve conflicting origin or direction readings.
 
+**Conflict.** The decoder reads a type-26 radius slot with the `0d` and `2d` meanings only for the prototype-minor-radius replay. Its carrier path reads the generic suffix lane, so `0d` and `2d` rows get no torus carrier. With the radius-slot meanings, the CTC-04 rows with a `2d` major radius and the CTC-05 rows with a `0d` minor radius place tori that agree with the STEP siblings, but two rows place the origin with one coordinate of the wrong sign: CTC-04 surface 15784 reads origin `y` from `2d 77 dc a8 7a 1e 8f 83` as -381.79 (STEP +381.79), and headset-hook-holder surface 437 reads origin `z` from `0e` as -0.5 in (STEP +0.5 in). The same `2d` origin-`y` reading misplaces about thirty torus and cylinder carriers that the decoder already emits in NIST CTC-02, CTC-04, FTC-10, mic-clip, panel-lamp, resistor, and thyrister. Adding the positive `2d` reading as another origin candidate withholds correct carriers in heat-sink, mouse, and other parts, so the inline origin lane needs its own rule before the carrier path takes the radius-slot meanings.
+
 ### GS-06. Prototype-adjacent `tab_cyl` parameters
 
 **Question.** What does each parameter in a prototype-adjacent `tab_cyl` instance row control?
@@ -225,13 +227,13 @@ display name, or an API-enum cast.
 
 ### GS-13. Incomplete counted pcurve bodies
 
-**Question.** Which remaining scalar and enclosing-row forms resolve a counted two-chart body when exact `4N` scalar consumption cannot be established?
+**Question.** Which remaining scalar and enclosing-row forms resolve a counted two-chart body when exact `4N` scalar consumption cannot be established, and which first-coordinate prefixes of a counted body read differently from the two-chart lane?
 
-**Known.** `creo_prt.md` defines `fc <count>` with four finite chart scalars per sample and no trailer. Counts `4`, `7`, `8`, `9`, and `10` do not identify separate curve families. A unique complete counted body fixes a competing topology-suffix boundary without requiring the referenced face to be materialized.
+**Known.** `creo_prt.md` defines `fc <count>` with four finite chart scalars per sample and no trailer, and the `2d`, `46`, and positive-DICT readings of bodies with three or more samples. Counts `4`, `7`, `8`, `9`, and `10` do not identify separate curve families. A unique complete counted body fixes a competing topology-suffix boundary without requiring the referenced face to be materialized. In two-sample `fc 02` bodies the `46` sign is mixed, so those bodies keep the two-chart lane.
 
-**Need.** Define the missing scalar and enclosing-row productions before assigning values or selecting a suffix from incomplete or conflicting body readings.
+**Need.** Define the missing scalar and enclosing-row productions before assigning values or selecting a suffix from incomplete or conflicting body readings. Check the first-coordinate prefixes `31`, `45`, `4a`, `4e`, `4f`, `52`, `54`, `58..5a`, `71`, `9e`, `a3`, `af`, `b0`, `b1`, `b9`, `bf`, `d1`, `d3`, `de`, and `df`, where the first tabulated-cylinder lane and the two-chart lane differ.
 
-**Conflict.** In counted bodies of three or more samples, column continuity and DICT neighbours indicate that `2d <tail7>` reconstructs `40 <tail7>` and `46 <tail7>` reconstructs `c0 <tail7>` in both coordinates, and that the first coordinate takes the tabulated-cylinder positive-DICT lattice for `4b`, `66..68`, `77`, and `82..8f`. The decoder reads the opposite signs. Changing only these readings adds correct vertices on some parts, but mirrors the decoded resistor model against its STEP sibling. A consumer that depends on the current signs must change in the same step.
+**Note.** In resistor-100w-aluminum-finned, about 370 vertices that the decoder solves from two-chart samples lie off the STEP sibling in the model frame with either sign reading. They fit STEP only under an axis permutation and translation, and the finned body is symmetric enough that a mirrored set fits as well, so an alignment search does not decide the sample sign there.
 
 ### GS-16. Model-reference entity types and conic framing
 
@@ -639,20 +641,22 @@ retain native geometry instead of selecting a same-valued datum or class ID.
 
 **Need.** We must know the values to construct nonzero datum offsets and extents.
 
-### SP-25. Owned revolution angle values and references
+### SP-25. Partial revolution direction and side values
 
-**Question.** Which complete owner join binds an `angle_choice` mode to its
-numeric side values or selected references and standard direction?
+**Question.** Which stored field selects the standard direction of a partial
+`angle_choice` revolution, and which dimensions hold the two side values of a
+two-sided mode or the references of a reference mode?
 
-**Known.** `ea 44 00 00` selects `FROM_NONE | TO_ANGLE`; it does not state
-360 degrees. `eb 20 04 00 00` selects a symmetric angle mode. A symmetric
-mode uses half its separate angle value on each side. A recipe, repeated mode,
-or matching full-turn carrier geometry does not supply the trim magnitude.
+**Known.** The angle value of a rotational section sweep is the feature's
+`dim_type` `21` model dimension. A `FROM_NONE | TO_ANGLE` mode with one
+360-degree angular dimension is a full turn. `eb 20 04 00 00` selects a
+symmetric angle mode. A recipe, repeated mode, or matching full-turn carrier
+geometry does not supply the trim magnitude.
 
-**Need.** Resolve each numeric side value or typed reference under its complete
-owner and reconcile direction and all termination states before constructing an
-angular interval. Missing values do not imply zero, a partial turn, or a full
-turn. Preserve the complete raw choice vectors.
+**Need.** Identify the direction state and the side-value and reference
+owners before constructing a partial angular interval. Missing values do not
+imply zero, a partial turn, or a full turn. Preserve the complete raw choice
+vectors.
 
 ### SP-38. Current recipe ownership across creation events
 
