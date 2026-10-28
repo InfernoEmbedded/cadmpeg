@@ -258,13 +258,13 @@ A later `PS\0\0` is a boundary only when the bytes from that position contain a 
 
 **Question.** What complete model/configuration/property resolver and legacy carrier grammar admit a configured property operand without borrowing another namespace or stale calculated value?
 
-**Known.** `sldprt.md` §8.1 "Modern configuration custom properties use" defines the exact modern configuration-name/stored-ID/carrier join and its UserDefinedProperties section. Stored IDs differ from element positions. Default, document custom and configuration custom properties are separate namespaces.
+**Known.** `sldprt.md` §8.1 "Modern configuration custom properties use" defines the exact modern configuration-name/stored-ID/carrier join and its UserDefinedProperties section. `sldprt.md` §8.1 "A compound file without `id` values" defines the owner of the legacy `Config-0-Properties` stream when the configuration has no `id`. Stored IDs differ from element positions. Default, document custom and configuration custom properties are separate namespaces.
 
-**Need.** Independent legacy configuration-property dictionary/FMTID ownership, no-ID admission, complete operand binding, and strict retained-writer behavior for configuration-local property edits. A saved formula does not establish currentness or override carrier ownership.
+**Need.** Independent legacy configuration-property dictionary/FMTID ownership inside the `Config-N-Properties` stream, complete operand binding, and strict retained-writer behavior for configuration-local property edits. A saved formula does not establish currentness or override carrier ownership.
 
 **Conflict.** The current configuration projection retains Keywords fields but does not incorporate the modern configuration-property namespace. The saved default-property reader has a separate document owner and does not resolve configured custom properties.
 
-**Note.** Modern name/ID evidence does not establish a legacy singleton fallback, property-cache freshness, or complete evaluator execution.
+**Note.** Modern name/ID evidence does not establish property-cache freshness or complete evaluator execution.
 
 ### DI-05. Compact offset framing and complete operand ownership
 
@@ -368,14 +368,6 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Need.** We must know the selector values to terminate the extrusion at the correct edge endpoint.
 
-### DI-16. Point-reference codes above `9`
-
-**Question.** What point-reference form does each code above `9` identify?
-
-**Known.** Point-reference codes through `9` have defined native forms and neutral projections.
-
-**Need.** We must know the forms to project their selected geometry.
-
 ### DI-17. Second-direction codes without a defined second side
 
 **Question.** Does a nonzero second-direction code take effect when the direction count at anchor +4 is `1`? What second side does a second-direction code other than `0` or `1` define when anchor +4 is `0`, and what do first-direction codes `2` through `5` define with `0` at anchor +4?
@@ -387,14 +379,6 @@ Two omitted owner-qualified construction circles have separate current/extended 
 **Conflict.** The SolidWorks API record of each feature with `1` at +4 gives one direction, also when the second-direction code is `1`; the decoder projects a through-all second side for those children. The STEP geometry of these parts does not decide, because each second direction exits the part and both extents give the same solid. The to-face rule in `sldprt.md` §2 "Termination code `4` is to-face" reads +22 as a Boolean reference-side flag, not as a second-direction code.
 
 **Note.** A blind second side without a `D2` dimension stays unresolved; the decoder does not use the first-direction depth for it.
-
-### DI-19. Reference-bearing end-spec shapes
-
-**Question.** What record uses the end-spec shape when the word at `+18` is a reference child instead of a termination code?
-
-**Known.** `sldprt.md` §2 "A named feature-input object bound to a classless history `Sketch` record with a nonzero source" defines the end-spec anchor and the termination words at `+18` and `+22` for valid end-spec children.
-
-**Need.** We must distinguish the other record family from an extrusion end specification.
 
 ### DI-20. Feature-local face reconciliation
 
@@ -522,7 +506,7 @@ Two omitted owner-qualified construction circles have separate current/extended 
 
 **Question.** Which owned revolution input identifies the temporary-axis carrier when a profile-source join or another line-reference candidate is also present?
 
-**Known.** `sldprt.md` §2 "An `moCirPattern_c` interval retains its repeated seed" gives the carrier at offsets `+0` through `+311`, the axis origin at `+239`, the axis direction at `+287`, and zero padding of at most 24 bytes before the next class declaration. The specification gives no stored field that fixes the padding length or binds the three scalars between the origin and the direction. The carrier fields do not establish which feature owns the axis or whether another independent source selects a different axis.
+**Known.** `sldprt.md` §2 "An `moCirPattern_c` interval retains its repeated seed" defines the nine-scalar carrier through `+311`, its middle xyz triple at `+263` as the axis point, its final xyz triple at `+287` as the unit axis direction, its exact compact or declared boundary, and its valid zero stream address. The carrier fields do not establish which feature owns the axis or whether another independent source selects a different axis.
 
 **Need.** A complete profile and axis ownership relation must connect the carrier to the revolution. Competing complete source operands must agree before the axis is admitted; source order and fallback priority do not establish agreement.
 
@@ -560,13 +544,17 @@ resolve a seed feature?
 
 **Need.** We must know this to report the configuration's values as not established. Without it, the decode keeps the active values and reports them as the configuration's.
 
-### DI-43. Where the document stores its Angular Equation Units
+### DI-43. Angular Equation Units in trigonometric evaluation
 
-**Question.** Which field of a SLDPRT file stores the Equations dialog's Angular Equation Units setting, degrees or radians, which sets the unit the equation manager's trigonometric functions take and give?
+**Question.** Does the equation angular-unit mode set the unit that the equation manager's trigonometric functions take and give, and does `int()` truncate or floor a negative argument?
 
-**Known.** SolidWorks documents the setting in the Equations dialog; its default is degrees. In the only part sampled with trigonometric lines, an `atn` that gives radians reproduces the value a later line stores as its input in every configuration, and one that gives degrees reproduces none, while the same lines read their angle dimensions in degrees. After the last relation's lowercase name and value table, where a section holds the relation count minus one as a u32 followed by `00 00 ff ff ff ff`, the u32 before it is 0 in that part and in 31 others without trigonometric lines, and 1 in the parametric biped's parts, whose equations come from an external file, and in the two FRC rail parts (5 sections); 129 of 222 manager sections have no such anchor. No other field was compared. `int()` truncation was the other half of this item: it truncates the manager's value, and a value a few ulps short of a whole number is that whole number (`sldprt.md` §2). Whether it truncates or floors a negative argument is not established: none occurs in the dataset.
+**Known.** `sldprt.md` §2 "The equation angular-unit mode is the byte" defines the mode field, with native value `0` for Degrees and `1` for Radians. SolidWorks documents the setting in the Equations dialog; its default is degrees. In the only part sampled with trigonometric lines, an `atn` that gives radians reproduces the value a later line stores as its input in every configuration, and one that gives degrees reproduces none, while the same lines read their angle dimensions in degrees. `int()` truncates the manager's value, and a value a few ulps short of a whole number is that whole number (`sldprt.md` §2). No negative argument occurs in the dataset.
 
-**Need.** We must know the field to evaluate a line that calls a trigonometric function. Without it, the decode gives such a line no value, and its parameter keeps its literal.
+**Need.** We must know the unit to evaluate a line that calls a trigonometric function. Without it, the decode gives such a line no value, and its parameter keeps its literal.
+
+**Conflict.** After the last relation's lowercase name and value table, where a section holds the relation count minus one as a u32 followed by `00 00 ff ff ff ff`, the u32 before it is 0 in the part whose `atn` gives radians and in 31 others without trigonometric lines, and 1 in the parametric biped's parts, whose equations come from an external file, and in the two FRC rail parts (5 sections); 129 of 222 manager sections have no such anchor. If that u32 holds the mode field, value 0 in the radians part disagrees with the native Degrees value `0`. No comparison places that u32 relative to the settings boundary `H`.
+
+**Note.** DI-02 holds the relation-list grammar that locates `H`.
 
 ### DI-44. Sign of an integer scalar value
 
