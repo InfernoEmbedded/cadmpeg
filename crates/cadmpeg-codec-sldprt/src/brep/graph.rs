@@ -479,6 +479,8 @@ pub(crate) struct Stats {
     pub(crate) unresolved_topology_vertices: usize,
     /// Canonical faces that no explicit body record claims.
     pub(crate) unclaimed_faces: usize,
+    /// Framed FACE records without a closed loop ring, so no decoded face carries them.
+    pub(crate) unread_face_records: usize,
     /// Faces on a support surface this codec does not type; emitted with an
     /// unknown-geometry carrier.
     pub(crate) unknown_surface_faces: usize,
@@ -2223,6 +2225,7 @@ fn decode_graph(
             }
         }
         if loops.is_empty() {
+            out.stats.unread_face_records += 1;
             continue;
         }
         // Support surface: a decoded surface carrier, else an opaque carrier.

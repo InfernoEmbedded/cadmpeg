@@ -702,7 +702,7 @@ section = "4"
 anchor = "`00 1d` | world point | 38 | none"
 size = 38
 endianness = "big"
-note = "Offsets are body-relative, i.e. after the two-byte `00 1d` tag. Attrs `0` and `1` are sentinels, not world points. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7ffe`, moving each later field by two."
+note = "Offsets are body-relative, i.e. after the two-byte `00 1d` tag. Attrs `0` and `1` are sentinels, not world points. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7fff`, moving each later field by two."
 
 [[record.field]]
 name = "refs"
@@ -1284,7 +1284,7 @@ section = "5"
 anchor = "A `00 51` ATTRIBUTE instance whose `seq` is below `0x1_0000`"
 size = 14
 endianness = "big"
-note = "Body-relative prefix. `definition_node_id` selects the same-stream ATTRIB_DEF; ATTRIBUTE slots begin at body +14. Bare framing uses `5 + flo` u16 slots; prefixed framing uses terminated `[01][hi][lo]` triples. The +0..+6 region is the common-header `flags` and `attr` of the same record. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7ffe`, moving each later field by two."
+note = "Body-relative prefix. `definition_node_id` selects the same-stream ATTRIB_DEF; ATTRIBUTE slots begin at body +14. Bare framing uses `5 + flo` u16 slots; prefixed framing uses terminated `[01][hi][lo]` triples. The +0..+6 region is the common-header `flags` and `attr` of the same record. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7fff`, moving each later field by two."
 
 [[record.field]]
 name = "zero_selector"
@@ -1824,7 +1824,7 @@ section = "7.2"
 anchor = "00 count:u8 attr u16 BE values[count]"
 size = 4
 endianness = "big"
-note = "Complete compact-array header including its leading zero byte. Element data follows at +4. The referencing descriptor role selects f64 control/knot values or u16 multiplicities. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7ffe`, moving each later field by two."
+note = "Complete compact-array header including its leading zero byte. Element data follows at +4. The referencing descriptor role selects f64 control/knot values or u16 multiplicities. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7fff`, moving each later field by two."
 
 [[record.field]]
 name = "zero"
@@ -1993,7 +1993,7 @@ section = "7.4"
 anchor = "00 38 [ff]? attr u16 BE ordinal u32 BE refs u16 BE[5]"
 size = 56
 endianness = "big"
-note = "Body-relative, after the two-byte tag and the optional `ff`. `abs(offset0) == abs(offset1) > 0`; their common magnitude is the constant rolling-ball radius. Each `side` value is exactly `+1` or `-1`. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7ffe`, moving each later field by two."
+note = "Body-relative, after the two-byte tag and the optional `ff`. `abs(offset0) == abs(offset1) > 0`; their common magnitude is the constant rolling-ball radius. Each `side` value is exactly `+1` or `-1`. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7fff`, moving each later field by two."
 
 [[record.field]]
 name = "attr"
@@ -2094,7 +2094,7 @@ section = "7.5"
 anchor = "00 3c [ff]? attr u16 BE  ordinal u32 BE  refs u16 BE[5]"
 size = 37
 endianness = "big"
-note = "All-short Partition body after the tag and optional ff; complete record is 39 or 40 bytes including scale. XT variable-width identities and pointers move later fields. The short deltas form triples each common reference and support. With the two-byte tag, the compact record is 31 bytes, and the deltas form expands each reference, including `support`, to `[hi][lo][01]`. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7ffe`, moving each later field by two."
+note = "All-short Partition body after the tag and optional ff; complete record is 39 or 40 bytes including scale. XT variable-width identities and pointers move later fields. The short deltas form triples each common reference and support. With the two-byte tag, the compact record is 31 bytes, and the deltas form expands each reference, including `support`, to `[hi][lo][01]`. The offsets are the narrow-pointer form: `attr` and every reference is a §4 pointer that takes four bytes past `0x7fff`, moving each later field by two."
 
 [[record.field]]
 name = "attr"

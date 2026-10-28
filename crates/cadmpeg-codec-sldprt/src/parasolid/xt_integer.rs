@@ -5,11 +5,12 @@
 //! bit set is the negative magnitude `m` of a two-word cell, and the second
 //! word is the quotient `q`; the code is `q * 32767 + m`. Both `m` and `q` lie
 //! in `1..=32767`. A pointer code is one more than the XT index, so code `1`
-//! is the null pointer ([spec §7.5](https://github.com/cadmpeg/cadmpeg/blob/main/docs/formats/sldprt.md#75-offset-surfaces)).
+//! is the null pointer ([spec §4](https://github.com/cadmpeg/cadmpeg/blob/main/docs/formats/sldprt.md#4-typed-topology-records)).
 
 use cadmpeg_core::decode::View;
 
-const NARROW_MAX: u16 = 0x7fff;
+/// The largest code a one-word cell stores.
+pub(crate) const NARROW_MAX: u16 = 0x7fff;
 const PART_MAX: u16 = 32767;
 
 /// The code and the byte width of the cell at `at`.
@@ -43,9 +44,24 @@ pub(crate) fn read_key(bytes: &[u8], at: &mut usize) -> Option<u16> {
     u16::try_from(read_code(bytes, at)?).ok()
 }
 
+/// Take the cell at the view position as a record key.
+pub(crate) fn take_key(view: &mut View<'_>) -> Option<u16> {
+    let (code, width) = code_at(view.unread(), 0)?;
+    view.skip(width)?;
+    u16::try_from(code).ok()
+}
+
+/// Take `N` consecutive cells at the view position as record keys.
+pub(crate) fn take_keys<const N: usize>(view: &mut View<'_>) -> Option<[u16; N]> {
+    let mut keys = [0; N];
+    for key in &mut keys {
+        *key = take_key(view)?;
+    }
+    Some(keys)
+}
+
 /// The one- or two-word cell that stores `code`, or `None` past the two-word
 /// range.
-#[cfg(test)]
 pub(crate) fn encode(code: u32) -> Option<([u16; 2], usize)> {
     if code <= u32::from(NARROW_MAX) {
         return Some(([u16::try_from(code).ok()?, 0], 1));

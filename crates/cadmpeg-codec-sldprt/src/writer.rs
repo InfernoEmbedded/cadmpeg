@@ -13,6 +13,7 @@ mod ownership;
 pub(crate) mod target;
 
 use crate::native::SldprtNative;
+use crate::parasolid::xt_integer;
 use cadmpeg_core::convert::{f32_from_f64, truncate_f64_to_u8};
 use cadmpeg_core::decode::{index_from_u32, DecodeArena, DecodeContext, DecodePolicy};
 use cadmpeg_core::CodecError;
@@ -3623,32 +3624,15 @@ fn typed_prefix(out: &mut Vec<u8>, kind: u8, attr: u16, node_id: u32) {
     be32(out, node_id);
 }
 
-/// Emit one Parasolid XT pointer in its compact or extended two-cell form.
-///
-/// The high bit of the first cell is the form discriminator, so `0x7fff` is
-/// the first value that requires two cells. Two u16 cells provide 31 payload
-/// bits; refusing a larger value keeps the writer from emitting a truncated
-/// pointer.
+/// Emit one Parasolid XT pointer cell ([spec §4](https://github.com/cadmpeg/cadmpeg/blob/main/docs/formats/sldprt.md#4-typed-topology-records)).
 fn typed_ref(out: &mut Vec<u8>, value: impl Into<u32>) -> Result<(), CodecError> {
-    let value = value.into();
-    if value > 0x7fff_ffff {
-        return Err(CodecError::NotImplemented(
-            "SLDPRT typed reference exceeds the 31-bit XT pointer range".into(),
-        ));
-    }
-    let refuse = || {
+    let (words, count) = xt_integer::encode(value.into()).ok_or_else(|| {
         CodecError::NotImplemented(
-            "SLDPRT typed reference exceeds the 31-bit XT pointer range".into(),
+            "SLDPRT typed reference exceeds the two-word XT pointer range".into(),
         )
-    };
-    if value <= 0x7ffe {
-        be16(out, u16::try_from(value).map_err(|_| refuse())?);
-    } else {
-        be16(
-            out,
-            0x8000 | u16::try_from(value & 0x7fff).map_err(|_| refuse())?,
-        );
-        be16(out, u16::try_from(value >> 15).map_err(|_| refuse())?);
+    })?;
+    for word in words.into_iter().take(count) {
+        be16(out, word);
     }
     Ok(())
 }
@@ -4112,6 +4096,12 @@ fn write_nurbs_surface(
 
 fn take_attr(next: &mut u16) -> Result<u16, CodecError> {
     let attr = *next;
+    // Bare records receive each attr and reference as a one-word cell.
+    if attr > xt_integer::NARROW_MAX {
+        return Err(CodecError::NotImplemented(
+            "SLDPRT attribute space exhausted".into(),
+        ));
+    }
     *next = next
         .checked_add(1)
         .ok_or_else(|| CodecError::NotImplemented("SLDPRT attribute space exhausted".into()))?;
@@ -4505,8 +4495,8 @@ fn bef64(out: &mut Vec<u8>, value: f64) {
 #[cfg(test)]
 mod nurbs_write_tests {
     use super::{
-        check_semantic_support, pmi_local_sha256, typed_ref, unique_knots, write_nurbs_surface,
-        PMI_LOCAL_DIGEST_ATTRIBUTE,
+        check_semantic_support, pmi_local_sha256, take_attr, typed_ref, unique_knots,
+        write_nurbs_surface, PMI_LOCAL_DIGEST_ATTRIBUTE,
     };
     use cadmpeg_core::CodecError;
     use cadmpeg_ir::document::CadIr;
@@ -4653,9 +4643,11 @@ mod nurbs_write_tests {
     fn writes_typed_reference_boundaries() {
         for (value, expected) in [
             (0x7ffe_u32, vec![0x7f, 0xfe]),
-            (0x7fff_u32, vec![0xff, 0xff, 0, 0]),
-            (0x8000_u32, vec![0x80, 0, 0, 1]),
-            (0x7fff_ffff_u32, vec![0xff, 0xff, 0xff, 0xff]),
+            (0x7fff_u32, vec![0x7f, 0xff]),
+            (0x8000_u32, vec![0xff, 0xff, 0, 1]),
+            (36_225_u32, vec![0xf2, 0x7e, 0, 1]),
+            (65_535_u32, vec![0xff, 0xff, 0, 2]),
+            (1_073_709_056_u32, vec![0x80, 0x01, 0x7f, 0xff]),
         ] {
             let mut bytes = Vec::new();
             typed_ref(&mut bytes, value).expect("reference is representable");
@@ -4663,9 +4655,19 @@ mod nurbs_write_tests {
         }
 
         assert!(matches!(
-            typed_ref(&mut Vec::new(), 0x8000_0000_u32),
+            typed_ref(&mut Vec::new(), 1_073_709_057_u32),
             Err(CodecError::NotImplemented(message))
-                if message.contains("31-bit XT pointer range")
+                if message.contains("two-word XT pointer range")
+        ));
+    }
+
+    #[test]
+    fn attribute_space_ends_at_the_one_word_cell_range() {
+        let mut next = 0x7fff;
+        assert_eq!(take_attr(&mut next).expect("one-word attr"), 0x7fff);
+        assert!(matches!(
+            take_attr(&mut next),
+            Err(CodecError::NotImplemented(message)) if message.contains("attribute space")
         ));
     }
 

@@ -2351,6 +2351,7 @@ fn merge_brep(target: &mut Brep, mut source: Brep) -> Result<(), CodecError> {
     target.stats.unresolved_topology_fins += source.stats.unresolved_topology_fins;
     target.stats.unresolved_topology_vertices += source.stats.unresolved_topology_vertices;
     target.stats.unclaimed_faces += source.stats.unclaimed_faces;
+    target.stats.unread_face_records += source.stats.unread_face_records;
     target.stats.synthetic_body_grouping |= source.stats.synthetic_body_grouping;
     Ok(())
 }
@@ -3573,6 +3574,12 @@ fn append_topology_record_losses(
         losses.push(SldprtLossCode::TopologyVertexRecordUnresolved.note(format!(
             "{} referenced VERTEX record(s) lack a uniquely framed record with a verified owner class and IR-supported tolerance.",
             stats.unresolved_topology_vertices,
+        )));
+    }
+    if stats.unread_face_records > 0 {
+        losses.push(SldprtLossCode::TopologyFaceRecordsUnread.note(format!(
+            "{} framed FACE record(s) have no closed loop ring that the decoder reads, so no decoded face carries them.",
+            stats.unread_face_records
         )));
     }
     for (count, code, family) in [

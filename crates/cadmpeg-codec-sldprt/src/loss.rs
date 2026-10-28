@@ -142,6 +142,8 @@ pub(crate) enum SldprtLossCode {
     TopologyFaceSenseConflict,
     /// A canonical face has no explicit body relation.
     TopologyFaceUnclaimed,
+    /// Framed FACE records that no decoded face carries.
+    TopologyFaceRecordsUnread,
     /// Referenced FIN records have conflicting complete frames.
     TopologyFinRecordAmbiguous,
     /// Referenced LOOP records have conflicting complete frames.
@@ -262,6 +264,7 @@ impl SldprtLossCode {
         Self::TopologyBodyHierarchyDerived,
         Self::TopologyFaceSenseConflict,
         Self::TopologyFaceUnclaimed,
+        Self::TopologyFaceRecordsUnread,
         Self::TopologyFinRecordAmbiguous,
         Self::TopologyLoopRecordAmbiguous,
         Self::TopologyVertexRecordUnresolved,
@@ -342,6 +345,7 @@ impl SldprtLossCode {
             Self::TopologyBodyHierarchyDerived => "topology.body-hierarchy-derived",
             Self::TopologyFaceSenseConflict => "topology.face-sense-conflict",
             Self::TopologyFaceUnclaimed => "topology.face-unclaimed",
+            Self::TopologyFaceRecordsUnread => "topology.face-records-unread",
             Self::TopologyFinRecordAmbiguous => "topology.fin-record-ambiguous",
             Self::TopologyLoopRecordAmbiguous => "topology.loop-record-ambiguous",
             Self::TopologyVertexRecordUnresolved => "topology.vertex-record-unresolved",
@@ -443,6 +447,7 @@ impl SldprtLossCode {
             | Self::TopologyBodyHierarchyDerived
             | Self::TopologyFaceSenseConflict
             | Self::TopologyFaceUnclaimed
+            | Self::TopologyFaceRecordsUnread
             | Self::TopologyFinRecordAmbiguous
             | Self::TopologyLoopRecordAmbiguous
             | Self::TopologyVertexRecordUnresolved
@@ -492,6 +497,7 @@ impl SldprtLossCode {
                 LossTaxonomy::TopologyGaugeSubstituted
             }
             Self::TopologyFaceUnclaimed
+            | Self::TopologyFaceRecordsUnread
             | Self::TopologyFinRecordAmbiguous
             | Self::TopologyLoopRecordAmbiguous
             | Self::TopologyVertexRecordUnresolved => LossTaxonomy::TopologyNotTransferred,
@@ -747,6 +753,7 @@ mod tests {
                 "topology.body-hierarchy-derived",
                 "topology.face-sense-conflict",
                 "topology.face-unclaimed",
+                "topology.face-records-unread",
                 "topology.fin-record-ambiguous",
                 "topology.loop-record-ambiguous",
                 "topology.vertex-record-unresolved",
