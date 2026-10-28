@@ -15,11 +15,6 @@ const EPS_SELECTED_PLANE_CHART_PARITY: f64 = 1.0e-9;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(in crate::families) struct SelectedShellPlane {
-    pub(in crate::families) body: u32,
-    pub(in crate::families) shell: u32,
-    pub(in crate::families) roster: u32,
-    pub(in crate::families) face: u32,
-    pub(in crate::families) carrier: u32,
     pub(in crate::families) native_chart_normal: UnitVector3,
     pub(in crate::families) stored_member: i16,
 }
@@ -121,11 +116,6 @@ fn for_body(
                 planes.insert(
                     face,
                     SelectedShellPlane {
-                        body: root.object_id,
-                        shell,
-                        roster: roster_id,
-                        face,
-                        carrier,
                         native_chart_normal: *frame.axis(),
                         stored_member,
                     },
