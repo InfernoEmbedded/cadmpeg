@@ -2470,7 +2470,12 @@ coordinate lane. In this bounded curve grammar, `32 <tail7>` is an eight-byte
 positive sub-unit first-coordinate scalar that reconstructs IEEE-754 bytes
 `3f <tail7>`. Its second coordinate uses the second directrix coordinate lane.
 The positive-DICT lattice extends through prefixes `4b..a3` in this grammar;
-the prefix and six-byte tail reconstruct by the positive-DICT rule. A bare
+the prefix and six-byte tail reconstruct by the positive-DICT rule. In a body
+of three or more samples, `2d <tail7>` reconstructs `40 <tail7>` and
+`46 <tail7>` reconstructs `c0 <tail7>` in both coordinates, and the first
+coordinate reads `4b`, `66..68`, `77`, and `82..8f` by the positive-DICT
+rule. The three-byte forms keep their signs: `2e` and `2f` are positive, and
+`47` and `48` are negative. A bare
 `18` occupies one zero slot in either coordinate. The chart pair
 for a spline face is the interpolation surface's `(u, v)` pair. A plane uses
 its stored affine `(u, v)` frame. An extrusion uses profile parameter followed

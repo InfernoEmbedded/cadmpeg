@@ -486,6 +486,44 @@ pub(crate) fn decode_two_chart_second_coordinate(
     decode_tabulated_cylinder_second_coordinate(data, offset, cache)
 }
 
+/// Decode the first coordinate of one chart in a counted two-chart body with
+/// three or more samples.
+///
+/// The eight-byte `2d` and `46` forms and the positive-DICT prefixes use the
+/// first tabulated-cylinder directrix-coordinate lane. Other forms use the
+/// two-chart lane.
+pub(crate) fn decode_counted_two_chart_first_coordinate(
+    data: &[u8],
+    offset: usize,
+    cache: &ScalarCache,
+) -> Option<(f64, usize)> {
+    match *data.get(offset)? {
+        0x2d => ieee8(data, offset, 0x40),
+        0x46 => ieee8(data, offset, 0xc0),
+        head @ (0x4b | 0x66..=0x68 | 0x77 | 0x82..=0x8f) => {
+            ieee7_dict(data, offset, 0x3f75 + u16::from(head))
+        }
+        _ => decode_two_chart_first_coordinate(data, offset, cache),
+    }
+}
+
+/// Decode the second coordinate of one chart in a counted two-chart body with
+/// three or more samples.
+///
+/// The eight-byte `2d <tail7>` form reconstructs `40 <tail7>` and `46 <tail7>`
+/// reconstructs `c0 <tail7>`. Other forms use the two-chart lane.
+pub(crate) fn decode_counted_two_chart_second_coordinate(
+    data: &[u8],
+    offset: usize,
+    cache: &ScalarCache,
+) -> Option<(f64, usize)> {
+    match *data.get(offset)? {
+        0x2d => ieee8(data, offset, 0x40),
+        0x46 => ieee8(data, offset, 0xc0),
+        _ => decode_two_chart_second_coordinate(data, offset, cache),
+    }
+}
+
 /// Decode a model-space coordinate in an `ActDatums` outline.
 ///
 /// Named and positional datum outlines use the backed subset of the bounded

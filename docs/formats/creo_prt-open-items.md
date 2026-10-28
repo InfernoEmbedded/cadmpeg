@@ -227,13 +227,13 @@ display name, or an API-enum cast.
 
 ### GS-13. Incomplete counted pcurve bodies
 
-**Question.** Which remaining scalar and enclosing-row forms resolve a counted two-chart body when exact `4N` scalar consumption cannot be established?
+**Question.** Which remaining scalar and enclosing-row forms resolve a counted two-chart body when exact `4N` scalar consumption cannot be established, and which first-coordinate prefixes of a counted body read differently from the two-chart lane?
 
-**Known.** `creo_prt.md` defines `fc <count>` with four finite chart scalars per sample and no trailer. Counts `4`, `7`, `8`, `9`, and `10` do not identify separate curve families. A unique complete counted body fixes a competing topology-suffix boundary without requiring the referenced face to be materialized.
+**Known.** `creo_prt.md` defines `fc <count>` with four finite chart scalars per sample and no trailer, and the `2d`, `46`, and positive-DICT readings of bodies with three or more samples. Counts `4`, `7`, `8`, `9`, and `10` do not identify separate curve families. A unique complete counted body fixes a competing topology-suffix boundary without requiring the referenced face to be materialized. In two-sample `fc 02` bodies the `46` sign is mixed, so those bodies keep the two-chart lane.
 
-**Need.** Define the missing scalar and enclosing-row productions before assigning values or selecting a suffix from incomplete or conflicting body readings.
+**Need.** Define the missing scalar and enclosing-row productions before assigning values or selecting a suffix from incomplete or conflicting body readings. Check the first-coordinate prefixes `31`, `45`, `4a`, `4e`, `4f`, `52`, `54`, `58..5a`, `71`, `9e`, `a3`, `af`, `b0`, `b1`, `b9`, `bf`, `d1`, `d3`, `de`, and `df`, where the first tabulated-cylinder lane and the two-chart lane differ.
 
-**Conflict.** In counted bodies of three or more samples, column continuity and DICT neighbours indicate that `2d <tail7>` reconstructs `40 <tail7>` and `46 <tail7>` reconstructs `c0 <tail7>` in both coordinates, and that the first coordinate takes the tabulated-cylinder positive-DICT lattice for `4b`, `66..68`, `77`, and `82..8f`. The decoder reads the opposite signs. Changing only these readings adds correct vertices on some parts, but mirrors the decoded resistor model against its STEP sibling. A consumer that depends on the current signs must change in the same step.
+**Note.** In resistor-100w-aluminum-finned, about 370 vertices that the decoder solves from two-chart samples lie off the STEP sibling in the model frame with either sign reading. They fit STEP only under an axis permutation and translation, and the finned body is symmetric enough that a mirrored set fits as well, so an alignment search does not decide the sample sign there.
 
 ### GS-16. Model-reference entity types and conic framing
 
