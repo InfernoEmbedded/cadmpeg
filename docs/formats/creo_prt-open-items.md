@@ -623,20 +623,22 @@ retain native geometry instead of selecting a same-valued datum or class ID.
 
 **Need.** We must know the values to construct nonzero datum offsets and extents.
 
-### SP-25. Owned revolution angle values and references
+### SP-25. Partial revolution direction and side values
 
-**Question.** Which complete owner join binds an `angle_choice` mode to its
-numeric side values or selected references and standard direction?
+**Question.** Which stored field selects the standard direction of a partial
+`angle_choice` revolution, and which dimensions hold the two side values of a
+two-sided mode or the references of a reference mode?
 
-**Known.** `ea 44 00 00` selects `FROM_NONE | TO_ANGLE`; it does not state
-360 degrees. `eb 20 04 00 00` selects a symmetric angle mode. A symmetric
-mode uses half its separate angle value on each side. A recipe, repeated mode,
-or matching full-turn carrier geometry does not supply the trim magnitude.
+**Known.** The angle value of a rotational section sweep is the feature's
+`dim_type` `21` model dimension. A `FROM_NONE | TO_ANGLE` mode with one
+360-degree angular dimension is a full turn. `eb 20 04 00 00` selects a
+symmetric angle mode. A recipe, repeated mode, or matching full-turn carrier
+geometry does not supply the trim magnitude.
 
-**Need.** Resolve each numeric side value or typed reference under its complete
-owner and reconcile direction and all termination states before constructing an
-angular interval. Missing values do not imply zero, a partial turn, or a full
-turn. Preserve the complete raw choice vectors.
+**Need.** Identify the direction state and the side-value and reference
+owners before constructing a partial angular interval. Missing values do not
+imply zero, a partial turn, or a full turn. Preserve the complete raw choice
+vectors.
 
 ### SP-38. Current recipe ownership across creation events
 

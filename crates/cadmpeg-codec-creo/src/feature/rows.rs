@@ -11,6 +11,7 @@ use cadmpeg_ir::scalar::FiniteReal;
 use crate::psb;
 use crate::scalar;
 
+use super::dimensions::{ModelDimension, ANGULAR_DIMENSION_TYPE};
 use super::helpers::decode_exact_scalars;
 use super::schema::SchemaClass;
 
@@ -341,9 +342,8 @@ pub(crate) enum FeatureLoopHistoryBoundary {
     NamedRecord,
 }
 
-/// One resolved rotational extent from an `AllFeatur` feature row.
-///
-/// The angular magnitude is independently resolved.
+/// One full-turn rotational extent from an `AllFeatur` feature row and its
+/// model angular dimension.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FeatureRevolutionExtent {
     /// Owning feature identifier.
@@ -1650,9 +1650,73 @@ struct ParsedLoopHistoryEntry {
     pub(super) end_offset: usize,
 }
 
-/// A positional angle-choice mode does not supply an angular magnitude.
-pub(crate) fn revolution_extents(_rows: &[FeatureRow]) -> Vec<FeatureRevolutionExtent> {
-    Vec::new()
+/// Decode full-turn rotational termination from section-sweep feature rows.
+///
+/// The positional `param_choice_ptr` body must select `FROM_NONE | TO_ANGLE`,
+/// and the model must store exactly one angular dimension for the feature,
+/// with value 360 degrees.
+pub(crate) fn revolution_extents(
+    rows: &[FeatureRow],
+    dimensions: &[ModelDimension],
+) -> Vec<FeatureRevolutionExtent> {
+    const PARAMETER_CHOICE_PREFIX: &[u8] = &[0x83, 0xdf, 0xf6, 0xe3];
+    const INACTIVE_BLEND_AND_DEPTH: &[u8] = &[0x00, 0x00];
+    const TO_ANGLE_MODE: &[u8] = &[0xea, 0x44, 0x00, 0x00];
+    const FULL_TURN_DEGREES: f64 = 360.0;
+    let mut result = Vec::new();
+    for row in rows {
+        if !matches!(
+            row.root_schema_class,
+            Some(SchemaClass::Cut | SchemaClass::Protrusion)
+        ) {
+            continue;
+        }
+        let Some(schema_end) = (0..row.body.len().min(20)).find_map(|offset| {
+            if row.body.get(offset..offset + 2) != Some(&[0xe3, 0xf6]) {
+                return None;
+            }
+            let (schema_class, after) = psb::compact_int(&row.body, offset + 2);
+            (Some(SchemaClass::from(schema_class)) == row.root_schema_class
+                && row.body.get(after) == Some(&0xe1))
+            .then_some(after + 1)
+        }) else {
+            continue;
+        };
+        if row.body.get(schema_end) != Some(&2) {
+            continue;
+        }
+        let Some(choice_start) = find_in(
+            &row.body,
+            PARAMETER_CHOICE_PREFIX,
+            schema_end + 1,
+            row.body.len().min(64),
+        )
+        .map(|at| at + PARAMETER_CHOICE_PREFIX.len()) else {
+            continue;
+        };
+        let angle_start = choice_start + INACTIVE_BLEND_AND_DEPTH.len();
+        if row.body.get(choice_start..angle_start) != Some(INACTIVE_BLEND_AND_DEPTH)
+            || row.body.get(angle_start..angle_start + TO_ANGLE_MODE.len()) != Some(TO_ANGLE_MODE)
+        {
+            continue;
+        }
+        let mut angles = dimensions.iter().filter(|dimension| {
+            dimension.feature_id == row.feature_id
+                && dimension.dimension_type == ANGULAR_DIMENSION_TYPE
+        });
+        let (Some(angle), None) = (angles.next(), angles.next()) else {
+            continue;
+        };
+        if angle.value != Some(FULL_TURN_DEGREES) {
+            continue;
+        }
+        result.push(FeatureRevolutionExtent {
+            feature_id: row.feature_id,
+            offset: row.body_offset + angle_start,
+        });
+    }
+    result.as_mut_slice().sort_by_key(|left| left.offset);
+    result
 }
 
 #[cfg(test)]

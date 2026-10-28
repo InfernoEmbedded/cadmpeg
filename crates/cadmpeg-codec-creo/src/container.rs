@@ -34,6 +34,7 @@ use crate::curve::{
 use crate::datum::{self, DatumCylinder, DatumPlaneRecord};
 use crate::feature;
 use crate::feature::definitions::FeatureDefinition;
+use crate::feature::dimensions::ModelDimension;
 use crate::feature::entity::{FeatureEntity, FeatureEntityReference, FeatureEntityTable};
 use crate::feature::operations::{
     FeatureOperation, FeatureOperationState, FeatureRecipe, FeatureReferenceName,
@@ -2357,17 +2358,19 @@ fn feature_affected_ids(rows: &[FeatureRow], depdb_rows: &[FeatureRow]) -> Vec<F
     records
 }
 
-fn feature_revolution_extents(
-    rows: &[FeatureRow],
-    definitions: &[FeatureDefinition],
-    operations: &[FeatureOperation],
-) -> Vec<FeatureRevolutionExtent> {
-    let mut extents = feature::rows::revolution_extents(rows);
-    let definition_extents =
-        feature::definitions::definition_revolution_extents(definitions, operations);
-    extents.extend(definition_extents);
-    extents.as_mut_slice().sort_by_key(|left| left.offset);
-    extents
+fn model_dimensions(sections: &[ScannedSection<'_>]) -> Vec<ModelDimension> {
+    sections
+        .iter()
+        .filter(|section| matches!(section.section.name(), "FullMData" | "BasFullData"))
+        .flat_map(|section| {
+            feature::dimensions::model_dimensions(section.region)
+                .into_iter()
+                .map(|mut dimension| {
+                    dimension.offset += section.section.offset();
+                    dimension
+                })
+        })
+        .collect()
 }
 
 fn section_owner_ranges(
@@ -2944,7 +2947,7 @@ pub(crate) fn scan_bytes<'a>(
         &relation_dimension_symbols,
     )?;
     let feature_revolution_extents =
-        feature_revolution_extents(&feature_rows, &feature_definitions, &feature_operations);
+        feature::rows::revolution_extents(&feature_rows, &model_dimensions(sections));
     let feature_section_transforms = placement::resolve(
         &feature_definitions,
         &placement::PlacementSources {

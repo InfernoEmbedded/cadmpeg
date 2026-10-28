@@ -3876,6 +3876,21 @@ design radius. A constant radius is admitted only when every matching value is
 finite, positive, and bit-identical. A missing dimension row supplies no
 radius witness; a malformed, non-positive, or differing matching set supplies
 an unresolved radius.
+In a binary part, the `FullMData` or `BasFullData` section stores the model
+`dim_array` as `e0 00 dim_array 00`, an optional `f1`, `f3`, or `f4 04`
+token, `f8 <count> f7 <class> fb`, and `<count>` slots. The slot index is the
+dimension identifier and the `i_val` of the element's `symbol`. A null slot is
+`e1`. The first present element is the labelled prototype. An element opens
+with `e3`, optionally followed by `f7 <class>`. A `BasFullData` element then
+stores the `dtl_named_item` and `dtl_item` compounds as `e2 e2` and a null
+`name` as `e1`. The next fields are `type` (`08`), `dim_type`, `feat_id`,
+`attr_arr`, and `dim_dat_ptr`. `dim_type` and `feat_id` are compact integers.
+`attr_arr` holds two integers; an optional `f5` precedes them, and each
+integer is a compact integer, a three-byte `c0`..`df` integer, or `eb` with
+four big-endian bytes. `dim_dat_ptr` opens with `e3` and stores `value` then
+`bck_value` as scalar tokens. `dim_type` `3` is a radius and `21` is an angle
+in degrees. The `dim_array` holds the section dimensions of each sketched
+feature and its feature-level dimensions.
 The complete visible crv_array rows whose feat_id equals the round feature id
 are its result-edge identities only when every crv_id is unique. An absent or
 ambiguous row set does not select edges.
@@ -4043,14 +4058,19 @@ rotational section sweep. Its `param_choice_ptr` body begins after
 `ea` introduces three big-endian mask bytes and `eb` introduces four.
 `ea 44 00 00` is `FROM_NONE | TO_ANGLE`; `eb 20 04 00 00` is
 `FROM_NONE | SYMMETRIC`. Neither mode states an angle magnitude. The inactive
-`depth_choice` zero is not an angular extent. A one-sided angle requires its
-independently owned angle value; a symmetric angle has half that value on each
-side. Two-sided angles require both side values. A reference mode requires its
-typed reference and placement. Standard direction is separate from the mode.
-The same mode inside a bounded DEPDB rotational definition does not gain a
-magnitude from its recipe or repetition. A neutral angular extent requires
-complete, agreeing owned magnitude/reference and direction states. State order
-does not select one termination over another.
+`depth_choice` zero is not an angular extent. The angle value is the model
+angular dimension of the feature: the `dim_array` element whose `dim_type` is
+`21` and whose `feat_id` is the feature identifier. A `FROM_NONE | TO_ANGLE`
+mode whose feature has exactly one such dimension, with value 360, is a
+complete 360-degree revolution; its direction does not change the swept
+region. A one-sided angle below 360 also requires the standard direction; a
+symmetric angle has half the value on each side. Two-sided angles require both
+side values. A reference mode requires its typed reference and placement.
+Standard direction is separate from the mode. The same mode inside a bounded
+DEPDB rotational definition does not gain a magnitude from its recipe or
+repetition. A neutral angular extent requires complete, agreeing owned
+magnitude/reference and direction states. State order does not select one
+termination over another.
 For a complete full-turn revolution, every `srf_array` row whose `feat_id`
 selects the feature must transfer to one carrier before generated carriers can
 define the revolution axis. Cylinder, cone, and torus carriers contribute their
