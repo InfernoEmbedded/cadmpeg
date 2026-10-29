@@ -697,7 +697,7 @@ vectors.
 
 **Question.** Which complete PSB compound-entry grammar binds each class-911 dimension definition to its current outer feature key, including entries whose declared array count differs from the ordinary keyed-entry count?
 
-**Known.** The current outer key and optional `feat_id / ref_model_info` replay-source reference are separate identities. A copied replay can retain an older source while belonging to a different current key. A complete three-row table still requires the recipe-selected external-ID/type roles. Equal envelopes, names, ordinals, or dimension tuples elsewhere do not establish that owner. A blind depth proved equal to the owned cylinder's axial span ends at its shoulder; the conical point extends beyond it. This independently earns `depth_to_tip = false` only with the cylinder-span and angle evidence.
+**Known.** The first-header and complete-footer entry grammar in `creo_prt.md` binds one physical three-row table to its current key within one `AllFeatur` stream and one `FeatDefs` section. Unsupported heads still delimit a preceding entry. Other first-header or footer forms, multiple current streams, and non-unique closure remain outside that grammar. The optional `feat_id / ref_model_info` replay-source reference is a separate identity. A copied replay can retain an older source while belonging to a different current key. A complete three-row table still requires the recipe-selected external-ID/type roles. Equal envelopes, names, ordinals, or dimension tuples elsewhere do not establish that owner. A blind depth proved equal to the owned cylinder's axial span ends at its shoulder; the conical point extends beyond it. This independently earns `depth_to_tip = false` only with the cylinder-span and angle evidence.
 
 **Need.** The parser must retain complete current-entry bounds and bind exactly one eligible table before model projection. Unknown compound/replay boundaries must abstain. A missing or invalid owned table must not borrow another feature's equal-radius/depth tuple. Schema-class identity and internal replay-source IDs do not provide a current outer-entry binding. Raw model-unit values and Native unit labels need an explicit conversion contract. Different point-angle controls and envelope-free negatives must preserve both the ownership and Shoulder/Tip boundary.
 
@@ -750,6 +750,26 @@ source profile in a table outside those forms.
 roles of all entries before deriving an operation span from the cap pair.
 Reconcile the selected profile, section placement, and generated carriers without
 discarding other owned entries or selecting a regeneration state by table order.
+
+### SP-45. Coordinate authority for drilled-hole placements
+
+**Question.** Which complete frame binding maps paired cylinder/cone envelope
+coordinates and positional analytic frames into the current model frame?
+
+**Known.** A current keyed dimensional table supplies a radius, angle, and
+axial length. It does not select a coordinate frame. The shared cone/cylinder
+end identifies the drill shoulder within one established frame; the opposite
+cylinder end is the entry. A line alone does not identify that end or its
+drilling direction.
+
+**Need.** Bind the placement frame and transform independently of the dimension
+table. Use an authoring display mesh or a same-part export with a proved frame
+relation to distinguish correct positions from reflected or local positions.
+Keep independently correct placements while repairing the conflicting reader.
+
+**Conflict.** A positional analytic frame can disagree with the paired corner
+records. Coaxial agreement between decoded analytic records does not establish
+their relation to the authoring model frame.
 
 ## 4. Topology and appearance
 

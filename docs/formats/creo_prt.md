@@ -4209,9 +4209,15 @@ as the external-ID-2 family. A different rowless-pair count does not define a
 simple-drilled recipe.
 
 Each materialized cylinder row in this recipe has a type-24 compound-close
-parameter record. The last six scalar slots in the final frame are two
-three-coordinate envelope corners. An entity-reference suffix or exact
-`f7 17` compound-close suffix terminates this frame. Normalize the two endpoint
+parameter record. A bare `18` control shell uses separator `11`; a wrapped
+`00 15 19` control shell uses separator `18`. After the shell come one
+first-directrix scalar parameter, the separator, a second parameter, and six
+first-directrix coordinate scalars in XYZ order. The coordinates are two
+envelope corners. One `f7 <reference-id>` and one compound close may follow;
+an explicit reference followed by a compound close ends the corner packet
+before any following analytic-frame or replay record. Without that close,
+the corner packet ends at the parameter-body boundary. The shell and separator are not scalar
+fields. Normalize the two endpoint
 values on each axis independently. When the two cylinder rows have equal
 normalized intervals on an axis, their common nonzero interval length is a
 candidate span. When one normalized interval ends where the other starts, the
@@ -4250,13 +4256,39 @@ the other radial coordinate. The first axial coordinate and the common signed
 axial delta supply the entry coordinate and direction. This cross-record form
 does not make other cone terminal triples model-space origins.
 
-A complete current-feature owner binding must select the eligible dimension
-table before its values can supply hole parameters. A file-wide class-911
-pool does not supply that binding, even when it contains one matching tuple.
-Cylinder-envelope agreement is a consistency check on an already owned table;
-it does not select an owner. A missing, invalid, or unowned table leaves the
-dimension-derived diameter, drill-point angle, depth, and dependent placement
-unresolved. Independent materialized geometry retains its separate proof.
+The current class-911 outer-entry key selects the dimensional table. The
+admitted array header is `e0 00 feat_defs_911 00 f4 06 f8 <stored-value>
+f7 <class> fb e3 f7 03 <current-key> f6 02`. The stored array value is not an
+explicit count of ordinary keyed entries. An ordinary entry begins
+`e3 <current-key> f6 02` after the complete footer
+`e3 00 00 e2 00 18 e5 e2 18 18 18`, with optional `f4 05` between the footer
+and the next entry. Every syntactically valid short entry head delimits the
+preceding entry, including a head whose preceding footer is not admitted.
+An admitted entry has exactly one complete footer before that next head.
+The current key must equal the class-911 feature identifier in the selected
+`AllFeatur` stream. The bounded generated-entity table belongs to that feature
+row. One `AllFeatur` stream and one `FeatDefs` section establish this scope;
+multiple streams or sections do not select one by order.
+
+The entry must contain exactly one complete physical three-row dimensional
+table of its recipe-selected family. Its `S2D` start, table header, and all
+required dimension field images lie within the same entry. Repeated views of
+one physical table are one table. The optional internal
+`feat_id / ref_model_info` reference is replay provenance and does not select
+the current owner. A file-wide class-911 pool, equal values, an `S2D` name,
+or an entry ordinal supplies no owner. Cylinder-envelope agreement checks
+the selected table; it does not select the owner. A dimensional-table binding
+does not assign the coordinate frame of a placement record.
+
+A missing, invalid, multiply selected, or unowned table leaves the
+dimension-derived values unresolved. Corner intervals establish dimensional
+spans. A directed corner placement lies on the independently bound cylinder
+axis. The paired cone envelopes must meet the same end of the shared cylinder
+axial interval and extend outside it. The opposite cylinder end is the entry;
+the direction points toward the cone shoulder. Envelope storage order does
+not select this direction. A cone packet uses the cylinder control form or
+`18 e4 11 <parameter>` / `00 15 19 18 e4 <parameter>` before its six corner
+coordinates. Independent materialized geometry retains its separate proof.
 Each complete positional cylinder frame on the paired cylinder rows must have
 the dimension-assigned bore radius. The available frames must define one
 coaxial line; origins may differ only along that line and axis signs may differ.

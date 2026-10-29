@@ -349,16 +349,43 @@ pub(in super::super) fn schema_feature_definition(
         let drilled_dimensions = drilled_recipe.and_then(|recipe| {
             simple_drilled_hole_dimensions(
                 scan,
+                recipe.table,
                 simple_drilled_hole_envelope_spans(scan, recipe.table),
                 recipe.dimension_family,
             )
         });
-        let drilled_placement =
-            drilled_recipe
-                .zip(drilled_dimensions)
-                .and_then(|(recipe, (diameter, _, depth))| {
-                    simple_drilled_hole_placement(scan, recipe.table, diameter, depth)
-                });
+        let placed_drilled_recipe = drilled_recipe.filter(|recipe| {
+            recipe.table.surface_ids_iter().all(|surface_id| {
+                let Some(face) = exactly_one(ir.model.faces.iter().filter(|face| {
+                    crate::identity::matches_numbered_identity(
+                        face.id.as_str(),
+                        "creo:visibgeom:face#",
+                        surface_id,
+                    )
+                })) else {
+                    return false;
+                };
+                let Some(surface) = exactly_one(
+                    ir.model
+                        .surfaces
+                        .iter()
+                        .filter(|surface| surface.id == face.surface),
+                ) else {
+                    return false;
+                };
+                matches!(
+                    source_carriers.surface_geometry(surface),
+                    SurfaceGeometry::Solved(
+                        SolvedSurfaceGeometry::Cylinder(_) | SolvedSurfaceGeometry::Cone(_)
+                    )
+                )
+            })
+        });
+        let drilled_placement = placed_drilled_recipe.zip(drilled_dimensions).and_then(
+            |(recipe, (diameter, _, depth))| {
+                simple_drilled_hole_placement(scan, recipe.table, diameter, depth)
+            },
+        );
         let placement = feature_outline_planes(scan, feature_id).and_then(hole_placement);
         let compact_cylinder_id = compact_simple_hole_cylinder_id(
             feature_id,
@@ -470,7 +497,8 @@ pub(in super::super) fn schema_feature_definition(
                     })
             });
         let drilled_axis = if drilled_placement.is_none() {
-            if let Some((recipe, (diameter, _, _))) = drilled_recipe.zip(drilled_dimensions) {
+            if let Some((recipe, (diameter, _, _))) = placed_drilled_recipe.zip(drilled_dimensions)
+            {
                 simple_drilled_hole_axis_placement(scan, recipe.table, diameter)
             } else {
                 None
