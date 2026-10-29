@@ -3130,6 +3130,139 @@ pub(super) fn closed_sketch_profiles(
                         profiles.push(profile);
                     }
                 }
+            } else if component.iter().all(|edge| {
+                matches!(
+                    (edges[*edge].0.geometry).definition(),
+                    SketchGeometryDefinition::Line { .. } | SketchGeometryDefinition::Arc { .. }
+                )
+            }) {
+                let mut pruned = component.clone();
+                pruned.sort_by(|a, b| edges[*a].0.id().cmp(edges[*b].0.id()));
+                let mut deduped: Vec<usize> = Vec::with_capacity(pruned.len());
+                let mut dup_replacement = HashMap::<
+                    cadmpeg_ir::sketches::SketchEntityId,
+                    (cadmpeg_ir::sketches::SketchEntityId, bool),
+                >::new();
+                for &edge in &pruned {
+                    let [u0, v0] = edge_nodes[edge];
+                    let pair = if u0 <= v0 { [u0, v0] } else { [v0, u0] };
+                    let dup_of = deduped.iter().copied().find(|&other| {
+                        let [ou0, ov0] = edge_nodes[other];
+                        let opair = if ou0 <= ov0 { [ou0, ov0] } else { [ov0, ou0] };
+                        if pair != opair {
+                            return false;
+                        }
+                        match (
+                            (edges[edge].0.geometry).definition(),
+                            (edges[other].0.geometry).definition(),
+                        ) {
+                            (
+                                SketchGeometryDefinition::Line { .. },
+                                SketchGeometryDefinition::Line { .. },
+                            ) => true,
+                            (
+                                SketchGeometryDefinition::Arc {
+                                    center: c1,
+                                    radius: r1,
+                                    ..
+                                },
+                                SketchGeometryDefinition::Arc {
+                                    center: c2,
+                                    radius: r2,
+                                    ..
+                                },
+                            ) => {
+                                point_distance(c1.get(), c2.get()) <= linear_tolerance
+                                    && (r1.get() - r2.get()).abs() <= linear_tolerance
+                            }
+                            _ => false,
+                        }
+                    });
+                    if let Some(canon_edge) = dup_of {
+                        let flip_dir = edge_nodes[edge][0] != edge_nodes[canon_edge][0];
+                        dup_replacement
+                            .entry(edges[canon_edge].0.id().clone())
+                            .or_insert_with(|| (edges[edge].0.id().clone(), flip_dir));
+                    } else {
+                        deduped.push(edge);
+                    }
+                }
+                pruned = deduped;
+                loop {
+                    let mut deg = HashMap::<usize, usize>::new();
+                    for &edge in &pruned {
+                        for node in edge_nodes[edge] {
+                            *deg.entry(node).or_insert(0) += 1;
+                        }
+                    }
+                    let before = pruned.len();
+                    pruned.retain(|&edge| {
+                        let [a, b] = edge_nodes[edge];
+                        deg.get(&a).copied().unwrap_or(0) >= 2
+                            && deg.get(&b).copied().unwrap_or(0) >= 2
+                    });
+                    if pruned.len() == before {
+                        break;
+                    }
+                }
+                let mut b_profiles: Vec<Vec<SketchEntityUse>> = Vec::new();
+                for mut profile in
+                    branched_line_profiles(&pruned, &edges, &edge_nodes, linear_tolerance)
+                {
+                    let mut counts = HashMap::<cadmpeg_ir::sketches::SketchEntityId, usize>::new();
+                    for u in &profile {
+                        *counts.entry(u.entity.clone()).or_insert(0) += 1;
+                    }
+                    profile.retain(|u| counts.get(&u.entity).copied().unwrap_or(0) == 1);
+                    if !profile.is_empty() {
+                        b_profiles.push(profile);
+                    }
+                }
+                if b_profiles.len() > 1 && !dup_replacement.is_empty() {
+                    let mut target_indices = HashSet::<usize>::new();
+                    for (canon_id, (dup_id, flip_dir)) in &dup_replacement {
+                        let sharing: Vec<usize> = b_profiles
+                            .iter()
+                            .enumerate()
+                            .filter_map(|(i, p)| {
+                                if p.iter().any(|u| &u.entity == canon_id) {
+                                    Some(i)
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect();
+                        if sharing.len() >= 2 {
+                            let target_idx = sharing
+                                .into_iter()
+                                .max_by_key(|&i| {
+                                    b_profiles[i]
+                                        .iter()
+                                        .filter(|u| !dup_replacement.contains_key(&u.entity))
+                                        .map(|u| u.entity.clone())
+                                        .min()
+                                })
+                                .unwrap_or(1);
+                            target_indices.insert(target_idx);
+                            for u in &mut b_profiles[target_idx] {
+                                if &u.entity == canon_id {
+                                    u.entity = dup_id.clone();
+                                    if *flip_dir {
+                                        u.reversed = !u.reversed;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if !target_indices.is_empty() {
+                        b_profiles = b_profiles
+                            .into_iter()
+                            .enumerate()
+                            .filter_map(|(i, p)| target_indices.contains(&i).then_some(p))
+                            .collect();
+                    }
+                }
+                profiles.extend(b_profiles);
             }
             for edge in component {
                 visited[edge] = true;
