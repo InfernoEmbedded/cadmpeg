@@ -5807,9 +5807,12 @@ pub(super) fn project_fixed_loft(
         ..
     } = inputs;
 
-    let crate::records::feature::scope::DesignScopePayload::Loft(Some(
-        crate::records::feature::path_features::DesignLoftConstruction { operation, .. },
-    )) = &scope.payload()
+    let crate::records::feature::scope::DesignScopePayload::Loft(loft_payload) = &scope.payload()
+    else {
+        return Ok(None);
+    };
+    let Some(crate::records::feature::path_features::DesignLoftConstruction { operation, .. }) =
+        loft_payload
     else {
         return Ok(None);
     };
@@ -5832,7 +5835,6 @@ pub(super) fn project_fixed_loft(
         matching_legacy_carriers.next(),
         matching_legacy_carriers.next(),
     ) {
-        (None, _) => None,
         (Some(_), None) => {
             if groups
                 .iter()
@@ -5848,6 +5850,36 @@ pub(super) fn project_fixed_loft(
                 return Ok(None);
             }
             Some((body_group.record_index, body_group.scope_reference_ordinal))
+        }
+        (None, _) => {
+            if scope.reference_members().len() >= 6
+                && !groups
+                    .iter()
+                    .any(|group| group.role() == DesignOperandRole::BODIES_A)
+                && groups
+                    .iter()
+                    .filter(|group| {
+                        matches!(
+                            group.role(),
+                            DesignOperandRole::PROFILE | DesignOperandRole::ROLE_0X43
+                        )
+                    })
+                    .count()
+                    >= 2
+            {
+                let mut body_groups = groups.iter().filter(|group| {
+                    group.role() == DesignOperandRole::BODIES_B
+                        && group.scope_reference_ordinal == 1
+                });
+                match (body_groups.next(), body_groups.next()) {
+                    (Some(body_group), None) => {
+                        Some((body_group.record_index, body_group.scope_reference_ordinal))
+                    }
+                    _ => None,
+                }
+            } else {
+                None
+            }
         }
         _ => return Ok(None),
     };
