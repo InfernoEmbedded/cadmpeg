@@ -278,7 +278,6 @@ fn expected_topology(state_id: i64, scope: AsmTopologyScope) -> Option<AsmHistor
     };
     if scope == AsmTopologyScope::Retained {
         expected.surface_radii.clear();
-        expected.surface_cylinders.clear();
         expected.surface_axes.clear();
         expected.persistent_subentity_tags.clear();
         expected.body_regions.clear();
