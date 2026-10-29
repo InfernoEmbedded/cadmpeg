@@ -642,3 +642,77 @@ fn every_write_path_re_decodes_as_the_dialect_the_report_named() {
         );
     }
 }
+
+#[test]
+fn one_wire_rgbw_controller_corpus_decodes_timeline_and_named_entities() {
+    let corpus_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/1WireRGBWController.f3d");
+    let bytes = std::fs::read(&corpus_path).expect("read corpus/1WireRGBWController.f3d");
+    let result = decode(bytes);
+    assert_valid(&result);
+
+    let ir = result.ir();
+    let named_bodies: Vec<(&str, Option<bool>)> = ir
+        .model
+        .bodies
+        .iter()
+        .filter_map(|b| Some((b.name.as_deref()?, b.visible)))
+        .collect();
+    assert_eq!(
+        named_bodies,
+        vec![("Bottom", Some(true)), ("Top", Some(true))]
+    );
+
+    let standoff = ir
+        .model
+        .parameters
+        .iter()
+        .find(|p| p.name == "standoffHeight")
+        .expect("standoffHeight user parameter should decode");
+    assert_eq!(standoff.expression, "wallThickness + 2 mm");
+    match &standoff.value {
+        Some(cadmpeg_ir::ParameterValue::Length(len)) => {
+            assert!((len.get() - 3.6).abs() < 1e-9);
+        }
+        other => panic!("expected Length parameter value for standoffHeight, got {other:?}"),
+    }
+
+    let mut sketch_names: Vec<&str> = ir
+        .model
+        .sketches
+        .iter()
+        .filter_map(|s| s.name.as_deref())
+        .collect();
+    sketch_names.sort_unstable();
+    let mut expected_sketches = vec![
+        "0_2131",
+        "0_2723",
+        "0_5079",
+        "0_98443",
+        "0_9990",
+        "Base",
+        "ClipesLeft",
+        "ClipsBack",
+        "ClipsFront",
+        "ClipsRight",
+        "DJ Jack",
+        "InnerLip",
+        "LegClampExtrusion",
+        "LegClampHole",
+        "LegClampProfile",
+    ];
+    expected_sketches.sort_unstable();
+    assert_eq!(sketch_names, expected_sketches);
+
+    assert_eq!(ir.model.features.len(), 75);
+    let extrude_26 = ir
+        .model
+        .features
+        .iter()
+        .find(|f| f.name.as_deref() == Some("Extrude 26"))
+        .expect("Extrude 26 should decode");
+    match extrude_26.evaluation.definition().operation() {
+        cadmpeg_ir::FeatureOperation::Extrude { .. } => {}
+        other => panic!("expected Extrude operation for Extrude 26, got {other:?}"),
+    }
+}
