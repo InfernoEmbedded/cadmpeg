@@ -731,6 +731,16 @@ pub(super) fn decode(inputs: &DesignInputs<'_>) -> Result<DesignOutputs, CodecEr
         geometry.faces,
         geometry.surfaces,
     );
+    let mut named_entities = std::collections::HashMap::new();
+    for entry in inputs.scan.entries.iter().filter(|entry| {
+        inputs
+            .scan
+            .is_design_stream(entry, ContainerRole::Bulkstream)
+    }) {
+        if let Ok(bytes) = inputs.scan.entry_bytes(&entry.name) {
+            named_entities.extend(crate::design::sketch_project::extract_named_records(bytes));
+        }
+    }
     (model.sketches, model.sketch_entities) = crate::design::sketch_project::project_sketch_design(
         ctx,
         &design.design_sketch_placements,
@@ -740,6 +750,16 @@ pub(super) fn decode(inputs: &DesignInputs<'_>) -> Result<DesignOutputs, CodecEr
         &design.sketch_texts,
         geometry.tolerances.linear.get(),
     )?;
+    for sketch in &mut model.sketches {
+        if let Some(existing_name) = sketch.name.as_deref() {
+            if let Some(custom_name) = named_entities
+                .get(existing_name)
+                .or_else(|| named_entities.get(existing_name.trim_start_matches("0_")))
+            {
+                sketch.name = Some(custom_name.clone());
+            }
+        }
+    }
     let spatial = crate::design::sketch_project::project_spatial_sketch_design(
         ctx,
         &design.design_sketch_placements,
@@ -829,6 +849,22 @@ pub(super) fn decode(inputs: &DesignInputs<'_>) -> Result<DesignOutputs, CodecEr
         &model.sketches,
         &model.spatial_sketches,
     )?;
+    for feature in &mut model.features {
+        if let Some(scope_id) = feature.native_ref.as_deref() {
+            if let Some(scope) = design
+                .design_parameter_scopes
+                .iter()
+                .find(|s| s.id == scope_id)
+            {
+                if let Some(custom_name) = named_entities
+                    .get(&format!("0_{}", scope.record_index))
+                    .or_else(|| named_entities.get(&scope.record_index.to_string()))
+                {
+                    feature.name = Some(custom_name.clone());
+                }
+            }
+        }
+    }
     model.spatial_sketch_constraints =
         crate::design::sketch_project::project_spatial_sketch_constraints(
             &design.design_sketch_placements,

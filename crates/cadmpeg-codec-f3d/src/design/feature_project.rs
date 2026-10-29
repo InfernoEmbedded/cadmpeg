@@ -2683,6 +2683,18 @@ pub(crate) fn bind_sketch_feature_geometry(
                 }),
             };
         });
+        if let FeatureDefinition::Operation(FeatureOperation::Sketch {
+            sketch: cadmpeg_ir::features::SketchFeatureBinding::Planar(Some(ref planar)),
+        }) = feature.evaluation.definition()
+        {
+            if let Some(sk) = sketches.iter().find(|s| &s.id == planar) {
+                if let Some(ref name) = sk.name {
+                    if !name.starts_with("0_") {
+                        feature.name = Some(name.clone());
+                    }
+                }
+            }
+        }
     }
     for feature in features.iter_mut() {
         feature.evaluation.edit(|definition, _| {

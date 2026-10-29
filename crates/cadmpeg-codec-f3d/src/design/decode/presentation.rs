@@ -41,6 +41,7 @@ pub(crate) struct BrowserNodeRecord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct PresentationMaterial {
     node_guid: String,
+    pub(crate) body_name: Option<String>,
     pub(crate) physical_token: String,
     pub(crate) physical_token_offset: u64,
     pub(crate) visual_guid: crate::records::references::DesignVisualToken,
@@ -53,6 +54,7 @@ pub(crate) struct PresentationMaterial {
 pub(crate) struct BodyPresentation {
     pub(crate) byte_offset: u64,
     pub(crate) entity_suffix: u64,
+    pub(crate) name: Option<String>,
     pub(crate) owner: BodyPresentationOwner,
     pub(crate) browser_node: Option<BrowserNodeRecord>,
     pub(crate) material: Option<PresentationMaterial>,
@@ -180,7 +182,7 @@ pub(crate) fn body_presentations(
             Some(header) => Some(header),
             None => parse_genesis_entity_header(framed_bytes, frame.start),
         };
-        let (entity_suffix, owner, material) = if let Some(NamedEntityHeader {
+        let (entity_suffix, name, owner, material) = if let Some(NamedEntityHeader {
             entity_id,
             entity_id_offset,
             end: header_end,
@@ -194,19 +196,30 @@ pub(crate) fn body_presentations(
                     frame.entity_id
                 )));
             }
-            (
+            let mat = presentation_material(
+                framed_bytes,
+                header_end,
+                frame.end,
                 entity_suffix,
-                BodyPresentationOwner::Named {
-                    entity_id,
-                    entity_id_offset: u64_from_index(entity_id_offset),
-                },
-                presentation_material(
+                &entity_types,
+            )?;
+            let name = mat.as_ref().and_then(|m| m.body_name.clone()).or_else(|| {
+                presentation_body_name(
                     framed_bytes,
                     header_end,
                     frame.end,
                     entity_suffix,
                     &entity_types,
-                )?,
+                )
+            });
+            (
+                entity_suffix,
+                name,
+                BodyPresentationOwner::Named {
+                    entity_id,
+                    entity_id_offset: u64_from_index(entity_id_offset),
+                },
+                mat,
             )
         } else {
             let entity_suffix =
@@ -231,7 +244,13 @@ pub(crate) fn body_presentations(
             else {
                 continue;
             };
-            (entity_suffix, BodyPresentationOwner::Bare, Some(material))
+            let name = material.body_name.clone();
+            (
+                entity_suffix,
+                name,
+                BodyPresentationOwner::Bare,
+                Some(material),
+            )
         };
         let browser_node = if let Some(material) = material.as_ref() {
             let mut matching_nodes = nodes.iter().filter(|node| {
@@ -248,12 +267,65 @@ pub(crate) fn body_presentations(
         out.push(BodyPresentation {
             byte_offset: u64_from_index(frame.start),
             entity_suffix,
+            name,
             owner,
             browser_node,
             material,
         });
     }
     Ok(out)
+}
+
+fn presentation_body_name(
+    bytes: &[u8],
+    start: usize,
+    end: usize,
+    entity_suffix: u64,
+    entity_types: &HashMap<u64, (&str, u32)>,
+) -> Option<String> {
+    let bytes = bytes.get(..end)?;
+    let physical_marker = lp_utf16_bytes(PHYSICAL_MATERIAL_LIBRARY_ID).ok()?;
+    for physical_at in find_all(bytes, start, end, &physical_marker) {
+        let Some(token_at) = skip_zeros(bytes, physical_at + physical_marker.len(), end) else {
+            continue;
+        };
+        let Some((physical_token, after_token)) = lp_utf16_bounded(bytes, token_at, 1..=256) else {
+            continue;
+        };
+        if !is_physical_material_token(&physical_token) || after_token > end {
+            continue;
+        }
+        let mut reference_at = after_token;
+        let Some(brep_container_entity) = local_reference(bytes, &mut reference_at) else {
+            continue;
+        };
+        if local_reference_value(bytes, &mut reference_at) != Some(LocalReference::Null) {
+            continue;
+        }
+        let Some(scene_node_entity) = local_reference(bytes, &mut reference_at) else {
+            continue;
+        };
+        if entity_types
+            .get(&brep_container_entity)
+            .is_none_or(|(guid, version)| {
+                !guid.eq_ignore_ascii_case(BREP_CONTAINER_TYPE_GUID)
+                    || *version != BREP_CONTAINER_TYPE_VERSION
+            })
+            || scene_node_entity <= entity_suffix
+            || entity_types
+                .get(&scene_node_entity)
+                .is_none_or(|(guid, version)| {
+                    !guid.eq_ignore_ascii_case(BODY_SCENE_NODE_TYPE_GUID)
+                        || *version != BODY_SCENE_NODE_TYPE_VERSION
+                })
+        {
+            continue;
+        }
+        if let Some((body_name, _)) = lp_utf16_bounded(bytes, reference_at, 1..=256) {
+            return Some(body_name);
+        }
+    }
+    None
 }
 
 fn entity_types(
@@ -338,7 +410,7 @@ fn presentation_material(
                 !guid.eq_ignore_ascii_case(BREP_CONTAINER_TYPE_GUID)
                     || *version != BREP_CONTAINER_TYPE_VERSION
             })
-            || entity_suffix.checked_add(1) != Some(scene_node_entity)
+            || scene_node_entity <= entity_suffix
             || entity_types
                 .get(&scene_node_entity)
                 .is_none_or(|(guid, version)| {
@@ -348,7 +420,7 @@ fn presentation_material(
         {
             continue;
         }
-        let Some((_, after_name)) = lp_utf16_bounded(bytes, reference_at, 0..=256) else {
+        let Some((body_name, after_name)) = lp_utf16_bounded(bytes, reference_at, 0..=256) else {
             continue;
         };
         let Some(visual_at) = record_tail_visual_offset(bytes, after_name, end) else {
@@ -400,6 +472,7 @@ fn presentation_material(
         }
         candidate = Some(PresentationMaterial {
             node_guid,
+            body_name: (!body_name.is_empty()).then_some(body_name),
             physical_token,
             physical_token_offset: u64_from_index(token_at + 4),
             visual_guid,
@@ -465,9 +538,11 @@ fn bare_presentation_material(
             continue;
         }
 
+        let mut body_name = None;
         let mut after_name = None;
         if let Some(name_at) = skip_zeros(bytes, node_reference_at, end) {
-            if let Some((_, end)) = lp_utf16_bounded(bytes, name_at, 1..=256) {
+            if let Some((name, end)) = lp_utf16_bounded(bytes, name_at, 1..=256) {
+                body_name = Some(name);
                 after_name = Some(end);
             }
         }
@@ -507,6 +582,7 @@ fn bare_presentation_material(
         }
         candidate = Some(PresentationMaterial {
             node_guid,
+            body_name,
             physical_token,
             physical_token_offset: u64_from_index(token_at + 4),
             visual_guid,

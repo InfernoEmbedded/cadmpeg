@@ -13,7 +13,7 @@ use crate::records::{
     sketch_placement::DesignSketchPlacement,
     sketch_relations::{SketchConstraintKind, SketchRelation},
 };
-use cadmpeg_core::decode::{index_from_u32, DecodeContext};
+use cadmpeg_core::decode::{index_from_u32, DecodeContext, View};
 use cadmpeg_ir::math::{Point2, Point3, Vector3};
 use std::collections::{HashMap, HashSet};
 
@@ -22,6 +22,19 @@ const EPS_SKETCH_PROJECT_PROJECT_SKETCH_DESIGN_E9: f64 = 1.0e-9;
 const EPS_SKETCH_PROJECT_PROJECT_SPATIAL_SKETCH_DESIGN_E9: f64 = 1.0e-9;
 const EPS_SKETCH_PROJECT_PROJECT_SPATIAL_SKETCH_CONSTRAINTS_E9: f64 = 1.0e-9;
 const EPS_SKETCH_PROJECT_PROJECT_SPATIAL_SKETCH_CONSTRAINTS_E12: f64 = 1.0e-12;
+
+fn decode_utf16_le_slice(bytes: &[u8]) -> Option<String> {
+    if !bytes.len().is_multiple_of(2) {
+        return None;
+    }
+    let mut u16s = Vec::with_capacity(bytes.len() / 2);
+    let mut off = 0;
+    while off < bytes.len() {
+        u16s.push(View::u16_le_at(bytes, off)?);
+        off = off.checked_add(2)?;
+    }
+    String::from_utf16(&u16s).ok()
+}
 
 fn record_spline_segment<'a>(
     segments: &mut HashMap<(&'a str, u32), Option<[Point3; 2]>>,
@@ -37,6 +50,104 @@ fn record_spline_segment<'a>(
             }
         })
         .or_insert(Some(points));
+}
+
+pub(crate) fn extract_named_records(data: &[u8]) -> HashMap<String, String> {
+    let mut names = HashMap::new();
+
+    // 1. Scan for record type 275 (Sketch name records)
+    let pattern = b"\x03\x00\x00\x00275";
+    let mut pos = 0;
+    while pos + pattern.len() <= data.len() {
+        if let Some(offset) = data[pos..]
+            .windows(pattern.len())
+            .position(|w| w == pattern)
+        {
+            let p = pos + offset + pattern.len();
+            if let Some(rec_idx) = View::u32_le_at(data, p) {
+                let window_end = (p + 120).min(data.len());
+                let window = &data[p..window_end];
+                if let Some(limit) = window.len().checked_sub(8) {
+                    for w_off in 0..limit {
+                        let Some(slen_u32) = View::u32_le_at(window, w_off) else {
+                            continue;
+                        };
+                        let Ok(slen) = usize::try_from(slen_u32) else {
+                            continue;
+                        };
+                        if (2..=50).contains(&slen) && w_off + 4 + slen * 2 <= window.len() {
+                            let str_bytes = &window[w_off + 4..w_off + 4 + slen * 2];
+                            if let Some(s) = decode_utf16_le_slice(str_bytes) {
+                                if s.is_ascii()
+                                    && s.chars().all(|c| {
+                                        c.is_alphanumeric() || c == ' ' || c == '_' || c == '-'
+                                    })
+                                    && s.chars().any(char::is_alphabetic)
+                                    && !s.starts_with("0_")
+                                {
+                                    names.insert(format!("0_{rec_idx}"), s.clone());
+                                    names.insert(format!("{rec_idx}"), s);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            pos = p;
+        } else {
+            break;
+        }
+    }
+
+    // 2. Scan for named entities like "0_<rec_idx>" followed by a UTF-16LE string
+    let mut idx = 0;
+    while idx + 8 < data.len() {
+        if data[idx] == b'0' && data[idx + 1] == 0 && data[idx + 2] == b'_' && data[idx + 3] == 0 {
+            let mut d_end = idx + 4;
+            while d_end + 1 < data.len() && data[d_end + 1] == 0 && data[d_end].is_ascii_digit() {
+                d_end += 2;
+            }
+            if d_end > idx + 4 {
+                if let Some(ent_id) = decode_utf16_le_slice(&data[idx..d_end]) {
+                    let win_end = (d_end + 64).min(data.len());
+                    let win = &data[d_end..win_end];
+                    if let Some(limit) = win.len().checked_sub(8) {
+                        for w_off in 0..limit {
+                            let Some(slen_u32) = View::u32_le_at(win, w_off) else {
+                                continue;
+                            };
+                            let Ok(slen) = usize::try_from(slen_u32) else {
+                                continue;
+                            };
+                            if (2..=50).contains(&slen) && w_off + 4 + slen * 2 <= win.len() {
+                                let str_bytes = &win[w_off + 4..w_off + 4 + slen * 2];
+                                if let Some(s) = decode_utf16_le_slice(str_bytes) {
+                                    if s.is_ascii()
+                                        && s.chars().all(|c| {
+                                            c.is_alphanumeric() || c == ' ' || c == '_' || c == '-'
+                                        })
+                                        && s.chars().any(char::is_alphabetic)
+                                        && !s.starts_with("0_")
+                                    {
+                                        names.insert(ent_id.clone(), s.clone());
+                                        names
+                                            .insert(ent_id.trim_start_matches("0_").to_string(), s);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            idx = d_end;
+        } else {
+            idx += 1;
+        }
+    }
+
+    names
 }
 
 fn distinct_return_member_indices(
