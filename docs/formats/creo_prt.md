@@ -4592,6 +4592,18 @@ paths define latitude circles. Constant-`u` toroidal paths define tube circles
 and constant-`v` paths define ring circles; a negative ring radius reverses the
 reference direction. If any evaluable adjacent face path is not one of these
 analytic forms, the pcurve does not define an analytic model-space carrier.
+A two-sample constant-`u` path on a uniquely placed cylinder also defines
+an infinite generator beside an opaque cap chart. Its zero axial station
+fixes a point on the line, and the cylinder axis fixes its direction.
+The nonzero axial image does not define the finite endpoint or trim interval.
+The zero station also locates one endpoint. The stored per-side direction
+flags bind it to its half-edge vertex orbit. That point must agree with
+existing fixed points and incident analytic carriers. It supplies no value
+for the opposite endpoint. This evidence does not complete the opaque chart.
+In a class-932 companion cylinder body with the `11` opener, the complete
+terminal axis-support/XYZ/radius suffix assigns the signed long form to
+`41 <tail7>` in its first origin coordinate. Its IEEE high byte is `bf`;
+other scalar fields keep their own lane rules.
 Mapping endpoint A and endpoint B through every evaluable adjacent face chart
 must produce the same ordered model-space pair. For one topological vertex
 orbit, the common point among the unordered mapped endpoint pairs of at least

@@ -284,8 +284,9 @@ replaced by an envelope midpoint. Raw body bytes retain the unsupported fields.
 
 A second, independently placed chart can define an infinite line even when
 the first chart remains opaque. Line agreement does not establish its finite
-endpoints or a trim interval. The current curve-wide veto suppresses both
-charts.
+endpoints or a trim interval. A two-sample constant-angular path with one
+zero axial station on a uniquely placed cylinder establishes its infinite
+generator independently of the opaque cap chart.
 
 In the FTC-08 and STC-08 pocket feature, the cap-adjacent rulings are
 two-sample two-chart rows on the end cylinders. Their errors do not depend on
@@ -296,9 +297,9 @@ end-cylinder coordinate is the literal `18`. The image `4f 47 ae 14 7a e1 48`
 reads as 0.1584375, but the pocket depth is 0.135. The same image puts the
 pocket floor too deep on rows that have no cap face. The image
 `41 c1 47 ae 14 7a e1 48` reads as 0.135 on the end cylinders whose decoded
-axis is +z, but the endpoint is 0.135 below the top face. No property of a
-cap-adjacent row separates its correct carriers and endpoints from its
-incorrect ones.
+axis is +z, but the endpoint is 0.135 below the top face. A literal zero axial station identifies the independently placed
+end-cylinder base point. The nonzero axial images still require their own
+field grammar and direction proof.
 
 The selector-corner interval family reconstructs its unique axis line, radius,
 and extent from two directrix parameters, two XYZ corners, and the selector
@@ -329,8 +330,8 @@ recovering a curve adjacent to a withheld cap chart. Prove the complete chart
 record, its owned coordinate lanes, and each promoted quantity. Do not restore
 finite vertices from agreement of infinite carriers. Resolve the `4f <tail6>`
 and `41 <tail7>` second-coordinate images in pcurve chart slots, the
-end-cylinder axis sign, and the mirrored end-cylinder placement before the
-veto is narrowed.
+end-cylinder axis sign, and the mirrored end-cylinder placement before
+nonzero finite endpoints or complete cap charts are promoted.
 
 ### GS-19. Unresolved cone origin-coordinate images
 

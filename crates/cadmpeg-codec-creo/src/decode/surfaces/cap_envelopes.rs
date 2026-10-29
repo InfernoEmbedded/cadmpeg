@@ -10,7 +10,8 @@ use crate::container::ContainerScan;
 use crate::layout::type24_cap_envelope_control_prefix as cap;
 use crate::scalar::{self, ScalarCache};
 use crate::surface::{
-    SurfaceKind, SurfaceParameterCarrier, SurfaceParameterOpaqueSpan, SurfaceRow,
+    InlineSurfaceCarrier, PositionalCylinderFrame, SurfaceKind, SurfaceParameterCarrier,
+    SurfaceParameterOpaqueSpan, SurfaceParameterRecord, SurfaceRow,
 };
 
 use super::super::sketch_transfer::recipe::FeatureSchemaClasses;
@@ -23,6 +24,62 @@ const CAP_SUPPORT_IMAGES: [[u8; 7]; 4] = [
     [0x10, 0x18, 0xe5, 0x0f, 0x18, 0xe5, 0x10],
     [0x18, 0x10, 0x18, 0x10, 0x18, 0xe6, 0x10],
 ];
+
+fn signed_companion_origin(record: &SurfaceParameterRecord) -> Option<PositionalCylinderFrame> {
+    let body = &record.body;
+    (body.first() == Some(&0x11)).then_some(())?;
+    let frame = record.positional_cylinder_frame()?;
+    let support_images: [[u8; 7]; 8] = [
+        [0x18, 0x0f, 0x18, 0x10, 0x18, 0xe6, 0x0f],
+        [0x18, 0x10, 0x18, 0x10, 0x18, 0xe6, 0x10],
+        [0x18, 0x0f, 0x18, 0x0f, 0x18, 0xe6, 0x10],
+        [0x18, 0x10, 0x18, 0x0f, 0x18, 0xe6, 0x0f],
+        [0x0f, 0x18, 0xe5, 0x10, 0x18, 0xe5, 0x10],
+        [0x0f, 0x18, 0xe5, 0x0f, 0x18, 0xe5, 0x0f],
+        [0x10, 0x18, 0xe5, 0x0f, 0x18, 0xe5, 0x10],
+        [0x10, 0x18, 0xe5, 0x10, 0x18, 0xe5, 0x0f],
+    ];
+    let cache = ScalarCache::default();
+    let mut origins = Vec::new();
+    for (offset, bytes) in body.windows(8).enumerate() {
+        if bytes[0] != 0xe3 || !support_images.iter().any(|image| bytes[1..] == *image) {
+            continue;
+        }
+        let mut cursor = offset + 8;
+        if body.get(cursor) != Some(&0x41) {
+            continue;
+        }
+        let mut values = [0.0; 4];
+        let mut complete = true;
+        for value in &mut values {
+            let Some((decoded, next)) =
+                scalar::decode_tabulated_cylinder_first_coordinate(body, cursor, &cache)
+            else {
+                complete = false;
+                break;
+            };
+            *value = decoded;
+            cursor = next;
+        }
+        if complete
+            && cursor == body.len()
+            && values[..3] == frame.frame().origin()
+            && values[3] == frame.radius().get()
+        {
+            origins.push([-values[0], values[1], values[2]]);
+        }
+    }
+    let [origin] = origins.as_slice() else {
+        return None;
+    };
+    PositionalCylinderFrame::with_admitted_dimensions(
+        *origin,
+        frame.frame().axis(),
+        frame.frame().ref_direction(),
+        frame.radius(),
+        frame.length(),
+    )
+}
 
 fn complete_cap_envelope_body(body: &[u8]) -> Option<()> {
     let cache = ScalarCache::default();
@@ -99,9 +156,17 @@ pub(in crate::decode) fn withhold_unresolved_cap_envelopes(
         ),
     ] {
         for record in parameters {
-            if !ids.contains(&record.surface_id)
-                || complete_cap_envelope_body(&record.body).is_none()
-            {
+            if !ids.contains(&record.surface_id) {
+                continue;
+            }
+            if let Some(frame) = signed_companion_origin(record) {
+                record.carrier =
+                    SurfaceParameterCarrier::Resolved(InlineSurfaceCarrier::Cylinder {
+                        frame,
+                        split_bounds: record.split_cylinder_outline_bounds(),
+                    });
+            }
+            if complete_cap_envelope_body(&record.body).is_none() {
                 continue;
             }
             ctx.retain_bytes(

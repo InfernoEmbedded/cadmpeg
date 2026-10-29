@@ -66,6 +66,80 @@ fn record(bytes: Vec<u8>) -> SurfaceParameterRecord {
     }
 }
 
+fn signed_origin_companion() -> SurfaceParameterRecord {
+    let mut bytes = vec![0x11, 0x18, 0xe3, 0x18, 0x10, 0x18, 0x10, 0x18, 0xe6, 0x10];
+    let mut x = scalar(0.17);
+    x[0] = 0x41;
+    bytes.extend(x);
+    for value in [2.125, 1.9, 0.125] {
+        bytes.extend(scalar(value));
+    }
+    let mut record = record(bytes);
+    record.carrier = SurfaceParameterCarrier::Resolved(InlineSurfaceCarrier::Cylinder {
+        frame: PositionalCylinderFrame::new(
+            [0.17, 2.125, 1.9],
+            [0.0, 0.0, -1.0],
+            [0.0, -1.0, 0.0],
+            0.125,
+            None,
+        )
+        .expect("companion cylinder"),
+        split_bounds: None,
+    });
+    record
+}
+
+#[test]
+fn companion_origin_sign_is_owned_by_class932() {
+    for (class, expected) in [(932, -0.17), (913, 0.17)] {
+        let mut scan = crate::test_support::empty_container_scan();
+        scan.features.rows = vec![feature(class)];
+        scan.surfaces.rows = vec![crate::decode::tests::surface_row(
+            17,
+            6,
+            SurfaceKind::Cylinder,
+        )];
+        scan.surfaces.parameters = vec![signed_origin_companion()];
+        crate::decode::with_service_context(|ctx| {
+            withhold_unresolved_cap_envelopes(ctx, &mut scan).expect("owned companion origin");
+        });
+        assert_eq!(
+            scan.surfaces.parameters[0]
+                .positional_cylinder_frame()
+                .expect("cylinder")
+                .frame()
+                .origin(),
+            [expected, 2.125, 1.9]
+        );
+        assert!(scan.surfaces.withheld_cap_surface_ids.is_empty());
+    }
+}
+
+#[test]
+fn companion_origin_sign_requires_the_complete_terminal_record() {
+    let mut record = signed_origin_companion();
+    assert!(super::signed_companion_origin(&record).is_some());
+    record.body.push(0x18);
+    assert!(super::signed_companion_origin(&record).is_none());
+    record.body.pop();
+    record.body[10] = 0x28;
+    assert!(super::signed_companion_origin(&record).is_none());
+}
+
+#[test]
+fn companion_origin_sign_keeps_other_frame_fields_exact() {
+    let record = signed_origin_companion();
+    let before = record.positional_cylinder_frame().expect("original frame");
+    let after = super::signed_companion_origin(&record).expect("signed origin");
+    assert_eq!(before.frame().axis(), after.frame().axis());
+    assert_eq!(
+        before.frame().ref_direction(),
+        after.frame().ref_direction()
+    );
+    assert_eq!(before.radius(), after.radius());
+    assert_eq!(before.length(), after.length());
+}
+
 fn feature(class: u32) -> FeatureRow {
     FeatureRow {
         feature_id: 6,
