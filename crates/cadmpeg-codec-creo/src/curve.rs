@@ -6945,6 +6945,7 @@ struct FramedRow {
     suffix: [u32; 4],
     reference_geometry: [u32; 2],
     counted_body: bool,
+    bare_matrix_body: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -7050,21 +7051,229 @@ fn framed_rows_with_face_ids(payload: &[u8], face_ids: Option<&BTreeSet<u32>>) -
         } else {
             None
         };
+        let mut matrix_shapes = BTreeMap::new();
+        if let Some((key, count)) =
+            named_curve_matrix_shape(payload, namespace_start, label, namespace_end)
+        {
+            matrix_shapes.insert(key, count);
+        }
         for &(start, end, boundary_anchored) in &segments {
-            if let Some(row) = framed_segment_with_face_ids(
+            if boundary_anchored {
+                if let Some(prefix) = topology_prefix_fields(&payload[start..end], 0) {
+                    if payload.get(start + prefix.end) == Some(&0xfc) {
+                        matrix_shapes.retain(|&(owner, kind, _), _| {
+                            owner != prefix.feature_id || kind != prefix.type_byte
+                        });
+                    }
+                }
+            }
+            let legacy = framed_segment_with_face_ids(
                 payload,
                 namespace_start,
                 (start, end),
                 boundary_anchored,
                 face_ids,
                 known_face_ids.as_ref(),
-            ) {
+            );
+            let declared = declared_bare_curve_frame(
+                payload,
+                namespace_start,
+                (start, end),
+                boundary_anchored,
+                &matrix_shapes,
+            );
+            let row = match (legacy, declared) {
+                (Some(existing), Some(declared))
+                    if existing.start == declared.start
+                        && existing.end == declared.end
+                        && existing.suffix_start == declared.suffix_start =>
+                {
+                    Some(existing)
+                }
+                (_, Some(declared)) => Some(declared),
+                (existing, None) => existing,
+            };
+            if let Some(row) = row {
+                update_curve_matrix_shape(payload, row, end, &mut matrix_shapes);
                 result.push(row);
             }
         }
     }
     result.as_mut_slice().sort_by_key(|left| left.start);
     result.dedup_by_key(|row| row.start);
+    result
+}
+
+type CurveMatrixKey = (u32, u8, u32);
+
+fn scalar_matrix_end(bytes: &[u8], mut cursor: usize, rows: u32) -> Option<usize> {
+    let remaining = bytes.len().checked_sub(cursor)?;
+    let slots = bounded_len(u64::from(rows), 4, remaining)?.checked_mul(4)?;
+    for _ in 0..slots {
+        let width = match bytes.get(cursor)? {
+            0x18 => 1,
+            0x28 | 0x2d | 0x41 | 0x46 => 8,
+            0x4b..=0xdf => 7,
+            _ => return None,
+        };
+        let next = cursor.checked_add(width)?;
+        bytes.get(cursor..next)?;
+        cursor = next;
+    }
+    Some(cursor)
+}
+
+fn curve_parameter_class(linkage: &[u8]) -> Option<u32> {
+    let mut result = None;
+    for width in 1..=2 {
+        let Some(start) = linkage.len().checked_sub(width) else {
+            continue;
+        };
+        let Some((class, end)) = generic_compact_at(linkage, start) else {
+            continue;
+        };
+        if end != linkage.len() {
+            continue;
+        }
+        let before = &linkage[..start];
+        let complete = before.is_empty()
+            || before == [0xf7, 0x16]
+            || before.strip_prefix(&[0xf7, 0x27]).is_some_and(|reference| {
+                reference == [0xf6]
+                    || generic_compact_at(reference, 0)
+                        .is_some_and(|(_, end)| end == reference.len())
+            })
+            || generic_compact_at(before, 0).is_some_and(|(_, end)| end == before.len());
+        if complete {
+            if result.is_some() {
+                return None;
+            }
+            result = Some(class);
+        }
+    }
+    result
+}
+
+fn named_curve_matrix_shape(
+    payload: &[u8],
+    start: usize,
+    topology_label: usize,
+    namespace_end: usize,
+) -> Option<(CurveMatrixKey, u32)> {
+    let integer = |label: &[u8]| {
+        let at = unique_find_in(payload, label, start, topology_label)? + label.len();
+        generic_compact_at(payload, at).map(|(value, _)| value)
+    };
+    let owner = integer(b"\xe0\x01feat_id\0")?;
+    let kind = integer(b"\xe0\x01type\0")?;
+    (owner != 0 && kind == 8).then_some(())?;
+    let points = unique_find_in(payload, b"\xe0\x02crv_pnt_arr\0", start, topology_label)?
+        + b"\xe0\x02crv_pnt_arr\0".len();
+    (payload.get(points) == Some(&0xf9)).then_some(())?;
+    let (count, cursor) = generic_compact_at(payload, points + 1)?;
+    let (columns, cursor) = generic_compact_at(payload, cursor)?;
+    (count >= 2 && columns == 4).then_some(())?;
+    let matrix_end = scalar_matrix_end(payload.get(..topology_label)?, cursor, count)?;
+    (payload.get(matrix_end..matrix_end + b"\xe0\x01crv_hdr_geom_ptr[0]\0".len())
+        == Some(b"\xe0\x01crv_hdr_geom_ptr[0]\0"))
+    .then_some(())?;
+    let close = topology_label + b"topol_ref_data\0".len();
+    (payload.get(close) == Some(&0xe3)).then_some(())?;
+    let entry_end = [b"\xe1\xf2\xe3".as_slice(), b"\xe1\xf5\x05\xf6\xf2\xe3"]
+        .into_iter()
+        .filter_map(|footer| find_in(payload, footer, close + 1, namespace_end))
+        .min()?;
+    let class = curve_parameter_class(payload.get(close + 1..entry_end)?)?;
+    Some(((owner, 8, class), count))
+}
+
+fn update_curve_matrix_shape(
+    payload: &[u8],
+    row: FramedRow,
+    segment_end: usize,
+    shapes: &mut BTreeMap<CurveMatrixKey, u32>,
+) {
+    let bytes = &payload[row.start..row.end];
+    let Some(prefix) = topology_prefix(bytes, 0, row.suffix_start) else {
+        return;
+    };
+    if prefix.type_byte != 8 || prefix.feature_id == 0 {
+        return;
+    }
+    let Some(class) = curve_parameter_class(&payload[row.end..segment_end]) else {
+        return;
+    };
+    let body = &bytes[prefix.end..row.suffix_start];
+    if body.first() != Some(&0xfc) {
+        return;
+    }
+    let key = (prefix.feature_id, prefix.type_byte, class);
+    shapes.remove(&key);
+    let Some((count, cursor)) = generic_compact_at(body, 1) else {
+        return;
+    };
+    if count >= 2 && count != 5 && scalar_matrix_end(body, cursor, count) == Some(body.len()) {
+        shapes.insert(key, count);
+    }
+}
+
+fn declared_bare_curve_frame(
+    payload: &[u8],
+    namespace_start: usize,
+    bounds: (usize, usize),
+    boundary_anchored: bool,
+    shapes: &BTreeMap<CurveMatrixKey, u32>,
+) -> Option<FramedRow> {
+    let (start, end) = bounds;
+    let segment = payload.get(start..end)?;
+    let mut result = None;
+    for (row_start, _) in segment.iter().enumerate().filter(|(at, _)| {
+        (boundary_anchored && *at == 0)
+            || (*at >= 3 && segment.get(at - 3..*at) == Some(&[0xe1, 0xf2, 0xe3]))
+            || (*at >= 6 && segment.get(at - 6..*at) == Some(&[0xe1, 0xf5, 0x05, 0xf6, 0xf2, 0xe3]))
+    }) {
+        let Some(prefix) = topology_prefix_fields(segment, row_start) else {
+            continue;
+        };
+        if prefix.type_byte != 8 || segment.get(prefix.end) == Some(&0xfc) {
+            continue;
+        }
+        for close in prefix.end..segment.len() {
+            if segment[close] != 0xe3 {
+                continue;
+            }
+            let Some(class) = curve_parameter_class(&segment[close + 1..]) else {
+                continue;
+            };
+            let Some(&count) = shapes.get(&(prefix.feature_id, prefix.type_byte, class)) else {
+                continue;
+            };
+            let Some(suffix_start) = scalar_matrix_end(segment, prefix.end, count) else {
+                continue;
+            };
+            let Some(candidates) = topology_suffix_candidates(&segment[row_start..=close]) else {
+                continue;
+            };
+            for candidate in candidates.into_iter().flatten() {
+                if row_start + candidate.start != suffix_start {
+                    continue;
+                }
+                if result.is_some() {
+                    return None;
+                }
+                result = Some(FramedRow {
+                    namespace_start,
+                    start: start + row_start,
+                    end: start + close + 1,
+                    suffix_start: candidate.start,
+                    suffix: candidate.stored_references(),
+                    reference_geometry: candidate.reference_geometry,
+                    counted_body: false,
+                    bare_matrix_body: true,
+                });
+            }
+        }
+    }
     result
 }
 
@@ -7118,6 +7327,7 @@ fn framed_segment_with_face_ids(
                 suffix,
                 reference_geometry,
                 counted_body,
+                bare_matrix_body: false,
             });
         }
         let eligible = prefixes.partition_point(|(_, prefix_end)| *prefix_end <= suffix_start);
@@ -7130,6 +7340,7 @@ fn framed_segment_with_face_ids(
                 suffix,
                 reference_geometry,
                 counted_body,
+                bare_matrix_body: false,
             });
         }
     }
@@ -7370,7 +7581,16 @@ pub(crate) fn parameter_records_with_face_ids(
             scalar_tokens,
             references,
             opaque_spans,
-        } = if framed.counted_body {
+        } = if framed.bare_matrix_body {
+            CurveScalarLane {
+                scalar_tokens: Vec::new(),
+                references: Vec::new(),
+                opaque_spans: vec![CurveParameterOpaqueSpan {
+                    offset: 0,
+                    raw: body.clone(),
+                }],
+            }
+        } else if framed.counted_body {
             counted_curve_scalar_lane(ctx, &body)?
         } else {
             curve_scalar_lane(ctx, &body, type_byte, &cache)?
@@ -7558,6 +7778,9 @@ pub(crate) fn two_chart_pcurve_samples(
 
     let mut result = Vec::new();
     for row in framed {
+        if row.bare_matrix_body {
+            continue;
+        }
         let bytes = &payload[row.start..row.end];
         let Some(prefix) = topology_prefix(bytes, 0, row.suffix_start) else {
             continue;

@@ -246,6 +246,20 @@ display name, or an API-enum cast.
 
 **Note.** In resistor-100w-aluminum-finned, about 370 vertices that the decoder solves from two-chart samples lie off the STEP sibling in the model frame with either sign reading. They fit STEP only under an axis permutation and translation, and the finned body is symmetric enough that a mirrored set fits as well, so an alignment search does not decide the sample sign there.
 
+### GS-15. Other bare curve-matrix declarations
+
+**Question.** Which complete declarations supply matrix shapes to bare curve
+parameter classes without a preceding shape in their owner/type scope, and
+which numeric chart roles do those declarations assign?
+
+**Known.** A complete named or counted four-column matrix supplies an exact
+replay extent only within its physical array, owner, raw type, and parameter
+class. Complete scalar-image widths and six-reference suffixes establish
+field boundaries without establishing numeric signs or model placement.
+
+**Need.** Resolve the owning declarations and numeric roles before extending
+framing to another parameter class or constructing geometry from its fields.
+
 ### GS-16. Model-reference entity types and conic framing
 
 **Question.** Which complete entity grammars own the unresolved positional

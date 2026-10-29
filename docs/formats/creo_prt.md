@@ -2490,6 +2490,19 @@ when their surface owners are not admitted. A materialized identifier that
 matches only a reference's low byte does not change that boundary. Multiple
 complete counted-body suffix readings leave the boundary unresolved.
 
+For raw curve type `08`, a complete named `crv_pnt_arr f9 <rows> 04`
+matrix or a complete `fc <rows>` matrix declares a four-column extent.
+Its replay scope consists of the physical `crv_array`, nonzero `feat_id`,
+raw curve type, and terminal parameter-class identifier. A declared shape
+can bound a subsequent bare matrix only within that scope. An incomplete
+redeclaration does not supply a replay extent. The bounded
+scalar-image forms are `18` (one byte), `28`, `2d`, `41`, and `46`
+(eight bytes), and `4b..df` (seven bytes). Exactly `4 * rows` complete
+images end at the first of the six compact topology references. A unique
+complete matrix boundary precedes a face-identifier preference, including a
+preference that matches only the low byte of a reference. Matrix extent and
+parameter-class identity do not assign numeric signs or chart coordinates.
+
 Each chart's first coordinate uses the first tabulated-cylinder directrix
 coordinate lane. In this bounded curve grammar, `32 <tail7>` is an eight-byte
 positive sub-unit first-coordinate scalar that reconstructs IEEE-754 bytes

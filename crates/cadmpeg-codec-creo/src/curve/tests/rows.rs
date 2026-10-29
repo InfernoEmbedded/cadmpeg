@@ -1217,3 +1217,164 @@ fn count_selected_frames_keep_nonliteral_numeric_roles_opaque() {
     assert_eq!(record.opaque_spans[0].raw, [0xfc, 2]);
     assert_eq!(record.opaque_spans[1].raw, [0x77, 0x60, 0, 0, 0, 0, 0]);
 }
+
+fn declared_bare_curve_rows(named: bool, replay_owner: u8, replay_type: u8) -> Vec<u8> {
+    let mut payload = b"crv_array\0".to_vec();
+    if named {
+        payload.extend_from_slice(b"\xe0\x01crv_id\0\x07\xe0\x01type\0\x08\xe0\x01feat_id\0\x03\xe0\x02crv_pnt_arr\0\xf9\x04\x04");
+        payload.extend_from_slice(&[0x18; 16]);
+        payload.extend_from_slice(b"\xe0\x01crv_hdr_geom_ptr[0]\0\x01");
+    }
+    payload.extend_from_slice(b"topol_ref_data\0\xe3\xf7\x16\x6b\xe1\xf2\xe3");
+    if !named {
+        payload.extend_from_slice(&[7, 8, 3, 1, 0xf6, 0xfc, 4]);
+        payload.extend_from_slice(&[0x18; 16]);
+        payload.extend_from_slice(&[1, 2, 7, 8, 0, 0, 0xe3, 0x6b, 0xe1, 0xe3]);
+    }
+    payload.extend_from_slice(&[9, replay_type, replay_owner, 1, 0xf6]);
+    payload.extend_from_slice(&[0x18; 16]);
+    payload.extend_from_slice(&[
+        0x81, 0x2c, 0, 0x81, 0x2d, 0x81, 0x2e, 0, 7, 0xe3, 0x6b, 0xe1, 0xe3,
+    ]);
+    payload
+}
+
+#[test]
+fn declared_bare_rows_use_complete_parameter_boundary() {
+    for named in [false, true] {
+        let payload = declared_bare_curve_rows(named, 3, 8);
+        let faces = BTreeSet::from([44, 300]);
+        let rows = topology_rows_with_face_ids(&payload, Some(&faces));
+        let replay = rows
+            .iter()
+            .find(|row| row.id == 9)
+            .expect("complete declared replay");
+        assert_eq!(replay.faces, [300, 0].map(NonZeroU32::new));
+        assert_eq!(replay.next_edges, [301, 302]);
+        let parameters = crate::decode::with_service_context(|ctx| {
+            parameter_records_with_face_ids(ctx, &payload, Some(&faces))
+        })
+        .expect("raw replay parameter retention");
+        let replay = parameters
+            .iter()
+            .find(|row| row.curve_id == 9)
+            .expect("replay raw body");
+        assert_eq!(replay.body, [0x18; 16]);
+        assert!(replay.scalar_tokens.is_empty());
+        assert!(replay.references.is_empty());
+        assert_eq!(replay.opaque_spans.len(), 1);
+        assert_eq!(replay.opaque_spans[0].raw, [0x18; 16]);
+        assert!(two_chart_pcurve_samples(&payload, Some(&faces))
+            .iter()
+            .all(|sample| sample.curve_id != 9));
+    }
+}
+
+#[test]
+fn declared_bare_rows_require_preceding_same_owner_and_type() {
+    let faces = BTreeSet::from([44, 300]);
+    for named in [false, true] {
+        for (owner, kind) in [(4, 8), (3, 6)] {
+            let payload = declared_bare_curve_rows(named, owner, kind);
+            assert!(topology_rows_with_face_ids(&payload, Some(&faces))
+                .iter()
+                .all(|row| row.id != 9));
+        }
+    }
+}
+
+#[test]
+fn declared_bare_rows_do_not_borrow_another_array_schema() {
+    let payload = declared_bare_curve_rows(false, 3, 8);
+    let declaration_end = payload
+        .iter()
+        .rposition(|&byte| byte == 9)
+        .expect("replay id");
+    let mut isolated = payload[..declaration_end].to_vec();
+    isolated.extend_from_slice(b"crv_array\0topol_ref_data\0\xe3\xe1\xe3");
+    isolated.extend_from_slice(&payload[declaration_end..]);
+    let faces = BTreeSet::from([44, 300]);
+    assert!(topology_rows_with_face_ids(&isolated, Some(&faces))
+        .iter()
+        .all(|row| row.id != 9));
+}
+
+#[test]
+fn declared_bare_rows_keep_parameter_classes_separate() {
+    let mut payload = declared_bare_curve_rows(false, 3, 8);
+    let class_at = payload.len() - 3;
+    assert_eq!(payload[class_at], 0x6b);
+    payload.splice(class_at..=class_at, [0x82, 0x25]);
+    let faces = BTreeSet::from([44, 300]);
+    assert!(topology_rows_with_face_ids(&payload, Some(&faces))
+        .iter()
+        .all(|row| row.id != 9));
+}
+
+#[test]
+fn declared_bare_rows_discard_incomplete_redeclarations() {
+    let payload = declared_bare_curve_rows(false, 3, 8);
+    let replay_at = payload
+        .iter()
+        .rposition(|&byte| byte == 9)
+        .expect("replay id");
+    let mut invalidated = payload[..replay_at].to_vec();
+    invalidated.extend_from_slice(&[8, 8, 3, 1, 0xf6, 0xfc, 4]);
+    invalidated.extend_from_slice(&[0x18; 15]);
+    invalidated.extend_from_slice(&[1, 2, 7, 8, 0, 0, 0xe3, 0x6b, 0xe1, 0xe3]);
+    invalidated.extend_from_slice(&payload[replay_at..]);
+    let faces = BTreeSet::from([44, 300]);
+    assert!(topology_rows_with_face_ids(&invalidated, Some(&faces))
+        .iter()
+        .all(|row| row.id != 9));
+}
+
+#[test]
+fn declared_bare_rows_correct_materialized_low_byte_boundaries() {
+    let payload = declared_bare_curve_rows(false, 3, 8);
+    let faces = BTreeSet::from([44]);
+    let rows = topology_rows_with_face_ids(&payload, Some(&faces));
+    let replay = rows
+        .iter()
+        .find(|row| row.id == 9)
+        .expect("complete declared frame");
+    assert_eq!(replay.faces, [300, 0].map(NonZeroU32::new));
+}
+
+#[test]
+fn declared_bare_rows_use_latest_complete_shape() {
+    let payload = declared_bare_curve_rows(false, 3, 8);
+    let replay_at = payload
+        .iter()
+        .rposition(|&byte| byte == 9)
+        .expect("replay id");
+    let mut redeclared = payload[..replay_at].to_vec();
+    redeclared.extend_from_slice(&[8, 8, 3, 1, 0xf6, 0xfc, 2]);
+    redeclared.extend_from_slice(&[0x18; 8]);
+    redeclared.extend_from_slice(&[1, 2, 7, 8, 0, 0, 0xe3, 0x6b, 0xe1, 0xe3]);
+    redeclared.extend_from_slice(&payload[replay_at..]);
+    let faces = BTreeSet::from([44, 300]);
+    assert!(topology_rows_with_face_ids(&redeclared, Some(&faces))
+        .iter()
+        .all(|row| row.id != 9));
+}
+
+#[test]
+fn declared_bare_rows_replay_extended_named_entry_footer() {
+    let payload = declared_bare_curve_rows(true, 3, 8);
+    let old = b"\xe1\xf2\xe3";
+    let at = payload
+        .windows(old.len())
+        .position(|bytes| bytes == old)
+        .expect("named entry footer");
+    let mut extended = payload;
+    extended.splice(at..at + old.len(), [0xe1, 0xf5, 0x05, 0xf6, 0xf2, 0xe3]);
+    let faces = BTreeSet::from([44, 300]);
+    let rows = topology_rows_with_face_ids(&extended, Some(&faces));
+    let replay = rows
+        .iter()
+        .find(|row| row.id == 9)
+        .expect("complete named replay");
+    assert_eq!(replay.faces, [300, 0].map(NonZeroU32::new));
+    assert_eq!(replay.next_edges, [301, 302]);
+}
