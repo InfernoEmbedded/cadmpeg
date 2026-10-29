@@ -1021,10 +1021,17 @@ fn exact_current_extrude_prologue_with(
         } else {
             return None;
         }
+    } else if bytes.get(start.checked_add(11)?..start.checked_add(24)?) == Some(&[0; 13])
+        && matches!(View::u32_le_at(bytes, start.checked_add(24)?), Some(1..=4))
+    {
+        start.checked_add(24)?
     } else {
         start.checked_add(28)?
     };
-    let reference = if !typed && bytes.get(start.checked_add(25)?) == Some(&1) {
+    let reference = if !typed
+        && direct_offset != start.checked_add(24)?
+        && bytes.get(start.checked_add(25)?) == Some(&1)
+    {
         let reference_record_index_offset = start.checked_add(26)?;
         let record_index = View::u32_le_at(bytes, reference_record_index_offset)?;
         let prefix_tail = start.checked_add(30)?;
