@@ -177,7 +177,8 @@ pub(super) fn exact_work_plane_frame(
                 }
                 352 | 363 | 374
                     if bytes.get(start + 55) == Some(&1)
-                        && bytes.get(start + 56..start + 66) == Some(&[0u8; 10][..]) =>
+                        && bytes.get(start + 56..start + 62) == Some(&[0u8; 6][..])
+                        && bytes.get(start + 64..start + 66) == Some(&[0u8; 2][..]) =>
                 {
                     (start + 66, None)
                 }
