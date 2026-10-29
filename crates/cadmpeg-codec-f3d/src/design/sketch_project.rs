@@ -150,6 +150,76 @@ pub(crate) fn extract_named_records(data: &[u8]) -> HashMap<String, String> {
     names
 }
 
+pub(crate) fn mark_construction_sketch_entities(
+    scan: &crate::container::ContainerScan,
+    curves: &[SketchCurveIdentity],
+    entities: &mut [cadmpeg_ir::sketches::SketchEntity],
+) {
+    let mut construction_ids = HashSet::new();
+    for curve in curves {
+        let Some(scope) = native_stream(&curve.id) else {
+            continue;
+        };
+        let Some(entry) = scan.design_stream_entry_for_scope(
+            cadmpeg_core::container::ContainerRole::Bulkstream,
+            scope,
+        ) else {
+            continue;
+        };
+        let Ok(bytes) = scan.entry_bytes(&entry.name) else {
+            continue;
+        };
+        let Some(g_off) = usize::try_from(curve.byte_offset).ok().and_then(|b| {
+            usize::try_from(curve.geometry_offset)
+                .ok()
+                .and_then(|g| b.checked_add(g))
+        }) else {
+            continue;
+        };
+        let Some(tail_start) = g_off.checked_add(96) else {
+            continue;
+        };
+        let Some(tail_end) = tail_start.checked_add(80).map(|e| e.min(bytes.len())) else {
+            continue;
+        };
+        let Some(tail) = bytes.get(tail_start..tail_end) else {
+            continue;
+        };
+        let mut n_refs = 0usize;
+        let mut cur = 0usize;
+        while cur + 11 <= tail.len() && tail[cur] == 1 && tail[cur + 5..cur + 11] == [0; 6] {
+            n_refs += 1;
+            cur += 11;
+        }
+        if !(1..=3).contains(&n_refs) {
+            continue;
+        }
+        let pad = if n_refs == 1 { 5 } else { 3 };
+        let flag_off = cur + pad + 4;
+        if tail
+            .get(cur..cur + pad)
+            .is_some_and(|s| s.iter().all(|&b| b == 0))
+            && flag_off + 5 <= tail.len()
+            && View::u32_le_at(tail, flag_off) == Some(1)
+            && tail[flag_off + 4] == 1
+        {
+            construction_ids.insert(curve.id.as_str());
+        }
+    }
+    if construction_ids.is_empty() {
+        return;
+    }
+    for entity in entities {
+        if entity
+            .native_ref
+            .as_ref()
+            .is_some_and(|nr| construction_ids.contains(nr.as_str()))
+        {
+            entity.construction = true;
+        }
+    }
+}
+
 fn distinct_return_member_indices(
     members: &[crate::records::sketch_relations::SketchRelationReturnMember],
 ) -> bool {

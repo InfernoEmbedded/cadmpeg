@@ -985,6 +985,11 @@ pub(super) fn decode(inputs: &DesignInputs<'_>) -> Result<DesignOutputs, CodecEr
     model
         .spatial_sketch_constraints
         .sort_by(|a, b| a.id.cmp(&b.id));
+    crate::design::sketch_project::mark_construction_sketch_entities(
+        inputs.scan,
+        &design.sketch_curve_identities,
+        &mut model.sketch_entities,
+    );
     crate::history::face_admission::admit_feature_input_faces(
         &mut model.features,
         &model.feature_input_topologies,
