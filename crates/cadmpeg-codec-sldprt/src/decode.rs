@@ -2461,7 +2461,6 @@ fn ensure_display_appearance(
 struct DisplayPush {
     persistent_face_bindings: Vec<crate::tessellation::PersistentFaceBinding>,
     face_key_bindings: Vec<crate::tessellation::FaceKeyBinding>,
-    display_appearance_ranks: BTreeMap<String, u8>,
     matched_feature_sources: BTreeSet<FeatureSourceId>,
     conflicting_display_references: Vec<String>,
     unresolved: Vec<crate::appearance::UnresolvedAppearanceBinding>,
@@ -2616,7 +2615,6 @@ fn push_display_meshes(
     let mut conflicting_display_references = Vec::new();
     let mut persistent_face_bindings = Vec::new();
     let mut face_key_bindings = Vec::new();
-    let mut display_appearance_ranks = BTreeMap::new();
     let mut unresolved = Vec::new();
     let mut mesh_count = 0usize;
     for (display, display_faces) in display_sections {
@@ -2703,7 +2701,6 @@ fn push_display_meshes(
             )?;
             display_links.push(id.clone());
             if let Some(resolved_definition) = resolved.by_face.get(&table_index) {
-                display_appearance_ranks.insert(id.clone(), resolved_definition.rank);
                 let definition = &resolved_definition.definition;
                 let source_entity_id =
                     format!("{}::DisplayFace[{table_index}]", display_stream.as_str());
@@ -2764,7 +2761,6 @@ fn push_display_meshes(
     Ok(DisplayPush {
         persistent_face_bindings,
         face_key_bindings,
-        display_appearance_ranks,
         matched_feature_sources,
         conflicting_display_references,
         unresolved,
@@ -3400,7 +3396,6 @@ fn build_geometry_ir(
     }
     let persistent_face_bindings = push.persistent_face_bindings;
     let face_key_bindings = push.face_key_bindings;
-    let display_appearance_ranks = push.display_appearance_ranks;
     let conflicting_display_references = push.conflicting_display_references;
     let feature_appearance_sources = push.feature_appearance_sources;
     for unresolved in push.unresolved {
@@ -3510,25 +3505,6 @@ fn build_geometry_ir(
             visible: None,
             channels: display_binding_channels(definition),
         });
-    }
-    for tessellation in &ir.model.tessellations {
-        let old_rank = display_appearance_ranks
-            .get(tessellation.id.as_str())
-            .copied()
-            .unwrap_or(0);
-        let blocked = native_appearance_plan.blocked_display_rank >= old_rank
-            && native_appearance_plan.blocked_display_rank != 0
-            || tessellation.faces.iter().any(|face| {
-                native_appearance_plan
-                    .faces
-                    .get(face)
-                    .is_some_and(|choice| choice.definition.is_none() && choice.rank >= old_rank)
-            });
-        if blocked {
-            ir.model.appearance_bindings.retain(|binding| {
-                binding.target != AppearanceTarget::Tessellation(tessellation.id.to_string())
-            });
-        }
     }
     let mut annotation_builder = AnnotationBuilder::resume(annotations);
     for id in scoped_color_faces {
