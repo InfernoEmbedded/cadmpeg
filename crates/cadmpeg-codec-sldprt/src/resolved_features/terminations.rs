@@ -34,8 +34,6 @@ enum TerminationVote {
         depth_m: Option<f64>,
         second: SecondDirection,
     },
-    /// Blind one-direction end spec with a stored through-all second-direction code.
-    BlindSecondThroughAll,
     Symmetric,
     ThroughAllBoth,
     ThroughAll,
@@ -129,9 +127,7 @@ impl SecondDirection {
 impl TerminationVote {
     fn condition(&self) -> &'static str {
         match self {
-            Self::Blind { .. } | Self::BlindTwoDirections { .. } | Self::BlindSecondThroughAll => {
-                "Blind"
-            }
+            Self::Blind { .. } | Self::BlindTwoDirections { .. } => "Blind",
             Self::Symmetric => "Symmetric",
             Self::ThroughAllBoth => "ThroughAllBoth",
             Self::ThroughAll => "ThroughAll",
@@ -171,8 +167,7 @@ impl TerminationVote {
                     second: b_second,
                 },
             ) => a.map(f64::to_bits) == b.map(f64::to_bits) && a_second.agrees_with(*b_second),
-            (Self::BlindSecondThroughAll, Self::BlindSecondThroughAll)
-            | (Self::Symmetric, Self::Symmetric)
+            (Self::Symmetric, Self::Symmetric)
             | (Self::ThroughAllBoth, Self::ThroughAllBoth)
             | (Self::ThroughAll, Self::ThroughAll)
             | (Self::ThroughNext, Self::ThroughNext) => true,
@@ -375,14 +370,6 @@ pub(crate) fn enrich_history_extrusion_terminations(
                         if compact_extrusion_through_all_both_at(&lane.native_payload, offset) {
                             return Ok(Some(TerminationVote::ThroughAllBoth));
                         }
-                        if has_depth
-                            && compact_extrusion_blind_through_all_second_at(
-                                &lane.native_payload,
-                                offset,
-                            )
-                        {
-                            return Ok(Some(TerminationVote::BlindSecondThroughAll));
-                        }
                         if compact_extrusion_through_all_at(&lane.native_payload, offset) {
                             return Ok(Some(TerminationVote::ThroughAll));
                         }
@@ -479,10 +466,6 @@ pub(crate) fn enrich_history_extrusion_terminations(
                 if let SecondDirection::Blind { depth_m } = second {
                     insert_missing_depth(&mut feature.parameters, ["D2", "Depth2"], depth_m)?;
                 }
-            }
-            TerminationVote::BlindSecondThroughAll => {
-                let value = ("ThroughAll").to_owned();
-                insert_termination_field(&mut feature.properties, "EndCondition2", value)?;
             }
             TerminationVote::Blind { depth_m } => {
                 insert_missing_depth(&mut feature.parameters, ["D1", "Depth"], depth_m)?;
@@ -1441,12 +1424,11 @@ fn compact_extrusion_through_all_at(payload: &[u8], offset: usize) -> bool {
     compact_extrusion_end_spec_header(payload, offset, 1)
         && (compact_extrusion_traversal_tail_at(payload, offset)
             || compact_extrusion_dimensioned_traversal_at(payload, offset)
-            || (payload.get(offset + 22..offset + 26) == Some(&[0, 0, 0, 0])
-                && compact_extrusion_dimension_child_at(payload, offset + 26).is_some()))
+            || compact_extrusion_dimension_child_at(payload, offset + 26).is_some())
 }
 
 fn compact_extrusion_dimensioned_traversal_at(payload: &[u8], offset: usize) -> bool {
-    payload.get(offset + 22..offset + 30) == Some(&[0; 8])
+    payload.get(offset + 26..offset + 30) == Some(&[0; 4])
         && payload.get(offset + 30..offset + 34) == Some(&[1, 0, 0, 1])
         && payload
             .get(offset + 34..offset + 44)
@@ -1460,8 +1442,7 @@ fn compact_extrusion_dimensioned_traversal_at(payload: &[u8], offset: usize) -> 
 
 fn compact_extrusion_blind_at(payload: &[u8], offset: usize) -> bool {
     compact_extrusion_end_spec_header(payload, offset, 0)
-        && ((payload.get(offset + 22..offset + 26) == Some(&[0, 0, 0, 0])
-            && compact_extrusion_dimension_child_at(payload, offset + 26).is_some())
+        && (compact_extrusion_dimension_child_at(payload, offset + 26).is_some()
             || compact_extrusion_dimension_child_at(payload, offset + 22).is_some())
 }
 
@@ -1478,38 +1459,18 @@ fn compact_extrusion_through_all_both_at(payload: &[u8], offset: usize) -> bool 
     (compact_extrusion_two_direction_header(payload, offset, 1)
         && payload.get(offset + 26..offset + 30) == Some(&[0, 0, 0, 0])
         && compact_extrusion_traversal_body_at(payload, offset))
-        || (compact_extrusion_two_direction_header(payload, offset, 9)
+        || (compact_extrusion_end_spec_directions(payload, offset, 9).is_some()
+            && payload.get(offset + 22..offset + 26) == Some(&[1, 0, 0, 0])
             && compact_extrusion_dimension_child_at(payload, offset + 26).is_some())
 }
 
-/// Blind one-direction header whose stored second-direction word is `1` and
-/// that owns the blind dimension child. This form projects a through-all
-/// second direction.
-fn compact_extrusion_blind_through_all_second_at(payload: &[u8], offset: usize) -> bool {
-    compact_end_spec_identity_at(payload, offset)
-        && payload.get(offset + 2..offset + 12) == Some(&[0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
-        && View::u32_le_at(payload, offset + 12).is_some_and(|flag| flag <= 1)
-        && payload.get(offset + 16..offset + 22) == Some(&[0, 0, 0, 0, 0, 0])
-        && payload.get(offset + 22..offset + 26) == Some(&[1, 0, 0, 0])
-        && compact_extrusion_dimension_child_at(payload, offset + 26).is_some()
-}
-
-/// Two-direction end-spec header: the words at `+4` and `+8` carry `0` or
-/// `1`, the first-direction code sits at `+18`, and the second-direction
-/// code `1` sits at `+22`.
 fn compact_extrusion_two_direction_header(payload: &[u8], offset: usize, code: u32) -> bool {
-    compact_end_spec_identity_at(payload, offset)
-        && payload.get(offset + 2..offset + 4) == Some(&[0, 0])
-        && View::u32_le_at(payload, offset + 4).is_some_and(|word| word <= 1)
-        && View::u32_le_at(payload, offset + 8).is_some_and(|word| word <= 1)
-        && View::u32_le_at(payload, offset + 12).is_some_and(|flag| flag <= 1)
-        && payload.get(offset + 16..offset + 18) == Some(&[0, 0])
-        && payload.get(offset + 18..offset + 22) == Some(code.to_le_bytes().as_slice())
+    compact_extrusion_end_spec_directions(payload, offset, code) == Some(EndSpecDirections::Two)
         && payload.get(offset + 22..offset + 26) == Some(&[1, 0, 0, 0])
 }
 
 fn compact_extrusion_traversal_tail_at(payload: &[u8], offset: usize) -> bool {
-    payload.get(offset + 22..offset + 30) == Some(&[0, 0, 0, 0, 0, 0, 0, 0])
+    payload.get(offset + 26..offset + 30) == Some(&[0, 0, 0, 0])
         && compact_extrusion_traversal_body_from(payload, offset + 30)
 }
 

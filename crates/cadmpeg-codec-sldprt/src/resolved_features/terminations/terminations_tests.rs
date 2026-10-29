@@ -6,15 +6,14 @@ use super::super::selections::COMPACT_EDGE_VECTOR_MARKER;
 use super::super::selections::{compact_surface_selections, selection_vector_tail};
 use super::{
     compact_body_component_path_at, compact_body_path_at, compact_combine_operation_at,
-    compact_extrusion_blind_at, compact_extrusion_blind_through_all_second_at,
-    compact_extrusion_dimension_child_at, compact_extrusion_mid_plane_at,
-    compact_extrusion_offset_from_face_at, compact_extrusion_through_all_at,
-    compact_extrusion_through_all_both_at, compact_extrusion_through_next_at,
-    compact_extrusion_to_face_at, compact_extrusion_to_vertex_at,
-    compact_extrusion_two_direction_blind_at, compact_single_face_reference_path_at,
-    compact_single_face_reference_record_at, enrich_history_combine_selections,
-    enrich_history_extrusion_terminations, legacy_single_face_reference_path_at,
-    CompactPointReferenceKind,
+    compact_extrusion_blind_at, compact_extrusion_dimension_child_at,
+    compact_extrusion_mid_plane_at, compact_extrusion_offset_from_face_at,
+    compact_extrusion_through_all_at, compact_extrusion_through_all_both_at,
+    compact_extrusion_through_next_at, compact_extrusion_to_face_at,
+    compact_extrusion_to_vertex_at, compact_extrusion_two_direction_blind_at,
+    compact_single_face_reference_path_at, compact_single_face_reference_record_at,
+    enrich_history_combine_selections, enrich_history_extrusion_terminations,
+    legacy_single_face_reference_path_at, CompactPointReferenceKind,
 };
 use crate::records::FeatureSource;
 use crate::records::ObjectId;
@@ -991,7 +990,7 @@ fn compact_extrusion_through_all_accepts_a_retained_dimension_child() {
 
     assert!(compact_extrusion_through_all_at(&payload, 0));
     payload[22] = 1;
-    assert!(!compact_extrusion_through_all_at(&payload, 0));
+    assert!(compact_extrusion_through_all_at(&payload, 0));
 }
 
 #[test]
@@ -1117,7 +1116,7 @@ fn compact_extrusion_two_direction_blind_returns_the_second_code() {
         compact_extrusion_two_direction_blind_at(&payload, 0),
         Some(1)
     );
-    assert!(!compact_extrusion_blind_through_all_second_at(&payload, 0));
+    assert!(!compact_extrusion_blind_at(&payload, 0));
     payload[22] = 0;
     payload[4] = 1;
     assert_eq!(compact_extrusion_two_direction_blind_at(&payload, 0), None);
@@ -1209,6 +1208,7 @@ fn two_direction_blind_end_spec_sets_the_second_termination() {
         .unwrap();
         enrich_history_extrusion_terminations(&ctx, &mut histories, std::slice::from_ref(&lane))
             .unwrap();
+        assert_eq!(histories[0].features[0].parameters["D1"], "5mm");
         let properties = &histories[0].features[0].properties;
         (
             properties.get("EndCondition").cloned(),
@@ -1227,7 +1227,9 @@ fn two_direction_blind_end_spec_sets_the_second_termination() {
         resolve(payload(0, 4)),
         condition("Blind", Some("Unresolved"))
     );
-    assert_eq!(resolve(payload(1, 0)), condition("Blind", None));
+    for code in [0, 1, 2, 4, 6, 9, 255] {
+        assert_eq!(resolve(payload(1, code)), condition("Blind", None));
+    }
 }
 
 #[test]
@@ -1250,7 +1252,7 @@ fn compact_extrusion_blind_requires_code_zero_and_the_dimension_child() {
     assert!(!compact_extrusion_blind_at(&payload, 0));
     payload[18] = 0;
     payload[22] = 1;
-    assert!(!compact_extrusion_blind_at(&payload, 0));
+    assert!(compact_extrusion_blind_at(&payload, 0));
 
     let mut compact = payload[..22].to_vec();
     compact.extend_from_slice(&payload[26..]);
@@ -1277,6 +1279,10 @@ fn compact_extrusion_through_all_both_accepts_both_carriers() {
     payload[92] = 1;
     assert!(compact_extrusion_through_all_both_at(&payload, 0));
     assert!(!compact_extrusion_through_all_at(&payload, 0));
+    payload[4] = 1;
+    assert!(!compact_extrusion_through_all_both_at(&payload, 0));
+    assert!(compact_extrusion_through_all_at(&payload, 0));
+    payload[4] = 0;
     payload[8] = 1;
     assert!(compact_extrusion_through_all_both_at(&payload, 0));
     payload[8] = 2;
@@ -1299,12 +1305,14 @@ fn compact_extrusion_through_all_both_accepts_both_carriers() {
     payload[22] = 0;
     assert!(!compact_extrusion_through_all_both_at(&payload, 0));
     payload[22] = 1;
+    payload[4] = 1;
+    assert!(compact_extrusion_through_all_both_at(&payload, 0));
     payload[4] = 2;
     assert!(!compact_extrusion_through_all_both_at(&payload, 0));
 }
 
 #[test]
-fn compact_extrusion_blind_second_direction_requires_the_dimension_child() {
+fn single_direction_blind_ignores_the_inactive_second_code() {
     let mut payload = vec![0; 26];
     payload[..2].copy_from_slice(&[0x0c, 0x8e]);
     payload[4] = 1;
@@ -1316,17 +1324,19 @@ fn compact_extrusion_blind_second_direction_requires_the_dimension_child() {
     payload.extend_from_slice(&[0xff, 0xff, 0, 0, 3]);
     payload.extend_from_slice(&[0xff, 0xff, 0xff, 0xff]);
     payload.extend_from_slice(&[0, 0, 0, 0, 0, 0, 0x80, 0xbf]);
-    assert!(compact_extrusion_blind_through_all_second_at(&payload, 0));
-    assert!(!compact_extrusion_through_all_both_at(&payload, 0));
-    payload[22] = 0;
-    assert!(!compact_extrusion_blind_through_all_second_at(&payload, 0));
+    for code in [0_u32, 1, 2, 4, 6, 9, u32::MAX] {
+        payload[22..26].copy_from_slice(&code.to_le_bytes());
+        assert!(compact_extrusion_blind_at(&payload, 0));
+        assert!(!compact_extrusion_through_all_both_at(&payload, 0));
+        assert_eq!(compact_extrusion_two_direction_blind_at(&payload, 0), None);
+    }
     payload[22] = 1;
     payload[4] = 0;
-    assert!(!compact_extrusion_blind_through_all_second_at(&payload, 0));
+    assert!(!compact_extrusion_blind_at(&payload, 0));
     payload[4] = 1;
     let last = payload.len() - 1;
     payload[last] = 0;
-    assert!(!compact_extrusion_blind_through_all_second_at(&payload, 0));
+    assert!(!compact_extrusion_blind_at(&payload, 0));
 }
 
 #[test]
