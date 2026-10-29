@@ -771,6 +771,24 @@ Keep independently correct placements while repairing the conflicting reader.
 records. Coaxial agreement between decoded analytic records does not establish
 their relation to the authoring model frame.
 
+### SP-46. Other extended feature-prefix namespaces
+
+**Question.** Which complete production identifies other extended model-feature
+headers and separates them from keyed objects in another schema namespace?
+
+**Known.** A complete class-911 current entry, its generated-entity table, and
+its owned cone/cylinder rows establish the drilled-hole case. The opening-marker
+window does not bound the following compact class field. A numeric key can also
+occur under another object class and does not by itself identify a second model
+feature state.
+
+**Need.** Establish the full declaration and replay context before extending
+other feature families. Bind the current feature namespace independently of
+nearby schema markers and reject a class field borrowed from another row.
+
+**Conflict.** Joining a nearby schema-object record through its numeric key can
+conflict with an independently established model-feature definition.
+
 ## 4. Topology and appearance
 
 ### TP-01. Current feature-to-body binding

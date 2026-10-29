@@ -1023,3 +1023,60 @@ fn loop_history_zero_runs_are_owned_by_operand_slots() {
     );
     assert_eq!(rows[0].field_bytes.concat(), body[1..5]);
 }
+
+fn extended_schema_prefix_row() -> [u8; 20] {
+    [
+        0xa6, 0x95, 0xc2, 0x10, 0x01, 0x80, 0x80, 0x98, 0x00, 0xeb, 0x10, 0x00, 0x00, 0x00, 0x00,
+        0xe3, 0xf6, 0x83, 0x8f, 0xe1,
+    ]
+}
+
+#[test]
+fn schema_prefix_reads_complete_class_beyond_the_marker_window() {
+    let payload = extended_schema_prefix_row();
+    let decoded = rows(&payload, &BTreeSet::from([9877]), 200);
+    assert_eq!(decoded.len(), 1);
+    assert_eq!(decoded[0].feature_id, 9877);
+    assert_eq!(decoded[0].offset, 200);
+    assert_eq!(decoded[0].body_offset, 202);
+    assert_eq!(
+        decoded[0].root_schema_class,
+        Some(crate::feature::schema::SchemaClass::Hole)
+    );
+    assert_eq!(*decoded[0].body, payload[2..]);
+}
+
+#[test]
+fn schema_prefix_rejects_marker_starts_outside_the_window() {
+    let mut payload = vec![7, 0xeb, 0x04];
+    payload.extend_from_slice(&[0; 14]);
+    payload.extend_from_slice(&[0xe3, 0xf6, 0x83, 0x8f, 0xe1]);
+    assert!(rows(&payload, &BTreeSet::from([7]), 0).is_empty());
+}
+
+#[test]
+fn schema_prefix_cannot_borrow_the_next_rows_marker() {
+    let payload = [11, 0, 0xe3, 22, 0xeb, 0x04, 0xe3, 0xf6, 0x83, 0x8f, 0xe1];
+    let decoded = rows(&payload, &BTreeSet::from([11, 22]), 0);
+    assert_eq!(decoded.len(), 1);
+    assert_eq!(decoded[0].feature_id, 22);
+    assert_eq!(
+        decoded[0].root_schema_class,
+        Some(crate::feature::schema::SchemaClass::Hole)
+    );
+}
+
+#[test]
+fn schema_prefix_requires_complete_class_and_close() {
+    let payload = extended_schema_prefix_row();
+    for end in 0..payload.len() {
+        assert!(rows(&payload[..end], &BTreeSet::from([9877]), 0).is_empty());
+    }
+}
+
+#[test]
+fn schema_prefix_does_not_widen_unclassified_schema_admission() {
+    let mut payload = extended_schema_prefix_row();
+    payload[17..19].copy_from_slice(&[0x84, 0xd0]);
+    assert!(rows(&payload, &BTreeSet::from([9877]), 0).is_empty());
+}

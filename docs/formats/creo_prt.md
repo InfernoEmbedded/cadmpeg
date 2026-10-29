@@ -3987,11 +3987,13 @@ An `AllFeatur` feature row starts at section-body offset zero, immediately
 after the section's `#<name>\n` header, or immediately after an `e3` compound
 close. Its leading canonical compact feature identifier is followed by a
 two-byte row header. The row-header bytes are retained but are not a fixed
-allowlist for row discovery. Within the first 16 bytes after the feature
-identifier, after that row header, the fixed prefix contains
-`e3 f6 <compact-class> e1`. The compact integer is the root `FeatDefs`
+allowlist for row discovery. Both opening bytes of `e3 f6` lie within the
+first 16 bytes after the feature identifier and after that row header.
+The complete following `<compact-class> e1` can extend beyond this search
+window but must finish within the actual row. The compact integer is the root `FeatDefs`
 schema class for that feature. A candidate without this complete prefix is
-not a row. A row ends immediately before the next candidate satisfying the
+not a row. A candidate cannot borrow its schema marker or class field from
+the next row. A row ends immediately before the next candidate satisfying the
 same boundary and prefix rules with a different feature-identifier/schema-
 class pair, or at the section end. Within one stream, a feature identifier
 and root schema class pair identifies one row; a later candidate with the

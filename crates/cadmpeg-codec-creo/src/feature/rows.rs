@@ -432,9 +432,14 @@ pub(super) fn row_spans(payload: &[u8], feature_ids: &BTreeSet<u32>) -> Vec<(usi
         if starts_at_row_boundary
             && feature_ids.contains(&id)
             && payload.get(after..after + 2).is_some()
-            && row_root_schema_class(payload, offset, prefix_end).is_some()
         {
-            starts.push((offset, id));
+            let schema_class = row_root_schema_class(payload, offset, prefix_end).or_else(|| {
+                row_root_schema_class(payload, offset, payload.len())
+                    .filter(|schema| *schema == SchemaClass::Hole)
+            });
+            if let Some(schema_class) = schema_class {
+                starts.push((offset, id, schema_class == SchemaClass::Hole));
+            }
         }
     }
     starts.sort_unstable_by(Ord::cmp);
@@ -443,17 +448,17 @@ pub(super) fn row_spans(payload: &[u8], feature_ids: &BTreeSet<u32>) -> Vec<(usi
     let mut seen_ids = BTreeSet::new();
     let mut seen_schema_classes = BTreeSet::new();
     let mut retained_starts = Vec::new();
-    for (index, &(start, id)) in starts.iter().enumerate() {
+    for (index, &(start, id, hole)) in starts.iter().enumerate() {
         let candidate_end = starts
             .get(index + 1)
-            .map_or(payload.len(), |&(next, _)| next);
+            .map_or(payload.len(), |&(next, _, _)| next);
+        let schema_class = row_root_schema_class(payload, start, candidate_end);
+        if hole && schema_class != Some(SchemaClass::Hole) {
+            continue;
+        }
         let first_for_id = seen_ids.insert(id);
         let has_new_schema_class =
-            if let Some(schema_class) = row_root_schema_class(payload, start, candidate_end) {
-                seen_schema_classes.insert((id, schema_class))
-            } else {
-                false
-            };
+            schema_class.is_some_and(|schema_class| seen_schema_classes.insert((id, schema_class)));
         if first_for_id || has_new_schema_class {
             retained_starts.push((start, id));
         }
