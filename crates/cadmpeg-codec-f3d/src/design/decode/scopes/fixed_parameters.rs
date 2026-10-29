@@ -447,6 +447,7 @@ pub(super) fn exact_fixed_fillet_parameters(
     bytes: &[u8],
     records: &IndexedRecordOffsets,
     scope: &DesignParameterScope,
+    parameters: &[DesignParameter],
 ) -> Option<DesignFixedFilletParameters> {
     use crate::records::feature::fixed_parameters::{
         DesignFixedFilletIntermediate, DesignFixedFilletLaw, DesignFixedFilletScalar,
@@ -485,9 +486,21 @@ pub(super) fn exact_fixed_fillet_parameters(
         groups.push(value);
     } else if lanes.len() % 2 == 0 {
         for pair in lanes.chunks_exact(2) {
+            let first_is_radius = parameters.iter().any(|parameter| {
+                native_stream(&parameter.id) == native_stream(&scope.id)
+                    && ((parameter.owner_record_index() == Some(pair[0].0)
+                        && parameter.source_kind_str() == "Radius")
+                        || (parameter.owner_record_index() == Some(pair[1].0)
+                            && parameter.source_kind_str() == "TangencyWeight"))
+            });
+            let (tangency_lane, radius_lane) = if first_is_radius {
+                (&pair[1], &pair[0])
+            } else {
+                (&pair[0], &pair[1])
+            };
             let value = group(
-                Some(&pair[0]),
-                DesignFixedFilletLaw::Constant(scalar(&pair[1])),
+                Some(tangency_lane),
+                DesignFixedFilletLaw::Constant(scalar(radius_lane)),
             )?;
             groups.push(value);
         }

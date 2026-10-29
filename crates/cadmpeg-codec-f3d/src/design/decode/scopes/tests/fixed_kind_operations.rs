@@ -200,7 +200,12 @@ fn fixed_kind_edge_and_revolve_operations(
         })
         .unwrap();
     assert_eq!(
-        exact_fixed_fillet_parameters(&bytes, &crate::design::test_support::indexed_record_offsets_for_test(&bytes), &fillet_scope),
+        exact_fixed_fillet_parameters(
+            &bytes,
+            &crate::design::test_support::indexed_record_offsets_for_test(&bytes),
+            &fillet_scope,
+            &[],
+        ),
         Some(DesignFixedFilletParameters {
             groups: vec![crate::records::feature::fixed_parameters::DesignFixedFilletGroup::try_new(
                 Some(crate::records::feature::fixed_parameters::DesignFixedFilletScalar {
@@ -250,7 +255,8 @@ fn fixed_kind_edge_and_revolve_operations(
         exact_fixed_fillet_parameters(
             &bytes,
             &crate::design::test_support::indexed_record_offsets_for_test(&bytes),
-            &fillet_scope
+            &fillet_scope,
+            &[],
         ),
         Some(DesignFixedFilletParameters {
             groups: vec![
@@ -303,7 +309,8 @@ fn fixed_kind_edge_and_revolve_operations(
         exact_fixed_fillet_parameters(
             &bytes,
             &crate::design::test_support::indexed_record_offsets_for_test(&bytes),
-            &fillet_scope
+            &fillet_scope,
+            &[],
         ),
         Some(DesignFixedFilletParameters {
             groups: vec![
@@ -356,6 +363,7 @@ fn fixed_kind_edge_and_revolve_operations(
         &bytes,
         &crate::design::test_support::indexed_record_offsets_for_test(&bytes),
         &fillet_scope,
+        &[],
     )
     .expect("two constant-radius Fillet scalar groups");
     assert_eq!(fixed.groups.len(), 2);
