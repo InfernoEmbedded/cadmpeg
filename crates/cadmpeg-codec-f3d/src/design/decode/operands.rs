@@ -4551,7 +4551,8 @@ pub(crate) fn bind_extrude_selection_geometry(
         };
         let point_operands = points.iter().filter_map(|point| {
             (native_stream(&point.id) == Some(stream)
-                && point.owner_reference == Some(entity_suffix)
+                && (point.owner_reference.is_none()
+                    || point.owner_reference == Some(entity_suffix))
                 && point.persistent_id() == Some(member.local_id))
             .then_some(SketchRelationOperand::Point {
                 record_index: point.record_index,
@@ -4560,7 +4561,8 @@ pub(crate) fn bind_extrude_selection_geometry(
         });
         let curve_operands = curves.iter().filter_map(|curve| {
             (native_stream(&curve.id) == Some(stream)
-                && curve.owner_reference == Some(entity_suffix)
+                && (curve.owner_reference.is_none()
+                    || curve.owner_reference == Some(entity_suffix))
                 && (curve.primary_id.get() == member.local_id
                     || curve.secondary_id != 0 && curve.secondary_id == member.local_id))
                 .then_some(SketchRelationOperand::Curve {
@@ -5045,7 +5047,7 @@ fn parse_sketch_profile_region_selection(
         });
     }
     let companion_at = cursor.checked_add(TERMINATOR_LEN)?;
-    if bytes.get(cursor..companion_at)? != [0; TERMINATOR_LEN]
+    if !matches!(bytes.get(cursor..companion_at)?, [0 | 1, 0, 0, 0, 0])
         || next_header(companion_at, selection_record_index)? != companion_at
     {
         return None;
